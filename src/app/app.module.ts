@@ -1,6 +1,10 @@
-import { NgModule } from '@angular/core';
+import { NgModule, LOCALE_ID } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { DatePipe, registerLocaleData } from '@angular/common';
+import localeId from '@angular/common/locales/id';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+
+registerLocaleData(localeId);
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
@@ -13,6 +17,7 @@ import { LaporanComponent } from './components/laporan/laporan.component';
 import { LoginComponent } from './components/auth/login.component';
 import { LayoutComponent } from './components/layout/layout.component';
 import { StatistikComponent } from './components/statistik/statistik.component';
+import { ProgramStudiListComponent } from './components/program-studi/list.component';
 
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
@@ -24,13 +29,13 @@ const routes: Routes = [
   {
     path: '',
     component: LayoutComponent,
-    canActivate: [AuthGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: DashboardComponent },
       { path: 'perguruan-tinggi', component: PerguruanTinggiListComponent },
       { path: 'perguruan-tinggi/:id', component: PerguruanTinggiDetailComponent },
-      { path: 'laporan', component: LaporanComponent },
+      { path: 'program-studi', component: ProgramStudiListComponent },
+      { path: 'laporan', component: LaporanComponent, canActivate: [AuthGuard] },
       { path: 'statistik', component: StatistikComponent },
     ]
   },
@@ -43,6 +48,7 @@ const routes: Routes = [
     DashboardComponent,
     PerguruanTinggiListComponent,
     PerguruanTinggiDetailComponent,
+    ProgramStudiListComponent,
     LaporanComponent,
     LoginComponent,
     LayoutComponent,
@@ -57,10 +63,12 @@ const routes: Routes = [
     RouterModule.forRoot(routes),
   ],
   providers: [
+    DatePipe,
     AuthService,
     ApiService,
     AuthGuard,
-    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    { provide: LOCALE_ID, useValue: 'id' },
   ],
   bootstrap: [AppComponent]
 })

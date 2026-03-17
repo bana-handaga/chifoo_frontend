@@ -150,7 +150,7 @@ import { ApiService } from '../../services/api.service';
     .w-prov { font-size: 11px; color: #888; display: none; }
 
     /* ── Stats ────────────────────────────── */
-    .stats-overview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stats-overview { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
     .stat-box {
       background: white; border-radius: 10px; padding: 16px 12px;
       text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -158,7 +158,7 @@ import { ApiService } from '../../services/api.service';
     .val { font-size: 28px; font-weight: 700; color: #1a237e; }
     .lbl { font-size: 12px; color: #666; margin-top: 4px; }
 
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .two-col { display: grid; grid-template-columns: 1fr; gap: 12px; }
     .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     .card h3 { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 16px; }
 
@@ -187,30 +187,43 @@ import { ApiService } from '../../services/api.service';
     }
     @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
 
-    /* Tablet */
-    @media (max-width: 1024px) {
-      .two-col { grid-template-columns: 1fr; }
-      .stats-overview { grid-template-columns: repeat(3, 1fr); }
-      .wilayah-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-    }
+    /* ── Base mobile ─── */
+    .page-header h1 { font-size: 16px; }
+    .stat-box { padding: 10px 8px; }
+    .val { font-size: 18px; }
+    .lbl { font-size: 10px; }
+    .card { padding: 12px; }
+    .bar-lbl { width: 75px; font-size: 11px; }
+    th, td { padding: 8px 10px; font-size: 12px; }
+    .wilayah-grid { grid-template-columns: 1fr; max-height: 200px; }
+    .filter-header { padding: 10px 14px; }
+    .filter-body { padding: 10px 14px 12px; }
+    .filter-body .filter-row { flex-direction: column; gap: 8px; }
+    .filter-body select, .filter-body input { min-width: 0; width: 100%; }
 
-    /* Mobile */
-    @media (max-width: 767px) {
+    /* ── Tablet ≥ 600px ─── */
+    @media (min-width: 600px) {
       .page-header h1 { font-size: 18px; }
-      .stats-overview { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stats-overview { grid-template-columns: repeat(3, 1fr); gap: 10px; }
       .stat-box { padding: 12px 8px; }
-      .val { font-size: 22px; }
-      .card { padding: 14px; }
-      .bar-lbl { width: 90px; font-size: 12px; }
-      th, td { padding: 8px 10px; font-size: 12px; }
-      .wilayah-grid { grid-template-columns: 1fr 1fr; max-height: 200px; }
-      .filter-header { padding: 10px 14px; }
-      .filter-body { padding: 10px 14px 12px; }
+      .val { font-size: 20px; }
+      .wilayah-grid { grid-template-columns: 1fr 1fr; }
+      .filter-body .filter-row { flex-direction: row; flex-wrap: wrap; }
+      .filter-body select, .filter-body input { min-width: 140px; width: auto; }
     }
 
-    @media (max-width: 400px) {
-      .stats-overview { grid-template-columns: repeat(2, 1fr); }
-      .wilayah-grid { grid-template-columns: 1fr; }
+    /* ── Desktop ≥ 1024px ─── */
+    @media (min-width: 1024px) {
+      .page-header h1 { font-size: 22px; }
+      .stats-overview { grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+      .stat-box { padding: 16px 12px; }
+      .val { font-size: 28px; }
+      .lbl { font-size: 12px; }
+      .card { padding: 20px; }
+      .bar-lbl { width: 120px; font-size: 13px; }
+      th, td { padding: 10px 12px; font-size: 13px; }
+      .two-col { grid-template-columns: 1fr 1fr; gap: 16px; }
+      .wilayah-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); max-height: 260px; }
     }
   `]
 })

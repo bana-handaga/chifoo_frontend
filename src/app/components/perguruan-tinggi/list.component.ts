@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { ApiService } from '../../services/api.service';
@@ -12,48 +12,59 @@ Chart.register(...registerables);
         <h1>Perguruan Tinggi</h1>
         <p>Daftar seluruh PTMA di Indonesia</p>
       </div>
-      <div class="chart-row">
-        <div class="chart-card">
-          <div class="chart-title">Distribusi Jenis</div>
-          <div class="bar-list">
-            <div class="bar-item" *ngFor="let item of chartJenis">
-              <div class="bar-label">{{ item.label }}</div>
-              <div class="bar-track"><div class="bar-fill" [style.width.%]="item.pct" [style.background]="item.color"></div></div>
-              <div class="bar-value">{{ item.total }}</div>
-            </div>
-          </div>
+
+      <!-- Stats overview -->
+      <div class="stats-overview" *ngIf="statistik">
+        <div class="stat-box">
+          <div class="val">{{ statistik.total_pt }}</div>
+          <div class="lbl">Total PT</div>
         </div>
-        <div class="chart-card">
-          <div class="chart-title">Distribusi Organisasi</div>
-          <div class="bar-list">
-            <div class="bar-item" *ngFor="let item of chartOrganisasi">
-              <div class="bar-label">{{ item.label }}</div>
-              <div class="bar-track"><div class="bar-fill" [style.width.%]="item.pct" [style.background]="item.color"></div></div>
-              <div class="bar-value">{{ item.total }}</div>
-            </div>
-          </div>
+        <div class="stat-box">
+          <div class="val">{{ statistik.total_muhammadiyah }}</div>
+          <div class="lbl">Muhammadiyah</div>
         </div>
-        <div class="chart-card">
-          <div class="chart-title">Distribusi Akreditasi</div>
-          <div class="bar-list">
-            <div class="bar-item" *ngFor="let item of chartAkreditasi">
-              <div class="bar-label">{{ item.label }}</div>
-              <div class="bar-track"><div class="bar-fill" [style.width.%]="item.pct" [style.background]="item.color"></div></div>
-              <div class="bar-value">{{ item.total }}</div>
-            </div>
-          </div>
+        <div class="stat-box">
+          <div class="val">{{ statistik.total_aisyiyah }}</div>
+          <div class="lbl">Aisyiyah</div>
         </div>
-        <div class="chart-card">
-          <div class="chart-title">Distribusi Status</div>
-          <div class="bar-list">
-            <div class="bar-item" *ngFor="let item of chartStatus">
-              <div class="bar-label">{{ item.label }}</div>
-              <div class="bar-track"><div class="bar-fill" [style.width.%]="item.pct" [style.background]="item.color"></div></div>
-              <div class="bar-value">{{ item.total }}</div>
-            </div>
+        <div class="stat-box">
+          <div class="val">{{ statistik.total_prodi }}</div>
+          <div class="lbl">Program Studi</div>
+        </div>
+        <div class="stat-box">
+          <div class="val">{{ statistik.total_dosen | number }}</div>
+          <div class="lbl">Dosen Tetap</div>
+        </div>
+        <div class="stat-box">
+          <div class="val">{{ statistik.total_mahasiswa | number }}</div>
+          <div class="lbl">Mahasiswa</div>
+        </div>
+      </div>
+      <div class="periode-note" *ngIf="statistik?.periode_label">
+        Data dosen &amp; mahasiswa: periode <strong>{{ statistik.periode_label }}</strong>
+      </div>
+
+      <!-- Charts: Akreditasi | Wilayah | Jenis -->
+      <div class="three-col" *ngIf="statistik">
+        <div class="card">
+          <h3>Distribusi Akreditasi</h3>
+          <div class="donut-wrap"><canvas #akrChart></canvas></div>
+        </div>
+        <div class="card" *ngIf="chartWilayah.length">
+          <h3>Sebaran PT per Wilayah</h3>
+          <div class="donut-wrap"><canvas #wilayahChart></canvas></div>
+        </div>
+        <div class="card">
+          <h3>Distribusi Jenis</h3>
+          <div *ngFor="let item of chartJenis" class="bar-row">
+            <div class="bar-lbl">{{ item.label }}</div>
+            <div class="bar-track"><div class="bar-fill" [style.width.%]="item.pct" [style.background]="item.color"></div></div>
+            <div class="bar-num">{{ item.total }}</div>
           </div>
         </div>
       </div>
+
+      <!-- Notifikasi kadaluarsa -->
       <div class="notif-bar" *ngIf="count2m > 0 || count3m > 0">
         <div class="notif-item notif-red" *ngIf="count2m > 0" (click)="setExpFilter('less_2m')">
           <span class="notif-icon">🔴</span>
@@ -66,44 +77,61 @@ Chart.register(...registerables);
           <span class="notif-action">Lihat →</span>
         </div>
       </div>
-      <div class="filters card mb-16">
-        <input type="text" [(ngModel)]="search" (input)="onSearch()" placeholder="🔍 Cari nama, kota, singkatan..." class="search-input">
-        <div class="filter-selects">
-          <select [(ngModel)]="filterExp" (change)="applyFilter()" class="filter-exp">
-            <option value="">Semua Kadaluarsa</option>
-            <option value="more_1y">Lebih dari 1 tahun</option>
-            <option value="less_3m">Kurang dari 3 bulan</option>
-            <option value="less_2m">Kurang dari 2 bulan</option>
-            <option value="less_1m">Kurang dari 1 bulan</option>
-          </select>
-          <select [(ngModel)]="filterJenis" (change)="applyFilter()">
-            <option value="">Semua Jenis</option>
-            <option value="universitas">Universitas</option>
-            <option value="institut">Institut</option>
-            <option value="sekolah_tinggi">Sekolah Tinggi</option>
-            <option value="politeknik">Politeknik</option>
-            <option value="akademi">Akademi</option>
-          </select>
-          <select [(ngModel)]="filterOrganisasi" (change)="applyFilter()">
-            <option value="">Semua Organisasi</option>
-            <option value="muhammadiyah">Muhammadiyah</option>
-            <option value="aisyiyah">Aisyiyah</option>
-          </select>
-          <select [(ngModel)]="filterAkreditasi" (change)="applyFilter()">
-            <option value="">Semua Akreditasi</option>
-            <option value="unggul">Unggul</option>
-            <option value="baik_sekali">Baik Sekali</option>
-            <option value="baik">Baik</option>
-            <option value="belum">Belum</option>
-          </select>
-          <select [(ngModel)]="filterAktif" (change)="applyFilter()">
-            <option value="">Semua Status</option>
-            <option value="true">Aktif</option>
-            <option value="false">Tidak Aktif</option>
-          </select>
+
+      <!-- Collapsible filter card -->
+      <div class="filter-card">
+        <div class="filter-header" (click)="filterOpen = !filterOpen">
+          <span class="filter-title">
+            Filter &amp; Pencarian
+            <span class="badge-count" *ngIf="activeFilterCount > 0">{{ activeFilterCount }} aktif</span>
+          </span>
+          <span class="chevron">{{ filterOpen ? '▲' : '▼' }}</span>
+        </div>
+        <div class="filter-body" *ngIf="filterOpen">
+          <input type="text" [(ngModel)]="search" (input)="onSearch()"
+                 placeholder="🔍 Cari nama, kota, singkatan..." class="search-input">
+          <div class="filter-row">
+            <select [(ngModel)]="filterExp" (change)="applyFilter()" class="filter-exp">
+              <option value="">Semua Kadaluarsa</option>
+              <option value="more_1y">Lebih dari 1 tahun</option>
+              <option value="less_3m">Kurang dari 3 bulan</option>
+              <option value="less_2m">Kurang dari 2 bulan</option>
+              <option value="less_1m">Kurang dari 1 bulan</option>
+            </select>
+            <select [(ngModel)]="filterJenis" (change)="applyFilter()">
+              <option value="">Semua Jenis</option>
+              <option value="universitas">Universitas</option>
+              <option value="institut">Institut</option>
+              <option value="sekolah_tinggi">Sekolah Tinggi</option>
+              <option value="politeknik">Politeknik</option>
+              <option value="akademi">Akademi</option>
+            </select>
+            <select [(ngModel)]="filterOrganisasi" (change)="applyFilter()">
+              <option value="">Semua Organisasi</option>
+              <option value="muhammadiyah">Muhammadiyah</option>
+              <option value="aisyiyah">Aisyiyah</option>
+            </select>
+            <select [(ngModel)]="filterAkreditasi" (change)="applyFilter()">
+              <option value="">Semua Akreditasi</option>
+              <option value="unggul">Unggul</option>
+              <option value="baik_sekali">Baik Sekali</option>
+              <option value="baik">Baik</option>
+              <option value="belum">Belum</option>
+            </select>
+            <select [(ngModel)]="filterAktif" (change)="applyFilter()">
+              <option value="">Semua Status</option>
+              <option value="true">Aktif</option>
+              <option value="false">Tidak Aktif</option>
+            </select>
+          </div>
+          <div class="filter-actions" *ngIf="activeFilterCount > 0">
+            <button (click)="resetFilters()">Reset Filter</button>
+          </div>
         </div>
       </div>
-      <div class="card">
+
+      <!-- Tabel -->
+      <div class="card mt-16">
         <div class="table-toolbar">
           <div class="table-info">Menampilkan {{ data.length }} dari {{ totalCount }} PT</div>
           <div class="toolbar-right">
@@ -112,21 +140,23 @@ Chart.register(...registerables);
               <span>Hal {{ page }} / {{ totalPages }}</span>
               <button (click)="nextPage()" [disabled]="!nextUrl">Next ›</button>
             </div>
-            <button class="toggle-chart-btn" (click)="toggleMhsChart()">
-              {{ showMhsChart ? 'HIDE' : 'SHOW' }} Grafik
-            </button>
           </div>
-        </div>
-        <div class="mhs-chart-wrap" *ngIf="showMhsChart">
-          <canvas #mhsChartCanvas></canvas>
         </div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Kode PT</th><th>Nama</th><th>Jenis</th><th>Organisasi</th>
-                <th>Akreditasi</th><th>No. SK</th><th>Berlaku s/d</th>
-                <th>Prodi</th><th>Mahasiswa</th><th>Status</th>
+                <th class="th-sort" (click)="setSort('kode_pt')">Kode PT <span class="si">{{si('kode_pt')}}</span></th>
+                <th class="th-sort" (click)="setSort('nama')">Nama <span class="si">{{si('nama')}}</span></th>
+                <th>Jenis</th>
+                <th>Organisasi</th>
+                <th class="th-sort" (click)="setSort('akreditasi_institusi')">Akreditasi <span class="si">{{si('akreditasi_institusi')}}</span></th>
+                <th class="sk-col">No. SK</th>
+                <th class="th-sort" (click)="setSort('tanggal_kadaluarsa_akreditasi')">Berlaku s/d <span class="si">{{si('tanggal_kadaluarsa_akreditasi')}}</span></th>
+                <th>Prodi</th>
+                <th class="th-sort" (click)="setSort('mhs_sort')">Mahasiswa <span class="si">{{si('mhs_sort')}}</span></th>
+                <th class="th-sort" (click)="setSort('dosen_sort')">Dosen <span class="si">{{si('dosen_sort')}}</span></th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -157,6 +187,7 @@ Chart.register(...registerables);
                 </td>
                 <td class="text-center">{{ pt.total_prodi }}</td>
                 <td class="text-right">{{ pt.total_mahasiswa | number }}</td>
+                <td class="text-right">{{ pt.total_dosen | number }}</td>
                 <td>
                   <span [class]="pt.is_active ? 'badge badge-aktif' : 'badge badge-nonaktif'">
                     {{ pt.is_active ? 'Aktif' : 'Tidak Aktif' }}
@@ -173,46 +204,80 @@ Chart.register(...registerables);
         </div>
         <div class="loading-overlay" *ngIf="loading"><div class="spinner"></div></div>
       </div>
+
+      <!-- Loading bar saat data sedang dimuat -->
+      <div class="loading-bar" *ngIf="loading && !data.length">
+        <div class="loading-bar-fill"></div>
+      </div>
     </div>
   `,
   styles: [`
-    .page-header { margin-bottom: 20px; }
-    .page-header h1 { font-size: 22px; font-weight: 700; color: #1a237e; }
-    .page-header p { color: #666; font-size: 13px; }
+    /* ── Stats overview ─── */
+    .stats-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+    .periode-note {
+      font-size: 11px; color: #888; margin-bottom: 14px;
+      padding: 4px 2px; text-align: right;
+    }
+    .periode-note strong { color: #1a237e; }
+    .stat-box {
+      background: white; border-radius: 10px; padding: 10px 8px;
+      text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .val { font-size: 18px; font-weight: 700; color: #1a237e; }
+    .lbl { font-size: 10px; color: #666; margin-top: 4px; }
 
-    .filters { display: flex; flex-direction: column; gap: 10px; }
+    /* ── Charts row ─── */
+    .three-col { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+    .card { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); position: relative; }
+    .card h3 { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; }
+    .donut-wrap { position: relative; height: 200px; display: flex; align-items: center; justify-content: center; }
+    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .bar-lbl { width: 90px; font-size: 11px; color: #555; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+    .bar-num { width: 28px; text-align: right; font-size: 12px; font-weight: 600; color: #333; }
+
+    /* ── Filter card ─── */
+    .filter-card {
+      background: white; border-radius: 12px; margin-bottom: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;
+    }
+    .filter-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; cursor: pointer; user-select: none; transition: background 0.15s;
+    }
+    .filter-header:hover { background: #f5f5f5; }
+    .filter-title { font-size: 14px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 10px; }
+    .badge-count {
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      background: #e8eaf6; color: #1a237e; border-radius: 20px;
+    }
+    .chevron { font-size: 11px; color: #999; }
+
+    .filter-body { padding: 10px 14px 14px; border-top: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 10px; }
     .search-input {
       width: 100%; padding: 8px 12px; border: 1px solid #ddd;
-      border-radius: 8px; font-size: 13px;
+      border-radius: 8px; font-size: 13px; background: #fff; box-sizing: border-box;
     }
-    .filter-selects { display: flex; gap: 10px; flex-wrap: wrap; }
-    .filter-selects select {
-      flex: 1; min-width: 130px; padding: 8px 12px;
-      border: 1px solid #ddd; border-radius: 8px; font-size: 13px; background: white;
+    .search-input:focus { outline: none; border-color: #3949ab; box-shadow: 0 0 0 3px rgba(57,73,171,0.1); }
+    .filter-row { display: flex; flex-direction: column; gap: 8px; }
+    .filter-row select {
+      width: 100%; padding: 8px 12px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 13px; background: #fff;
     }
-    .filter-exp {
-      background: #e8f0fe !important;
-      border-color: #c5d4f7 !important;
-      color: #1a56db;
+    .filter-exp { background: #fee2e2 !important; border-color: #fca5a5 !important; color: #b91c1c !important; }
+    .filter-actions { display: flex; gap: 8px; }
+    .filter-actions button {
+      padding: 4px 12px; font-size: 12px; border: 1px solid #1a237e;
+      border-radius: 5px; cursor: pointer; background: white; color: #1a237e; transition: all 0.15s;
     }
+    .filter-actions button:hover { background: #1a237e; color: white; }
 
-    .chart-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-    .chart-card { background: white; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .chart-title { font-size: 12px; font-weight: 700; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
-    .bar-list { display: flex; flex-direction: column; gap: 7px; }
-    .bar-item { display: flex; align-items: center; gap: 6px; }
-    .bar-label { font-size: 11px; color: #555; min-width: 72px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bar-track { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
-    .bar-value { font-size: 11px; font-weight: 600; color: #333; min-width: 24px; text-align: right; }
-    @media (max-width: 900px) { .chart-row { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 500px) { .chart-row { grid-template-columns: 1fr; } }
-
-    .notif-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    /* ── Notif bar ─── */
+    .notif-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     .notif-item {
-      display: flex; align-items: center; gap: 10px; padding: 10px 16px;
-      border-radius: 10px; font-size: 13px; cursor: pointer; border: 1px solid transparent;
-      transition: filter 0.15s;
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      border-radius: 10px; font-size: 12px; cursor: pointer; border: 1px solid transparent; transition: filter 0.15s;
     }
     .notif-item:hover { filter: brightness(0.96); }
     .notif-red    { background: #fff0f0; border-color: #f5c6c6; color: #7f1d1d; }
@@ -220,28 +285,26 @@ Chart.register(...registerables);
     .notif-icon { font-size: 14px; }
     .notif-action { margin-left: auto; font-weight: 600; white-space: nowrap; opacity: 0.7; }
 
-    .mb-16 { margin-bottom: 16px; }
-    .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); position: relative; }
-    .table-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    /* ── Table card ─── */
+    .mt-16 { margin-top: 12px; }
+    .table-toolbar { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
     .table-info { font-size: 12px; color: #888; }
-    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .toolbar-right { width: 100%; }
     .pagination-top { display: flex; align-items: center; gap: 6px; }
     .pagination-top span { font-size: 12px; color: #555; white-space: nowrap; }
     .pagination-top button { padding: 3px 10px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 12px; }
     .pagination-top button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .toggle-chart-btn {
-      padding: 4px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
-      border: 1px solid #c5d4f7; border-radius: 6px; background: #e8f0fe; color: #1a56db;
-    }
-    .toggle-chart-btn:hover { background: #d0e2ff; }
-    .mhs-chart-wrap { width: 100%; height: 180px; margin-bottom: 16px; }
+
     .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th {
-      text-align: left; padding: 10px 12px; background: #f8f9fa;
+      text-align: left; padding: 8px 10px; background: #f8f9fa;
       font-weight: 600; color: #555; border-bottom: 2px solid #e9ecef; white-space: nowrap;
     }
-    td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    th.th-sort { cursor: pointer; user-select: none; }
+    th.th-sort:hover { background: #eef0f3; color: #1e293b; }
+    .si { font-size: .75rem; opacity: .55; margin-left: 3px; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
     tr.row-yellow   td { background: #fffbec; }
     tr.row-red      td { background: #fff4f4; }
     tr.row-inactive td { background: #fff0f0; }
@@ -249,7 +312,7 @@ Chart.register(...registerables);
     .pt-link { text-decoration: none; color: inherit; }
     .pt-link:hover strong { color: #1a237e; text-decoration: underline; }
     small { color: #888; font-size: 11px; }
-    code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    code { background: #f0f0f0; padding: 2px 5px; border-radius: 4px; font-size: 10px; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
     .badge-muh { background: #e3f2fd; color: #1565c0; }
     .badge-ais { background: #fce4ec; color: #c62828; }
@@ -262,7 +325,7 @@ Chart.register(...registerables);
     .text-center { text-align: center; }
     .text-right  { text-align: right; }
     .nowrap { white-space: nowrap; }
-    .sk-col { font-size: 11px; color: #555; max-width: 180px; word-break: break-all; }
+    .sk-col { display: none; font-size: 11px; color: #555; max-width: 160px; word-break: break-all; }
     .no-data { color: #bbb; }
     .exp-pill {
       display: inline-block; padding: 3px 8px; border-radius: 6px;
@@ -271,23 +334,58 @@ Chart.register(...registerables);
     .exp-green  { background: #d4edda; }
     .exp-yellow { background: #fff3cd; }
     .exp-red    { background: #f8d7da; }
-    .pagination { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
-    .pagination button { padding: 6px 16px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; }
+
+    .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+    .pagination button { padding: 5px 10px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 12px; }
     .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
     .loading-overlay {
       position: absolute; inset: 0; background: rgba(255,255,255,0.7);
       display: flex; align-items: center; justify-content: center; border-radius: 12px;
     }
     .spinner {
-      width: 36px; height: 36px; border: 3px solid #eee; border-top-color: #1a237e;
+      width: 32px; height: 32px; border: 3px solid #eee; border-top-color: #1a237e;
       border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 767px) {
-      .page-header h1 { font-size: 18px; }
-      .card { padding: 12px; }
-      th, td { padding: 8px 10px; font-size: 12px; }
+    .loading-bar { height: 3px; background: #e8eaf6; border-radius: 2px; overflow: hidden; margin-top: 12px; }
+    .loading-bar-fill { height: 100%; width: 40%; background: #1a237e; animation: slide 1s ease-in-out infinite alternate; }
+    @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+
+    /* ── Tablet ≥ 600px ─── */
+    @media (min-width: 600px) {
+      .stats-overview { grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px; }
+      .stat-box { padding: 12px 8px; }
+      .val { font-size: 20px; }
+      .lbl { font-size: 11px; }
+      .three-col { grid-template-columns: 1fr 1fr; gap: 16px; }
+      .donut-wrap { height: 220px; }
+      .bar-lbl { width: 110px; font-size: 12px; }
+      .filter-row { flex-direction: row; flex-wrap: wrap; }
+      .filter-row select { flex: 1; min-width: 130px; width: auto; }
+      .filter-header { padding: 12px 20px; }
+      .filter-body { padding: 12px 20px 16px; }
+      .notif-item { padding: 10px 16px; font-size: 13px; }
+      .sk-col { display: table-cell; }
+      .table-toolbar { flex-direction: row; align-items: center; }
+      .toolbar-right { width: auto; }
+    }
+
+    /* ── Desktop ≥ 1024px ─── */
+    @media (min-width: 1024px) {
+      .stats-overview { grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 8px; }
+      .stat-box { padding: 16px 12px; }
+      .val { font-size: 28px; }
+      .lbl { font-size: 12px; }
+      .card { padding: 20px; }
+      .card h3 { font-size: 15px; margin-bottom: 16px; }
+      .three-col { grid-template-columns: 1fr 1fr 1fr; }
+      .donut-wrap { height: 260px; }
+      .bar-lbl { width: 120px; font-size: 13px; }
+      .mt-16 { margin-top: 16px; }
+      th, td { padding: 10px 12px; font-size: 13px; }
+      .pagination button { padding: 6px 16px; font-size: 13px; }
     }
   `]
 })
@@ -304,19 +402,49 @@ export class PerguruanTinggiListComponent implements OnInit {
   filterAkreditasi = '';
   filterAktif = '';
   filterExp = '';
+  sortKey = 'mhs_sort';
+  sortAsc = false;
   searchTimeout: any;
   count3m = 0;
   count2m = 0;
+  statistik: any = null;
   chartJenis: any[] = [];
-  chartOrganisasi: any[] = [];
   chartAkreditasi: any[] = [];
-  chartStatus: any[] = [];
-  showMhsChart = false;
-  private mhsChartInstance: Chart | null = null;
-  @ViewChild('mhsChartCanvas') mhsChartCanvas!: ElementRef<HTMLCanvasElement>;
+  chartWilayah: any[] = [];
+  filterOpen = false;
+  private akrChartInstance: Chart | null = null;
+  private wilayahChartInstance: Chart | null = null;
+  @ViewChild('akrChart')     akrChartRef!:     ElementRef<HTMLCanvasElement>;
+  @ViewChild('wilayahChart') wilayahChartRef!: ElementRef<HTMLCanvasElement>;
 
-  constructor(private api: ApiService, private router: Router) {}
-  ngOnInit() { this.loadData(); this.loadNotifCounts(); this.loadCharts(); }
+  constructor(private api: ApiService, private router: Router, private zone: NgZone) {}
+
+  ngOnInit() {
+    this.loadData();
+    this.loadNotifCounts();
+    this.loadCharts();
+  }
+
+  get activeFilterCount(): number {
+    let n = 0;
+    if (this.search) n++;
+    if (this.filterJenis) n++;
+    if (this.filterOrganisasi) n++;
+    if (this.filterAkreditasi) n++;
+    if (this.filterAktif) n++;
+    if (this.filterExp) n++;
+    return n;
+  }
+
+  resetFilters() {
+    this.search = '';
+    this.filterJenis = '';
+    this.filterOrganisasi = '';
+    this.filterAkreditasi = '';
+    this.filterAktif = '';
+    this.filterExp = '';
+    this.applyFilter();
+  }
 
   loadNotifCounts() {
     this.api.getPerguruanTinggiList({ exp_filter: 'less_3m', page: 1 }).subscribe({
@@ -327,43 +455,10 @@ export class PerguruanTinggiListComponent implements OnInit {
     });
   }
 
-  setExpFilter(val: string) { this.filterExp = val; this.applyFilter(); }
-
-  toggleMhsChart() {
-    this.showMhsChart = !this.showMhsChart;
-    if (this.showMhsChart) { setTimeout(() => this.renderMhsChart(), 50); }
-  }
-
-  renderMhsChart() {
-    if (!this.mhsChartCanvas) return;
-    if (this.mhsChartInstance) { this.mhsChartInstance.destroy(); this.mhsChartInstance = null; }
-    const colors = this.data.map(pt => {
-      const s = this.expStatus(pt.tanggal_kadaluarsa_akreditasi);
-      return s === 'red' ? '#ef9a9a' : s === 'yellow' ? '#ffe082' : '#5c7df8';
-    });
-    this.mhsChartInstance = new Chart(this.mhsChartCanvas.nativeElement, {
-      type: 'bar',
-      data: {
-        labels: this.data.map(pt => pt.kode_pt),
-        datasets: [{ data: this.data.map(pt => pt.total_mahasiswa), backgroundColor: colors, borderRadius: 4 }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              title: (items) => this.data[items[0].dataIndex]?.nama || items[0].label,
-              label: (item) => `Mahasiswa Aktif: ${Number(item.raw).toLocaleString('id-ID')}`
-            }
-          }
-        },
-        scales: {
-          x: { ticks: { font: { size: 10 }, maxRotation: 45 } },
-          y: { ticks: { font: { size: 10 } }, beginAtZero: true }
-        }
-      }
-    });
+  setExpFilter(val: string) {
+    this.filterExp = val;
+    this.filterOpen = true;
+    this.applyFilter();
   }
 
   loadCharts() {
@@ -379,6 +474,8 @@ export class PerguruanTinggiListComponent implements OnInit {
     const AKR_LABELS: any = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', belum: 'Belum' };
 
     this.api.getStatistikPT().subscribe((res: any) => {
+      this.statistik = res;
+
       const totalJ = res.per_jenis.reduce((s: number, x: any) => s + x.total, 0);
       this.chartJenis = res.per_jenis
         .map((x: any) => ({
@@ -389,12 +486,6 @@ export class PerguruanTinggiListComponent implements OnInit {
         }))
         .sort((a: any, b: any) => b.total - a.total);
 
-      const totalO = res.total_muhammadiyah + res.total_aisyiyah;
-      this.chartOrganisasi = [
-        { label: 'Muhammadiyah', total: res.total_muhammadiyah, pct: totalO ? Math.round(res.total_muhammadiyah / totalO * 100) : 0, color: '#1565c0' },
-        { label: 'Aisyiyah',     total: res.total_aisyiyah,     pct: totalO ? Math.round(res.total_aisyiyah / totalO * 100) : 0,     color: '#c62828' },
-      ];
-
       const totalA = res.per_akreditasi.reduce((s: number, x: any) => s + x.total, 0);
       this.chartAkreditasi = ['unggul', 'baik_sekali', 'baik', 'belum'].map(k => {
         const found = res.per_akreditasi.find((x: any) => x.akreditasi_institusi === k);
@@ -402,15 +493,154 @@ export class PerguruanTinggiListComponent implements OnInit {
         return { label: AKR_LABELS[k], total, pct: totalA ? Math.round(total / totalA * 100) : 0, color: AKR_COLORS[k] };
       }).filter((x: any) => x.total > 0);
 
-      const totalPT = res.total_pt;
-      this.api.getPerguruanTinggiList({ is_active: 'true', page: 1 }).subscribe((r: any) => {
-        const aktif = r.count || 0;
-        const tidakAktif = totalPT - aktif;
-        this.chartStatus = [
-          { label: 'Aktif',       total: aktif,      pct: totalPT ? Math.round(aktif / totalPT * 100) : 0,      color: '#137333' },
-          { label: 'Tidak Aktif', total: tidakAktif, pct: totalPT ? Math.round(tidakAktif / totalPT * 100) : 0, color: '#c5221f' },
-        ];
+      const totalW = (res.per_wilayah || []).reduce((s: number, x: any) => s + x.total, 0);
+      const wValues = (res.per_wilayah || []).map((x: any) => x.total);
+      const wColors = this.gradientColors(wValues, 168, 50); // gradasi teal-hijau
+      this.chartWilayah = (res.per_wilayah || []).map((x: any, i: number) => ({
+        label: x.wilayah__nama || 'Lainnya',
+        total: x.total,
+        pct: totalW ? Math.round(x.total / totalW * 100) : 0,
+        color: wColors[i]
+      }));
+
+      this.zone.runOutsideAngular(() => {
+        setTimeout(() => { this.renderAkrChart(); this.renderWilayahChart(); }, 0);
       });
+    });
+  }
+
+  /** Warna gradasi satu hue: nilai besar → gelap, nilai kecil → terang */
+  private gradientColors(values: number[], hue: number, sat = 55): string[] {
+    const max   = Math.max(...values);
+    const min   = Math.min(...values);
+    const range = max - min || 1;
+    return values.map(v => {
+      const t = (v - min) / range;         // 0 = terkecil, 1 = terbesar
+      const l = Math.round(72 - t * 38);   // 72% (terang) → 34% (gelap)
+      return `hsl(${hue},${sat}%,${l}%)`;
+    });
+  }
+
+  private renderAkrChart() {
+    if (!this.akrChartRef) return;
+    if (this.akrChartInstance) { this.akrChartInstance.destroy(); this.akrChartInstance = null; }
+
+    const labels = this.chartAkreditasi.map(x => x.label);
+    const data   = this.chartAkreditasi.map(x => x.total);
+    const colors = this.gradientColors(data, 213, 60); // gradasi biru
+
+    const outsideLabelPlugin = {
+      id: 'arcOutsideLabel',
+      afterDatasetsDraw(chart: any) {
+        const ctx = chart.ctx;
+        const meta0 = chart.getDatasetMeta(0);
+        if (!meta0?.data?.length) return;
+        const cx: number = meta0.data[0].x;
+        const cy: number = meta0.data[0].y;
+        chart.data.datasets.forEach((_: any, di: number) => {
+          chart.getDatasetMeta(di).data.forEach((arc: any, i: number) => {
+            const value = chart.data.datasets[di].data[i];
+            if (!value) return;
+            const total = chart.data.datasets[di].data.reduce((a: number, b: number) => a + b, 0);
+            if (value / total < 0.04) return;
+            const outerR = arc.outerRadius;
+            const angle  = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
+            const x1 = cx + Math.cos(angle) * outerR * 0.92;
+            const y1 = cy + Math.sin(angle) * outerR * 0.92;
+            const x2 = cx + Math.cos(angle) * outerR * 1.10;
+            const y2 = cy + Math.sin(angle) * outerR * 1.10;
+            const right = Math.cos(angle) >= 0;
+            const x3 = x2 + (right ? 10 : -10);
+            ctx.save();
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x3, y2);
+            ctx.stroke();
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillStyle = '#222';
+            ctx.textAlign = right ? 'left' : 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(value), right ? x3 + 3 : x3 - 3, y2);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    this.akrChartInstance = new Chart(this.akrChartRef.nativeElement.getContext('2d')!, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false as const,
+        layout: { padding: { top: 28, bottom: 28, left: 28, right: 28 } },
+        radius: '78%',
+        plugins: {
+          legend: { position: 'right' as const, labels: { font: { size: 11 }, padding: 10, boxWidth: 12 } },
+          tooltip: { callbacks: { label: (c: any) => ` ${c.label}: ${c.parsed} PT` } }
+        }
+      },
+      plugins: [outsideLabelPlugin]
+    });
+  }
+
+  private renderWilayahChart() {
+    if (!this.wilayahChartRef) return;
+    if (this.wilayahChartInstance) { this.wilayahChartInstance.destroy(); this.wilayahChartInstance = null; }
+
+    const labels = this.chartWilayah.map(x => x.label);
+    const data   = this.chartWilayah.map(x => x.total);
+    const colors = this.gradientColors(data, 168, 50);
+
+    const outsideLabelPlugin = {
+      id: 'arcOutsideLabelW',
+      afterDatasetsDraw(chart: any) {
+        const ctx = chart.ctx;
+        const meta0 = chart.getDatasetMeta(0);
+        if (!meta0?.data?.length) return;
+        const cx: number = meta0.data[0].x;
+        const cy: number = meta0.data[0].y;
+        chart.data.datasets.forEach((_: any, di: number) => {
+          chart.getDatasetMeta(di).data.forEach((arc: any, i: number) => {
+            const value = chart.data.datasets[di].data[i];
+            if (!value) return;
+            const total = chart.data.datasets[di].data.reduce((a: number, b: number) => a + b, 0);
+            if (value / total < 0.04) return;
+            const outerR = arc.outerRadius;
+            const angle  = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
+            const x2 = cx + Math.cos(angle) * outerR * 1.10;
+            const y2 = cy + Math.sin(angle) * outerR * 1.10;
+            const right = Math.cos(angle) >= 0;
+            const x3 = x2 + (right ? 10 : -10);
+            ctx.save();
+            ctx.strokeStyle = '#999'; ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(angle) * outerR * 0.92, cy + Math.sin(angle) * outerR * 0.92);
+            ctx.lineTo(x2, y2); ctx.lineTo(x3, y2); ctx.stroke();
+            ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#222';
+            ctx.textAlign = right ? 'left' : 'right'; ctx.textBaseline = 'middle';
+            ctx.fillText(String(value), right ? x3 + 3 : x3 - 3, y2);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    this.wilayahChartInstance = new Chart(this.wilayahChartRef.nativeElement.getContext('2d')!, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false as const,
+        layout: { padding: { top: 28, bottom: 28, left: 28, right: 28 } },
+        radius: '78%',
+        plugins: {
+          legend: { position: 'right' as const, labels: { font: { size: 11 }, padding: 10, boxWidth: 12 } },
+          tooltip: { callbacks: { label: (c: any) => ` ${c.label}: ${c.parsed} PT` } }
+        }
+      },
+      plugins: [outsideLabelPlugin]
     });
   }
 
@@ -425,6 +655,7 @@ export class PerguruanTinggiListComponent implements OnInit {
     if (this.filterAkreditasi) params['akreditasi_institusi'] = this.filterAkreditasi;
     if (this.filterAktif !== '') params['is_active'] = this.filterAktif;
     if (this.filterExp) params['exp_filter'] = this.filterExp;
+    params['ordering'] = (this.sortAsc ? '' : '-') + this.sortKey;
     this.api.getPerguruanTinggiList(params).subscribe({
       next: res => {
         this.data = res.results || res;
@@ -432,21 +663,35 @@ export class PerguruanTinggiListComponent implements OnInit {
         this.nextUrl = res.next;
         this.prevUrl = res.previous;
         this.loading = false;
-        if (this.showMhsChart) { setTimeout(() => this.renderMhsChart(), 50); }
       },
       error: () => this.loading = false
     });
   }
+
   applyFilter() { this.page = 1; this.loadData(); }
+
+  setSort(key: string) {
+    if (this.sortKey === key) { this.sortAsc = !this.sortAsc; } else { this.sortKey = key; this.sortAsc = true; }
+    this.page = 1; this.loadData();
+  }
+
+  si(key: string): string {
+    if (this.sortKey !== key) return '↕';
+    return this.sortAsc ? '↑' : '↓';
+  }
+
   goToDetail(id: number) { this.router.navigate(['/perguruan-tinggi', id]); }
+
   onSearch() {
     clearTimeout(this.searchTimeout);
     this.searchTimeout = setTimeout(() => { this.page = 1; this.loadData(); }, 400);
   }
+
   nextPage() { if (this.nextUrl) { this.page++; this.loadData(); } }
   prevPage() { if (this.prevUrl) { this.page--; this.loadData(); } }
+
   formatAkreditasi(v: string) {
-    return { unggul:'Unggul', baik_sekali:'Baik Sekali', baik:'Baik', belum:'Belum' }[v] || v;
+    return ({ unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', belum: 'Belum' } as any)[v] || v;
   }
 
   expStatus(tgl: string): string {
@@ -454,8 +699,8 @@ export class PerguruanTinggiListComponent implements OnInit {
     const now = new Date();
     const exp = new Date(tgl);
     const diffDays = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays < 60)  return 'red';
-    if (diffDays < 90)  return 'yellow';
+    if (diffDays < 60) return 'red';
+    if (diffDays < 90) return 'yellow';
     return 'green';
   }
 }

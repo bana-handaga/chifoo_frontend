@@ -50,6 +50,9 @@ export interface ProgramStudi {
   jenjang_display: string;
   akreditasi: string;
   akreditasi_display: string;
+  no_sk_akreditasi?: string;
+  tanggal_kedaluarsa_akreditasi?: string;
+  mahasiswa_aktif_periode?: number;
   is_active: boolean;
 }
 

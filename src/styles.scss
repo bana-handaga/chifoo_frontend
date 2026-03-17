@@ -39,15 +39,15 @@ code {
 /* Layout */
 .container { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
 
-/* Card */
+/* Card — mobile-first */
 .card {
   background: white;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 10px;
+  padding: 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
-@media (max-width: 767px) {
-  .card { padding: 14px; border-radius: 10px; }
+@media (min-width: 768px) {
+  .card { padding: 20px; border-radius: 12px; }
 }
 .mb-16 { margin-bottom: 16px; }
 .mt-16 { margin-top: 16px; }
@@ -202,11 +202,12 @@ input:focus, select:focus, textarea:focus {
 .alert-success { background: #e6f4ea; color: #137333; }
 .alert-info    { background: #e8f0fe; color: #1a73e8; }
 
-/* Page header responsive */
-.page-header { margin-bottom: 20px; }
-.page-header h1 { font-size: 22px; font-weight: 700; color: #1a237e; }
-.page-header p  { color: #666; font-size: 13px; }
-@media (max-width: 767px) {
-  .page-header h1 { font-size: 18px; }
-  .page-header p  { font-size: 12px; }
+/* Page header — mobile-first */
+.page-header { margin-bottom: 16px; }
+.page-header h1 { font-size: 18px; font-weight: 700; color: #1a237e; }
+.page-header p  { color: #666; font-size: 12px; }
+@media (min-width: 768px) {
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 { font-size: 22px; }
+  .page-header p  { font-size: 13px; }
 }

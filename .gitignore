@@ -1,7 +1,8 @@
-.env    
+.env
 node_modules/
 dist/
 build/
+.angular/
 coverage/
 .DS_Store     
 *.log
