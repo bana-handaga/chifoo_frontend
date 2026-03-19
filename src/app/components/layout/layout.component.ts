@@ -8,30 +8,42 @@ import { AuthService } from '../../services/auth.service';
     <!-- ── Top Bar ─────────────────────────────────── -->
     <header class="topbar">
       <div class="topbar-brand">
-        <span class="brand-icon">🏛️</span>
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zm-2 15v-5h4v5h3v-6.27l-5-2.73-5 2.73V18h3z"/>
+        </svg>
         <span class="brand-name">PTMA Monitor</span>
       </div>
 
       <!-- Nav items — tampil di desktop -->
       <nav class="topbar-nav">
         <a routerLink="/dashboard" routerLinkActive="active">
-          <span class="nav-icon">📊</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+          </svg>
           <span class="nav-label">Dashboard</span>
         </a>
         <a routerLink="/perguruan-tinggi" routerLinkActive="active">
-          <span class="nav-icon">🏫</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+          </svg>
           <span class="nav-label">Perguruan Tinggi</span>
         </a>
         <a routerLink="/program-studi" routerLinkActive="active">
-          <span class="nav-icon">📚</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 14H8v-2h8v2zm0-4H8v-2h8v2zm0-4H8V6h8v2z"/>
+          </svg>
           <span class="nav-label">Program Studi</span>
         </a>
         <a routerLink="/dosen" routerLinkActive="active">
-          <span class="nav-icon">👨‍🏫</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+          </svg>
           <span class="nav-label">Dosen</span>
         </a>
         <a routerLink="/statistik" routerLinkActive="active">
-          <span class="nav-icon">📊</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
+          </svg>
           <span class="nav-label">Laporan</span>
         </a>
       </nav>
@@ -43,10 +55,19 @@ import { AuthService } from '../../services/auth.service';
             <span class="user-avatar">{{ userInitial }}</span>
             <span class="user-name">{{ currentUser.first_name || currentUser.username }}</span>
           </div>
-          <button class="icon-btn" (click)="logout()" title="Keluar">🚪</button>
+          <button class="icon-btn" (click)="logout()" title="Keluar">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+            </svg>
+          </button>
         </ng-container>
         <ng-template #guestBtn>
-          <button class="btn-login" (click)="goLogin()">🔑 Login</button>
+          <button class="btn-login" (click)="goLogin()">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+              <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>
+            </svg>
+            Login
+          </button>
         </ng-template>
       </div>
     </header>
@@ -59,23 +80,33 @@ import { AuthService } from '../../services/auth.service';
     <!-- ── Bottom Tab Bar — mobile only ───────────────── -->
     <nav class="bottom-tabs">
       <a routerLink="/dashboard" routerLinkActive="active">
-        <span class="tab-icon">📊</span>
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+        </svg>
         <span class="tab-label">Dashboard</span>
       </a>
       <a routerLink="/perguruan-tinggi" routerLinkActive="active">
-        <span class="tab-icon">🏫</span>
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+        </svg>
         <span class="tab-label">PT</span>
       </a>
       <a routerLink="/program-studi" routerLinkActive="active">
-        <span class="tab-icon">📚</span>
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 14H8v-2h8v2zm0-4H8v-2h8v2zm0-4H8V6h8v2z"/>
+        </svg>
         <span class="tab-label">Prodi</span>
       </a>
       <a routerLink="/dosen" routerLinkActive="active">
-        <span class="tab-icon">👨‍🏫</span>
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+        </svg>
         <span class="tab-label">Dosen</span>
       </a>
       <a routerLink="/statistik" routerLinkActive="active">
-        <span class="tab-icon">📊</span>
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
+        </svg>
         <span class="tab-label">Laporan</span>
       </a>
     </nav>
@@ -95,7 +126,7 @@ import { AuthService } from '../../services/auth.service';
       font-weight: 700; font-size: 15px; white-space: nowrap;
       text-decoration: none; color: white; flex-shrink: 0;
     }
-    .brand-icon { font-size: 20px; }
+    .brand-icon { width: 24px; height: 24px; flex-shrink: 0; color: #90caf9; }
     .brand-name { display: none; }
 
     /* ── Top Bar Nav ─────────────────────────────────── */
@@ -113,7 +144,7 @@ import { AuthService } from '../../services/auth.service';
     }
     .topbar-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
     .topbar-nav a.active { background: rgba(255,255,255,0.18); color: white; }
-    .nav-icon { font-size: 16px; }
+    .nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
 
     /* ── Right section ───────────────────────────────── */
     .topbar-right {
@@ -133,8 +164,9 @@ import { AuthService } from '../../services/auth.service';
     .user-name { font-size: 13px; font-weight: 600; display: none; }
     .icon-btn {
       background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-      color: white; border-radius: 8px; padding: 6px 10px;
-      cursor: pointer; font-size: 16px; transition: background 0.15s;
+      color: white; border-radius: 8px; padding: 7px 10px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
     }
     .icon-btn:hover { background: rgba(255,255,255,0.2); }
     .btn-login {
@@ -176,7 +208,7 @@ import { AuthService } from '../../services/auth.service';
       position: absolute; top: 0; left: 20%; right: 20%;
       height: 3px; background: #60a5fa; border-radius: 0 0 4px 4px;
     }
-    .tab-icon { font-size: 20px; line-height: 1; }
+    .tab-icon { width: 22px; height: 22px; flex-shrink: 0; }
     .tab-label { font-size: 10px; letter-spacing: 0.2px; }
 
     /* ── Tablet ≥ 640px ──────────────────────────────── */
@@ -196,7 +228,7 @@ import { AuthService } from '../../services/auth.service';
     @media (min-width: 1024px) {
       .topbar { padding: 0 32px; }
       .topbar-nav a { padding: 8px 16px; font-size: 14px; }
-      .nav-icon { font-size: 17px; }
+      .nav-icon { width: 18px; height: 18px; }
       .main-content { padding: 72px 32px 32px; }
     }
   `]
