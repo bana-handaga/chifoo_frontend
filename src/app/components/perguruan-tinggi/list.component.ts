@@ -18,6 +18,176 @@ Chart.register(...registerables);
         </div>
       </div>
 
+      <!-- Notifikasi kadaluarsa — paling atas -->
+      <div class="notif-bar" *ngIf="count2m > 0 || count3m > 0">
+        <div class="notif-item notif-red" *ngIf="count2m > 0" (click)="setExpFilter('less_2m')">
+          <span class="notif-icon">🔴</span>
+          <span><strong>{{ count2m }} PT</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 2 bulan</strong></span>
+          <span class="notif-action">Lihat →</span>
+        </div>
+        <div class="notif-item notif-yellow" *ngIf="count3m > 0" (click)="setExpFilter('less_3m')">
+          <span class="notif-icon">🟡</span>
+          <span><strong>{{ count3m }} PT</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 3 bulan</strong></span>
+          <span class="notif-action">Lihat →</span>
+        </div>
+      </div>
+
+      <!-- Search Accordion + Tabel (satu box) -->
+      <div class="pt-accordion">
+        <div class="pt-toggle" (click)="filterOpen = !filterOpen">
+          <span class="pt-toggle-icon">🔍</span>
+          <span class="pt-toggle-text">
+            Pencarian Perguruan Tinggi
+            <span class="pt-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }} filter aktif</span>
+          </span>
+          <div class="pt-header-actions" (click)="$event.stopPropagation()">
+            <button class="pt-btn-exp pt-btn-csv"  (click)="exportPt('csv')"  title="Export CSV">CSV</button>
+            <button class="pt-btn-exp pt-btn-xlsx" (click)="exportPt('xlsx')" title="Export XLSX">XLSX</button>
+            <button class="pt-btn-exp pt-btn-pdf"  (click)="exportPt('pdf')"  title="Export PDF">PDF</button>
+          </div>
+          <span class="pt-chevron">{{ filterOpen ? '▲' : '▼' }}</span>
+        </div>
+        <ng-container *ngIf="filterOpen">
+          <div class="pt-body">
+            <div class="ptf">
+              <div class="ptf-row">
+                <div class="ptf-field">
+                  <label>Nama / Singkatan PT</label>
+                  <input type="text" [(ngModel)]="search" (input)="onSearch()" placeholder="Cari nama, singkatan, kota...">
+                </div>
+                <div class="ptf-field">
+                  <label>Kadaluarsa Akreditasi</label>
+                  <select [(ngModel)]="filterExp" (change)="applyFilter()">
+                    <option value="">Semua</option>
+                    <option value="more_1y">Lebih dari 1 tahun</option>
+                    <option value="less_3m">Kurang dari 3 bulan</option>
+                    <option value="less_2m">Kurang dari 2 bulan</option>
+                    <option value="less_1m">Kurang dari 1 bulan</option>
+                  </select>
+                </div>
+              </div>
+              <div class="ptf-row">
+                <div class="ptf-field">
+                  <label>Jenis</label>
+                  <select [(ngModel)]="filterJenis" (change)="applyFilter()">
+                    <option value="">Semua Jenis</option>
+                    <option value="universitas">Universitas</option>
+                    <option value="institut">Institut</option>
+                    <option value="sekolah_tinggi">Sekolah Tinggi</option>
+                    <option value="politeknik">Politeknik</option>
+                    <option value="akademi">Akademi</option>
+                  </select>
+                </div>
+                <div class="ptf-field">
+                  <label>Organisasi</label>
+                  <select [(ngModel)]="filterOrganisasi" (change)="applyFilter()">
+                    <option value="">Semua</option>
+                    <option value="muhammadiyah">Muhammadiyah</option>
+                    <option value="aisyiyah">Aisyiyah</option>
+                  </select>
+                </div>
+                <div class="ptf-field">
+                  <label>Akreditasi</label>
+                  <select [(ngModel)]="filterAkreditasi" (change)="applyFilter()">
+                    <option value="">Semua</option>
+                    <option value="unggul">Unggul</option>
+                    <option value="baik_sekali">Baik Sekali</option>
+                    <option value="baik">Baik</option>
+                    <option value="belum">Belum</option>
+                  </select>
+                </div>
+                <div class="ptf-field">
+                  <label>Status</label>
+                  <select [(ngModel)]="filterAktif" (change)="applyFilter()">
+                    <option value="">Semua</option>
+                    <option value="true">Aktif</option>
+                    <option value="false">Tidak Aktif</option>
+                  </select>
+                </div>
+              </div>
+              <div class="ptf-btn-row">
+                <button class="pt-btn-reset" *ngIf="activeFilterCount > 0" (click)="resetFilters()">✕ Reset Filter</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabel dalam satu box accordion -->
+          <div class="pt-results">
+            <div class="table-toolbar">
+              <div class="table-info">Menampilkan {{ data.length }} dari {{ totalCount }} PT</div>
+              <div class="toolbar-right">
+                <div class="pagination-top" *ngIf="totalCount > 10">
+                  <button (click)="prevPage()" [disabled]="!prevUrl">‹ Prev</button>
+                  <span>Hal {{ page }} / {{ totalPages }}</span>
+                  <button (click)="nextPage()" [disabled]="!nextUrl">Next ›</button>
+                </div>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="th-sort" (click)="setSort('kode_pt')">Kode PT <span class="si">{{si('kode_pt')}}</span></th>
+                    <th class="th-sort" (click)="setSort('nama')">Nama <span class="si">{{si('nama')}}</span></th>
+                    <th>Jenis</th>
+                    <th>Organisasi</th>
+                    <th class="th-sort" (click)="setSort('akreditasi_institusi')">Akreditasi <span class="si">{{si('akreditasi_institusi')}}</span></th>
+                    <th class="sk-col">No. SK</th>
+                    <th class="th-sort" (click)="setSort('tanggal_kadaluarsa_akreditasi')">Berlaku s/d <span class="si">{{si('tanggal_kadaluarsa_akreditasi')}}</span></th>
+                    <th>Prodi</th>
+                    <th class="th-sort" (click)="setSort('mhs_sort')">Mahasiswa <span class="si">{{si('mhs_sort')}}</span></th>
+                    <th class="th-sort" (click)="setSort('dosen_sort')">Dosen <span class="si">{{si('dosen_sort')}}</span></th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let pt of data"
+                      [class]="!pt.is_active ? 'row-inactive' : 'row-' + expStatus(pt.tanggal_kadaluarsa_akreditasi)"
+                      (click)="goToDetail(pt.id)" style="cursor:pointer">
+                    <td><code>{{ pt.kode_pt }}</code></td>
+                    <td>
+                      <a [routerLink]="['/perguruan-tinggi', pt.id]" class="pt-link">
+                        <strong>{{ pt.singkatan }}</strong><br>
+                        <small>{{ pt.nama }}</small>
+                      </a>
+                    </td>
+                    <td>{{ pt.jenis | titlecase }}</td>
+                    <td><span [class]="'badge ' + (pt.organisasi_induk === 'muhammadiyah' ? 'badge-muh' : 'badge-ais')">
+                      {{ pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}
+                    </span></td>
+                    <td><span [class]="'badge badge-' + pt.akreditasi_institusi">
+                      {{ formatAkreditasi(pt.akreditasi_institusi) }}
+                    </span></td>
+                    <td class="sk-col">{{ pt.nomor_sk_akreditasi || '—' }}</td>
+                    <td class="nowrap">
+                      <span *ngIf="pt.tanggal_kadaluarsa_akreditasi"
+                            [class]="'exp-pill exp-' + expStatus(pt.tanggal_kadaluarsa_akreditasi)">
+                        {{ pt.tanggal_kadaluarsa_akreditasi | date:'dd/MM/yyyy' }}
+                      </span>
+                      <span *ngIf="!pt.tanggal_kadaluarsa_akreditasi" class="no-data">—</span>
+                    </td>
+                    <td class="text-center">{{ pt.total_prodi }}</td>
+                    <td class="text-right">{{ pt.total_mahasiswa | number }}</td>
+                    <td class="text-right">{{ pt.total_dosen | number }}</td>
+                    <td>
+                      <span [class]="pt.is_active ? 'badge badge-aktif' : 'badge badge-nonaktif'">
+                        {{ pt.is_active ? 'Aktif' : 'Tidak Aktif' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination" *ngIf="totalCount > 10">
+              <button (click)="prevPage()" [disabled]="!prevUrl">‹ Prev</button>
+              <span>Hal {{ page }} / {{ totalPages }}</span>
+              <button (click)="nextPage()" [disabled]="!nextUrl">Next ›</button>
+            </div>
+            <div class="loading-overlay" *ngIf="loading"><div class="spinner"></div></div>
+          </div>
+        </ng-container>
+      </div>
+
       <!-- Stats overview -->
       <div class="stats-overview" *ngIf="statistik">
         <div class="stat-box">
@@ -66,174 +236,6 @@ Chart.register(...registerables);
         </div>
       </div>
 
-      <!-- Notifikasi kadaluarsa -->
-      <div class="notif-bar" *ngIf="count2m > 0 || count3m > 0">
-        <div class="notif-item notif-red" *ngIf="count2m > 0" (click)="setExpFilter('less_2m')">
-          <span class="notif-icon">🔴</span>
-          <span><strong>{{ count2m }} PT</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 2 bulan</strong></span>
-          <span class="notif-action">Lihat →</span>
-        </div>
-        <div class="notif-item notif-yellow" *ngIf="count3m > 0" (click)="setExpFilter('less_3m')">
-          <span class="notif-icon">🟡</span>
-          <span><strong>{{ count3m }} PT</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 3 bulan</strong></span>
-          <span class="notif-action">Lihat →</span>
-        </div>
-      </div>
-
-      <!-- Search Accordion -->
-      <div class="pt-accordion">
-        <div class="pt-toggle" (click)="filterOpen = !filterOpen">
-          <span class="pt-toggle-icon">🔍</span>
-          <span class="pt-toggle-text">
-            Pencarian Perguruan Tinggi
-            <span class="pt-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }} filter aktif</span>
-          </span>
-          <div class="pt-header-actions" (click)="$event.stopPropagation()">
-            <button class="pt-btn-exp pt-btn-csv"  (click)="exportPt('csv')"  title="Export CSV">CSV</button>
-            <button class="pt-btn-exp pt-btn-xlsx" (click)="exportPt('xlsx')" title="Export XLSX">XLSX</button>
-            <button class="pt-btn-exp pt-btn-pdf"  (click)="exportPt('pdf')"  title="Export PDF">PDF</button>
-          </div>
-          <span class="pt-chevron">{{ filterOpen ? '▲' : '▼' }}</span>
-        </div>
-        <div class="pt-body" *ngIf="filterOpen">
-          <div class="ptf">
-            <div class="ptf-row">
-              <div class="ptf-field">
-                <label>Nama / Singkatan PT</label>
-                <input type="text" [(ngModel)]="search" (input)="onSearch()" placeholder="Cari nama, singkatan, kota...">
-              </div>
-              <div class="ptf-field">
-                <label>Kadaluarsa Akreditasi</label>
-                <select [(ngModel)]="filterExp" (change)="applyFilter()">
-                  <option value="">Semua</option>
-                  <option value="more_1y">Lebih dari 1 tahun</option>
-                  <option value="less_3m">Kurang dari 3 bulan</option>
-                  <option value="less_2m">Kurang dari 2 bulan</option>
-                  <option value="less_1m">Kurang dari 1 bulan</option>
-                </select>
-              </div>
-            </div>
-            <div class="ptf-row">
-              <div class="ptf-field">
-                <label>Jenis</label>
-                <select [(ngModel)]="filterJenis" (change)="applyFilter()">
-                  <option value="">Semua Jenis</option>
-                  <option value="universitas">Universitas</option>
-                  <option value="institut">Institut</option>
-                  <option value="sekolah_tinggi">Sekolah Tinggi</option>
-                  <option value="politeknik">Politeknik</option>
-                  <option value="akademi">Akademi</option>
-                </select>
-              </div>
-              <div class="ptf-field">
-                <label>Organisasi</label>
-                <select [(ngModel)]="filterOrganisasi" (change)="applyFilter()">
-                  <option value="">Semua</option>
-                  <option value="muhammadiyah">Muhammadiyah</option>
-                  <option value="aisyiyah">Aisyiyah</option>
-                </select>
-              </div>
-              <div class="ptf-field">
-                <label>Akreditasi</label>
-                <select [(ngModel)]="filterAkreditasi" (change)="applyFilter()">
-                  <option value="">Semua</option>
-                  <option value="unggul">Unggul</option>
-                  <option value="baik_sekali">Baik Sekali</option>
-                  <option value="baik">Baik</option>
-                  <option value="belum">Belum</option>
-                </select>
-              </div>
-              <div class="ptf-field">
-                <label>Status</label>
-                <select [(ngModel)]="filterAktif" (change)="applyFilter()">
-                  <option value="">Semua</option>
-                  <option value="true">Aktif</option>
-                  <option value="false">Tidak Aktif</option>
-                </select>
-              </div>
-            </div>
-            <div class="ptf-btn-row">
-              <button class="pt-btn-reset" *ngIf="activeFilterCount > 0" (click)="resetFilters()">✕ Reset Filter</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tabel -->
-      <div class="card mt-16 pt-table-card">
-        <div class="table-toolbar">
-          <div class="table-info">Menampilkan {{ data.length }} dari {{ totalCount }} PT</div>
-          <div class="toolbar-right">
-            <div class="pagination-top" *ngIf="totalCount > 10">
-              <button (click)="prevPage()" [disabled]="!prevUrl">‹ Prev</button>
-              <span>Hal {{ page }} / {{ totalPages }}</span>
-              <button (click)="nextPage()" [disabled]="!nextUrl">Next ›</button>
-            </div>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th class="th-sort" (click)="setSort('kode_pt')">Kode PT <span class="si">{{si('kode_pt')}}</span></th>
-                <th class="th-sort" (click)="setSort('nama')">Nama <span class="si">{{si('nama')}}</span></th>
-                <th>Jenis</th>
-                <th>Organisasi</th>
-                <th class="th-sort" (click)="setSort('akreditasi_institusi')">Akreditasi <span class="si">{{si('akreditasi_institusi')}}</span></th>
-                <th class="sk-col">No. SK</th>
-                <th class="th-sort" (click)="setSort('tanggal_kadaluarsa_akreditasi')">Berlaku s/d <span class="si">{{si('tanggal_kadaluarsa_akreditasi')}}</span></th>
-                <th>Prodi</th>
-                <th class="th-sort" (click)="setSort('mhs_sort')">Mahasiswa <span class="si">{{si('mhs_sort')}}</span></th>
-                <th class="th-sort" (click)="setSort('dosen_sort')">Dosen <span class="si">{{si('dosen_sort')}}</span></th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let pt of data"
-                  [class]="!pt.is_active ? 'row-inactive' : 'row-' + expStatus(pt.tanggal_kadaluarsa_akreditasi)"
-                  (click)="goToDetail(pt.id)" style="cursor:pointer">
-                <td><code>{{ pt.kode_pt }}</code></td>
-                <td>
-                  <a [routerLink]="['/perguruan-tinggi', pt.id]" class="pt-link">
-                    <strong>{{ pt.singkatan }}</strong><br>
-                    <small>{{ pt.nama }}</small>
-                  </a>
-                </td>
-                <td>{{ pt.jenis | titlecase }}</td>
-                <td><span [class]="'badge ' + (pt.organisasi_induk === 'muhammadiyah' ? 'badge-muh' : 'badge-ais')">
-                  {{ pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}
-                </span></td>
-                <td><span [class]="'badge badge-' + pt.akreditasi_institusi">
-                  {{ formatAkreditasi(pt.akreditasi_institusi) }}
-                </span></td>
-                <td class="sk-col">{{ pt.nomor_sk_akreditasi || '—' }}</td>
-                <td class="nowrap">
-                  <span *ngIf="pt.tanggal_kadaluarsa_akreditasi"
-                        [class]="'exp-pill exp-' + expStatus(pt.tanggal_kadaluarsa_akreditasi)">
-                    {{ pt.tanggal_kadaluarsa_akreditasi | date:'dd/MM/yyyy' }}
-                  </span>
-                  <span *ngIf="!pt.tanggal_kadaluarsa_akreditasi" class="no-data">—</span>
-                </td>
-                <td class="text-center">{{ pt.total_prodi }}</td>
-                <td class="text-right">{{ pt.total_mahasiswa | number }}</td>
-                <td class="text-right">{{ pt.total_dosen | number }}</td>
-                <td>
-                  <span [class]="pt.is_active ? 'badge badge-aktif' : 'badge badge-nonaktif'">
-                    {{ pt.is_active ? 'Aktif' : 'Tidak Aktif' }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="pagination" *ngIf="totalCount > 10">
-          <button (click)="prevPage()" [disabled]="!prevUrl">‹ Prev</button>
-          <span>Hal {{ page }} / {{ totalPages }}</span>
-          <button (click)="nextPage()" [disabled]="!nextUrl">Next ›</button>
-        </div>
-        <div class="loading-overlay" *ngIf="loading"><div class="spinner"></div></div>
-      </div>
-
       <!-- Loading bar saat data sedang dimuat -->
       <div class="loading-bar" *ngIf="loading && !data.length">
         <div class="loading-bar-fill"></div>
@@ -242,7 +244,7 @@ Chart.register(...registerables);
   `,
   styles: [`
     /* ── Stats overview ─── */
-    .stats-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+    .stats-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; margin-top: 12px; }
     .periode-badge {
       display: inline-flex; align-items: center; gap: .4rem;
       margin-top: .6rem;
@@ -336,9 +338,11 @@ Chart.register(...registerables);
     .notif-action { margin-left: auto; font-weight: 600; white-space: nowrap; opacity: 0.7; }
 
     /* ── Table card ─── */
-    .mt-16 { margin-top: 12px; }
-    .pt-table-card { border-top: 3px solid #16a34a; }
-    .pt-table-card .table-wrapper { background: rgba(34,197,94,.03); }
+    .pt-results {
+      border-top: 1px solid #dcfce7; padding: 10px 14px 14px; position: relative;
+    }
+    .pt-results .table-wrapper { background: rgba(34,197,94,.03); border-radius: 8px; overflow: hidden; }
+    .pt-results .loading-overlay { border-radius: 8px; }
     .table-toolbar { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
     .table-info { font-size: 12px; color: #888; }
     .toolbar-right { width: 100%; }
