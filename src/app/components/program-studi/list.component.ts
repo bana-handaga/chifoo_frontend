@@ -24,15 +24,17 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
 @Component({
   selector: 'app-program-studi-list',
   template: `
-<div class="page">
+<div class="page-wrap">
 
   <!-- Header -->
   <div class="page-header">
-    <h1>Program Studi</h1>
-    <p>Pengelompokan program studi berdasarkan nama dan jenjang</p>
-    <div class="periode-badge" *ngIf="periodeLabel">
-      <span class="periode-badge__dot"></span>
-      Periode Pelaporan Aktif: <strong>{{ periodeLabel }}</strong>
+    <div class="page-header__title">
+      <h1>Program Studi PTMA</h1>
+      <p class="page-header__sub">Pengelompokan program studi berdasarkan nama dan jenjang</p>
+      <div class="periode-badge" *ngIf="periodeLabel">
+        <span class="periode-badge__dot"></span>
+        Periode Pelaporan Aktif: <strong>{{ periodeLabel }}</strong>
+      </div>
     </div>
   </div>
 
@@ -130,47 +132,63 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     </div>
   </div>
 
-  <!-- Stats overview -->
-  <div class="stats-overview" *ngIf="!loading && rows.length">
-    <div class="stat-box">
-      <div class="val">{{ rows.length | number }}</div>
-      <div class="lbl">Kelompok Prodi</div>
+  <div *ngIf="loading" class="loading-wrap">
+    <div class="spinner"></div><span>Memuat data...</span>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stat-grid" *ngIf="!loading && rows.length">
+    <div class="stat-card stat-card--blue">
+      <div class="stat-card__icon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>
+      </div>
+      <div class="stat-card__val">{{ rows.length | number }}</div>
+      <div class="stat-card__lbl">Kelompok Prodi</div>
     </div>
-    <div class="stat-box">
-      <div class="val">{{ totalPt | number }}</div>
-      <div class="lbl">Total Program Studi</div>
+    <div class="stat-card stat-card--light">
+      <div class="stat-card__icon stat-card__icon--dark">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+      </div>
+      <div class="stat-card__val stat-card__val--dark">{{ totalPt | number }}</div>
+      <div class="stat-card__lbl stat-card__lbl--dark">Total Program Studi</div>
     </div>
-    <div class="stat-box">
-      <div class="val">{{ totalMhs | number }}</div>
-      <div class="lbl">Mahasiswa Aktif</div>
+    <div class="stat-card stat-card--light">
+      <div class="stat-card__icon stat-card__icon--dark">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <div class="stat-card__val stat-card__val--dark">{{ totalMhs | number }}</div>
+      <div class="stat-card__lbl stat-card__lbl--dark">Mahasiswa Aktif</div>
     </div>
-    <div class="stat-box">
-      <div class="val">{{ totalDsn | number }}</div>
-      <div class="lbl">Dosen Tetap</div>
+    <div class="stat-card stat-card--light">
+      <div class="stat-card__icon stat-card__icon--dark">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/><circle cx="18" cy="18" r="5" fill="#22c55e"/><path d="M17 20.5l-2-2 .7-.7 1.3 1.3 2.8-2.8.7.7z" fill="white"/></svg>
+      </div>
+      <div class="stat-card__val stat-card__val--dark">{{ totalDsn | number }}</div>
+      <div class="stat-card__lbl stat-card__lbl--dark">Dosen Tetap</div>
     </div>
   </div>
 
   <!-- Chart row baris 1: Pie charts -->
   <div class="charts-row charts-row--pie" *ngIf="!loading && rows.length">
     <div class="chart-card chart-card--clickable" (click)="openChartModal('jenjang')">
-      <div class="chart-title">Sebaran Jenjang <span class="expand-hint">⤢</span></div>
-      <div class="chart-wrap"><canvas #jenjangChart></canvas></div>
+      <div class="chart-card__title">Sebaran Jenjang <span class="expand-hint">⤢</span></div>
+      <div class="chart-card__body chart-card__body--pie"><canvas #jenjangChart></canvas></div>
     </div>
     <div class="chart-card chart-card--clickable" (click)="openChartModal('akreditasi')">
-      <div class="chart-title">Sebaran Akreditasi <span class="expand-hint">⤢</span></div>
-      <div class="chart-wrap"><canvas #ptChart></canvas></div>
+      <div class="chart-card__title">Sebaran Akreditasi <span class="expand-hint">⤢</span></div>
+      <div class="chart-card__body chart-card__body--pie"><canvas #ptChart></canvas></div>
     </div>
   </div>
 
   <!-- Chart row baris 2: Bar charts berdampingan -->
   <div class="charts-row charts-row--bar" *ngIf="!loading && rows.length">
     <div class="chart-card chart-card--clickable" (click)="openChartModal('mhs')">
-      <div class="chart-title">15 Prodi — Mahasiswa Aktif Terbanyak <span class="expand-hint">⤢</span></div>
-      <div class="chart-wrap chart-wrap--bar"><canvas #mhsChart></canvas></div>
+      <div class="chart-card__title">15 Prodi — Mahasiswa Aktif Terbanyak <span class="expand-hint">⤢</span></div>
+      <div class="chart-card__body chart-card__body--bar"><canvas #mhsChart></canvas></div>
     </div>
     <div class="chart-card chart-card--clickable" (click)="openChartModal('dosen')">
-      <div class="chart-title">15 Prodi — Dosen Tetap Terbanyak <span class="expand-hint">⤢</span></div>
-      <div class="chart-wrap chart-wrap--bar"><canvas #dsnChart></canvas></div>
+      <div class="chart-card__title">15 Prodi — Dosen Tetap Terbanyak <span class="expand-hint">⤢</span></div>
+      <div class="chart-card__body chart-card__body--bar"><canvas #dsnChart></canvas></div>
     </div>
   </div>
 
@@ -338,13 +356,34 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
 </div>
   `,
   styles: [`
-    .stats-overview { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
-    .stat-box {
-      background: white; border-radius: 10px; padding: 10px 8px;
-      text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    .page-wrap { padding: 1.25rem; max-width: 1400px; margin: 0 auto; }
+
+    .page-header { margin-bottom: 1.5rem; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin: 0; }
+    .page-header__sub { color: #64748b; font-size: .875rem; margin: .25rem 0 0; }
+
+    /* Stat grid — same as Dosen */
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: .75rem; margin-bottom: 1.25rem;
     }
-    .val { font-size: 18px; font-weight: 700; color: #1a237e; }
-    .lbl { font-size: 10px; color: #666; margin-top: 4px; }
+    @media (min-width: 600px)  { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+    .stat-card {
+      border-radius: 12px; padding: 1rem 1.25rem;
+      display: flex; flex-direction: column; gap: .25rem; color: #fff;
+    }
+    .stat-card--blue  { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .stat-card--light { background: #fff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .stat-card__icon { width: 28px; height: 28px; opacity: .9; }
+    .stat-card__icon--dark { opacity: .45; }
+    .stat-card__icon svg { width: 100%; height: 100%; }
+    .stat-card__val  { font-size: 1.75rem; font-weight: 800; line-height: 1; }
+    .stat-card__val--dark { color: #1e293b; }
+    .stat-card__lbl  { font-size: .8rem; opacity: .88; }
+    .stat-card__lbl--dark { color: #64748b; opacity: 1; }
+
+    .loading-wrap { display: flex; align-items: center; gap: .75rem; color: #64748b; padding: 2rem; }
+
     .periode-badge {
       display: inline-flex; align-items: center; gap: .4rem;
       margin-top: .6rem;
@@ -456,27 +495,24 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     .ps-pt-nama { font-size: .82rem; color: #1e293b; }
     .ps-pt-kode { font-size: .72rem; color: #64748b; font-family: monospace; margin-top: 1px; }
 
-    /* Charts row — mobile-first */
-    .charts-row {
-      display: grid; grid-template-columns: 1fr;
-      gap: 14px; margin-bottom: 18px;
+    /* Charts row — same as Dosen */
+    .charts-row { display: grid; gap: .75rem; margin-bottom: .75rem; }
+    .charts-row--pie { grid-template-columns: 1fr; }
+    .charts-row--bar { grid-template-columns: 1fr; }
+    @media (min-width: 600px) {
+      .charts-row--pie { grid-template-columns: repeat(2, 1fr); }
+      .charts-row--bar { grid-template-columns: repeat(2, 1fr); }
     }
     .chart-card {
-      background: #f8f9fc; border: 1px solid #e8eaf0; border-radius: 10px;
-      padding: 8px 10px; display: flex; flex-direction: column;
+      background: #fff; border-radius: 12px;
+      padding: 1rem 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.07);
     }
-    .chart-card--wide { grid-column: span 1; }
-    .chart-title {
-      font-size: 11px; font-weight: 600; color: #555;
-      margin-bottom: 4px; text-align: center; letter-spacing: 0.3px;
+    .chart-card__title {
+      font-size: .875rem; font-weight: 600; color: #334155; margin-bottom: .75rem;
     }
-    .chart-wrap {
-      position: relative; flex: 1; display: flex;
-      align-items: center; justify-content: center; max-height: 180px;
-    }
-    .chart-wrap--bar { max-height: none; overflow-y: auto; }
-    .charts-row--pie { grid-template-columns: 1fr 1fr; }
-    .charts-row--bar { grid-template-columns: 1fr 1fr; }
+    .chart-card__body { position: relative; height: 220px; }
+    .chart-card__body--pie { height: 200px; display: flex; align-items: center; }
+    .chart-card__body--bar { height: auto; overflow-y: auto; }
 
     .filter-bar {
       display: flex; align-items: center; gap: 12px;
@@ -667,11 +703,6 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
 
     /* ── Tablet ≥ 600px ─── */
     @media (min-width: 600px) {
-      .stats-overview { grid-template-columns: repeat(4, 1fr); gap: 10px; }
-      .stat-box { padding: 12px 8px; }
-      .val { font-size: 20px; }
-      .lbl { font-size: 11px; }
-      .charts-row { grid-template-columns: 1fr 1fr; }
       .filter-bar { flex-direction: row; flex-wrap: wrap; align-items: center; }
       .search-wrap { min-width: 180px; flex: 1; }
       .table-toolbar { flex-direction: row; align-items: center; }
@@ -681,13 +712,8 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
 
     /* ── Desktop ≥ 1024px ─── */
     @media (min-width: 1024px) {
-      .stats-overview { grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
-      .stat-box { padding: 16px 12px; }
-      .val { font-size: 28px; }
-      .lbl { font-size: 12px; }
       .data-table { font-size: 13px; }
       .data-table th, .data-table td { padding: 10px 14px; }
-      .charts-row { grid-template-columns: 1fr 1fr; }
       .cmodal-box { width: min(96vw, 1100px) !important; }
       .cmodal-body { padding: 22px; min-height: 340px; }
       .mt-16 { margin-top: 16px; }
