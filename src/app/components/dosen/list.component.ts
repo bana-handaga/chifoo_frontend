@@ -78,27 +78,46 @@ Chart.register(...registerables);
 
       <!-- Hasil -->
       <div class="search-results" *ngIf="searchDone">
-        <div class="search-results__info">
-          Ditemukan <strong>{{ searchTotal | number }}</strong> dosen
-          <span *ngIf="searchTotal > 20"> — menampilkan halaman {{ searchPage }} dari {{ searchTotalPages }}</span>
+        <div class="search-results__header">
+          <div class="search-results__info">
+            Ditemukan <strong>{{ searchTotal | number }}</strong> dosen
+            <span *ngIf="searchTotalPages > 1"> — halaman {{ searchPage }} / {{ searchTotalPages }}</span>
+          </div>
+          <div class="pagination" *ngIf="searchTotalPages > 1">
+            <button [disabled]="searchPage===1" (click)="goPage(searchPage-1)">‹ Prev</button>
+            <span>{{ searchPage }} / {{ searchTotalPages }}</span>
+            <button [disabled]="searchPage===searchTotalPages" (click)="goPage(searchPage+1)">Next ›</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table class="result-table">
             <thead>
               <tr>
-                <th>Nama</th>
+                <th (click)="setSort('nama')" class="sortable">
+                  Nama <span class="sort-icon">{{ sortIcon('nama') }}</span>
+                </th>
                 <th>NIDN</th>
-                <th>Perguruan Tinggi</th>
-                <th>Program Studi</th>
-                <th>Jabatan</th>
-                <th>Pend.</th>
+                <th>NUPTK</th>
+                <th (click)="setSort('perguruan_tinggi__nama')" class="sortable">
+                  Perguruan Tinggi <span class="sort-icon">{{ sortIcon('perguruan_tinggi__nama') }}</span>
+                </th>
+                <th (click)="setSort('program_studi_nama')" class="sortable">
+                  Program Studi <span class="sort-icon">{{ sortIcon('program_studi_nama') }}</span>
+                </th>
+                <th (click)="setSort('jabatan_fungsional')" class="sortable">
+                  Jabatan <span class="sort-icon">{{ sortIcon('jabatan_fungsional') }}</span>
+                </th>
+                <th (click)="setSort('pendidikan_tertinggi')" class="sortable">
+                  Pend. <span class="sort-icon">{{ sortIcon('pendidikan_tertinggi') }}</span>
+                </th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let d of searchResults">
                 <td>{{ d.nama }}</td>
-                <td class="mono">{{ d.nidn || d.nuptk }}</td>
+                <td class="mono">{{ d.nidn || '—' }}</td>
+                <td class="mono">{{ d.nuptk || '—' }}</td>
                 <td>{{ d.pt_singkatan }}</td>
                 <td>{{ d.program_studi_nama }}</td>
                 <td><span [class]="jabatanClass(d.jabatan_fungsional)">{{ d.jabatan_fungsional || '—' }}</span></td>
@@ -106,7 +125,7 @@ Chart.register(...registerables);
                 <td><span class="status-chip" [class.aktif]="d.status==='Aktif'">{{ d.status }}</span></td>
               </tr>
               <tr *ngIf="!searchResults.length">
-                <td colspan="7" class="empty-row">Tidak ada hasil ditemukan</td>
+                <td colspan="8" class="empty-row">Tidak ada hasil ditemukan</td>
               </tr>
             </tbody>
           </table>
@@ -306,21 +325,29 @@ Chart.register(...registerables);
 
     /* Hasil pencarian */
     .search-results { margin-top: 1rem; }
-    .search-results__info { font-size: .82rem; color: #64748b; margin-bottom: .5rem; }
+    .search-results__header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem;
+    }
+    .search-results__header .pagination { margin-top: 0; }
+    .search-results__info { font-size: .82rem; color: #64748b; }
     .search-results__info strong { color: #1e293b; }
 
-    .table-wrap { overflow-x: auto; }
+    .table-wrap { overflow-x: auto; border-radius: 10px; background: rgba(59,130,246,.05); }
     .result-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
     .result-table th {
-      background: #f8fafc; padding: .55rem .75rem;
+      background: rgba(59,130,246,.08); padding: .55rem .75rem;
       text-align: left; font-weight: 600; color: #475569;
-      border-bottom: 2px solid #e2e8f0; white-space: nowrap;
+      border-bottom: 2px solid rgba(59,130,246,.15); white-space: nowrap;
     }
+    .result-table th.sortable { cursor: pointer; user-select: none; }
+    .result-table th.sortable:hover { background: rgba(59,130,246,.14); color: #1d4ed8; }
+    .sort-icon { font-style: normal; font-size: .72rem; color: #94a3b8; margin-left: .2rem; }
     .result-table td {
-      padding: .5rem .75rem; border-bottom: 1px solid #f1f5f9;
+      padding: .5rem .75rem; border-bottom: 1px solid rgba(59,130,246,.08);
       color: #1e293b; vertical-align: middle;
     }
-    .result-table tr:hover td { background: #f8fafc; }
+    .result-table tr:hover td { background: rgba(59,130,246,.06); }
     .mono { font-family: monospace; font-size: .78rem; color: #64748b; }
     .empty-row { text-align: center; color: #94a3b8; padding: 1.5rem; }
 
@@ -442,6 +469,8 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
   searchTotalPages = 1;
   searchResults: any[] = [];
   searchForm = { nama: '', jabatan: '', pendidikan: '', status: '' };
+  sortField = 'nama';
+  sortDir   = 'asc';
 
   private chartJk:      Chart | null = null;
   private chartPend:    Chart | null = null;
@@ -476,10 +505,25 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   toggleSearch() { this.searchOpen = !this.searchOpen; }
 
+  setSort(field: string) {
+    if (this.sortField === field) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      this.sortDir = 'asc';
+    }
+    this.runSearch(1);
+  }
+
+  sortIcon(field: string): string {
+    if (this.sortField !== field) return '⇅';
+    return this.sortDir === 'asc' ? '▲' : '▼';
+  }
+
   runSearch(page = 1) {
     this.searching = true;
     this.searchPage = page;
-    const params = { ...this.searchForm, page: String(page) };
+    const params = { ...this.searchForm, page: String(page), ordering: (this.sortDir === 'desc' ? '-' : '') + this.sortField };
     this.api.dosenSearch(params).subscribe({
       next: (res: any) => {
         this.searchResults   = res.results;
@@ -500,6 +544,8 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.searchResults = [];
     this.searchTotal   = 0;
     this.searchPage    = 1;
+    this.sortField     = 'nama';
+    this.sortDir       = 'asc';
   }
 
   jabatanClass(jabatan: string): string {

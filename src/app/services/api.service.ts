@@ -169,6 +169,12 @@ export class ApiService {
     return this.http.get<any>(`${this.baseUrl}/dosen-stats/`);
   }
 
+  dosenSearch(params: any): Observable<any> {
+    let p = new HttpParams();
+    Object.keys(params).forEach(k => { if (params[k]) p = p.set(k, params[k]); });
+    return this.http.get<any>(`${this.baseUrl}/dosen-search/`, { params: p });
+  }
+
   updateProgramStudi(id: number, data: any): Observable<any> {
     return this.http.patch(`${this.baseUrl}/program-studi/${id}/`, data);
   }

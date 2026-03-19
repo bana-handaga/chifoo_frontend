@@ -11,6 +11,10 @@ Chart.register(...registerables);
       <div class="page-header">
         <h1>Perguruan Tinggi</h1>
         <p>Daftar seluruh PTMA di Indonesia</p>
+        <div class="periode-badge" *ngIf="statistik?.periode_label">
+          <span class="periode-badge__dot"></span>
+          Periode Pelaporan Aktif: <strong>{{ statistik.periode_label }}</strong>
+        </div>
       </div>
 
       <!-- Stats overview -->
@@ -39,9 +43,6 @@ Chart.register(...registerables);
           <div class="val">{{ statistik.total_mahasiswa | number }}</div>
           <div class="lbl">Mahasiswa</div>
         </div>
-      </div>
-      <div class="periode-note" *ngIf="statistik?.periode_label">
-        Data dosen &amp; mahasiswa: periode <strong>{{ statistik.periode_label }}</strong>
       </div>
 
       <!-- Charts: Akreditasi | Wilayah | Jenis -->
@@ -214,11 +215,25 @@ Chart.register(...registerables);
   styles: [`
     /* ── Stats overview ─── */
     .stats-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
-    .periode-note {
-      font-size: 11px; color: #888; margin-bottom: 14px;
-      padding: 4px 2px; text-align: right;
+    .periode-badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      margin-top: .6rem;
+      padding: .3rem .75rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 20px;
+      font-size: .8rem; color: #1e40af;
     }
-    .periode-note strong { color: #1a237e; }
+    .periode-badge strong { font-weight: 700; }
+    .periode-badge__dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #3b82f6;
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(.7); }
+    }
     .stat-box {
       background: white; border-radius: 10px; padding: 10px 8px;
       text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08);

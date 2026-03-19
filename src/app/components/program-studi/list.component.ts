@@ -29,6 +29,10 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
   <div class="page-header">
     <h1>Program Studi</h1>
     <p>Pengelompokan program studi berdasarkan nama dan jenjang</p>
+    <div class="periode-badge" *ngIf="periodeLabel">
+      <span class="periode-badge__dot"></span>
+      Periode Pelaporan Aktif: <strong>{{ periodeLabel }}</strong>
+    </div>
   </div>
 
   <!-- Stats overview -->
@@ -49,9 +53,6 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       <div class="val">{{ totalDsn | number }}</div>
       <div class="lbl">Dosen Tetap</div>
     </div>
-  </div>
-  <div class="periode-note" *ngIf="periodeLabel && !loading && rows.length">
-    Data mahasiswa &amp; dosen: periode <strong>{{ periodeLabel }}</strong>
   </div>
 
   <!-- Chart row baris 1: Pie charts -->
@@ -249,11 +250,25 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     }
     .val { font-size: 18px; font-weight: 700; color: #1a237e; }
     .lbl { font-size: 10px; color: #666; margin-top: 4px; }
-    .periode-note {
-      font-size: 11px; color: #888; margin-bottom: 14px;
-      padding: 4px 2px; text-align: right;
+    .periode-badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      margin-top: .6rem;
+      padding: .3rem .75rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 20px;
+      font-size: .8rem; color: #1e40af;
     }
-    .periode-note strong { color: #1a237e; }
+    .periode-badge strong { font-weight: 700; }
+    .periode-badge__dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #3b82f6;
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(.7); }
+    }
 
     /* Charts row — mobile-first */
     .charts-row {
