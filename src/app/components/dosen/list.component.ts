@@ -560,10 +560,21 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   exportDosen(fmt: 'csv' | 'xlsx' | 'pdf') {
-    const headers = ['Nama', 'NIDN', 'NUPTK', 'Perguruan Tinggi', 'Program Studi', 'Jabatan', 'Pendidikan', 'Status'];
-    const data = this.searchResults.map(d => [
+    const params = {
+      ...this.searchForm,
+      page: '1',
+      page_size: String(this.searchTotal || 5000),
+      ordering: (this.sortDir === 'desc' ? '-' : '') + this.sortField,
+    };
+    this.api.dosenSearch(params).subscribe({ next: (res: any) => this.doExport(fmt, res.results) });
+  }
+
+  private doExport(fmt: 'csv' | 'xlsx' | 'pdf', rows: any[]) {
+    const headers = ['Nama', 'NIDN', 'NUPTK', 'Perguruan Tinggi', 'Kode PT', 'Program Studi', 'Kode Prodi', 'Jabatan', 'Pendidikan', 'Status'];
+    const data = rows.map(d => [
       d.nama, d.nidn || '—', d.nuptk || '—',
-      d.pt_nama, d.program_studi_nama,
+      d.pt_nama, d.pt_kode,
+      d.program_studi_nama, d.kode_prodi || '—',
       d.jabatan_fungsional || '—', (d.pendidikan_tertinggi || '').toUpperCase(), d.status,
     ]);
     const filename = `dosen-${this.searchForm.nama || 'semua'}`;
@@ -579,7 +590,7 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     } else if (fmt === 'xlsx') {
       const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-      ws['!cols'] = [28, 14, 16, 32, 26, 18, 12, 14].map(w => ({ wch: w }));
+      ws['!cols'] = [28, 14, 16, 34, 10, 26, 10, 18, 12, 14].map(w => ({ wch: w }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Dosen');
       XLSX.writeFile(wb, `${filename}.xlsx`);
@@ -589,16 +600,16 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
         <title>Dosen — ${this.searchForm.nama}</title>
         <style>
-          body { font-family: Arial, sans-serif; font-size: 11px; margin: 16px; }
-          h2 { font-size: 14px; margin-bottom: 8px; color: #1e3a8a; }
+          body { font-family: Arial, sans-serif; font-size: 10px; margin: 16px; }
+          h2 { font-size: 13px; margin-bottom: 6px; color: #1e3a8a; }
           table { width: 100%; border-collapse: collapse; }
-          th { background: #1d4ed8; color: #fff; padding: 6px 8px; text-align: left; font-size: 11px; }
-          td { padding: 5px 8px; border-bottom: 1px solid #dbeafe; font-size: 11px; }
+          th { background: #1d4ed8; color: #fff; padding: 5px 6px; text-align: left; }
+          td { padding: 4px 6px; border-bottom: 1px solid #dbeafe; }
           tr:nth-child(even) td { background: #f0f7ff; }
-          @media print { @page { size: landscape; margin: 12mm; } }
+          @media print { @page { size: landscape; margin: 10mm; } }
         </style></head><body>
         <h2>Pencarian Dosen: ${this.searchForm.nama || '(semua)'}${this.searchForm.jabatan ? ' — ' + this.searchForm.jabatan : ''}</h2>
-        <p style="font-size:10px;color:#666;margin-bottom:8px">Total: ${this.searchTotal} dosen (halaman ${this.searchPage})</p>
+        <p style="font-size:9px;color:#666;margin-bottom:6px">Total: ${rows.length} dosen</p>
         <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
         <tbody>${rows_html}</tbody></table>
         <script>window.onload=function(){window.print();window.close();}</script>
