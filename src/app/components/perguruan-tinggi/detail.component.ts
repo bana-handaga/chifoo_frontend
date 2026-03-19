@@ -53,7 +53,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
 
       <div class="tabs-wrapper">
         <div class="tabs">
-          <button [class.active]="tab==='prodi'" (click)="setTab('prodi')">Program Studi ({{ filteredProgramStudi.length }}<span *ngIf="filterProdiJenjang || filterProdiAkreditasi">/{{ pt.program_studi?.length }}</span>)</button>
+          <button [class.active]="tab==='prodi'" (click)="setTab('prodi')">Program Studi ({{ filteredProgramStudi.length }}<span *ngIf="filterProdiJenjang || filterProdiAkreditasi || filterProdiExp">/{{ pt.program_studi?.length }}</span>)</button>
           <button [class.active]="tab==='mahasiswa'" (click)="setTab('mahasiswa')">Data Mahasiswa</button>
           <button [class.active]="tab==='dosen'" (click)="setTab('dosen')">Data Dosen</button>
         </div>
@@ -70,7 +70,9 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
           <div *ngFor="let item of prodiAkreditasiExpiring"
                class="akr-expiry-item"
                [class.akr-red]="item.daysLeft <= 60"
-               [class.akr-yellow]="item.daysLeft > 60 && item.daysLeft <= 90">
+               [class.akr-yellow]="item.daysLeft > 60 && item.daysLeft <= 90"
+               style="cursor:pointer"
+               (click)="setProdiExpFilter(item.daysLeft <= 60 ? 'less_2m' : 'less_3m')">
             <span class="akr-expiry-icon">&#9888;</span>
             <span class="akr-expiry-text">
               <strong>{{ item.prodi.nama }}</strong>
@@ -80,6 +82,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
               <ng-container *ngIf="item.daysLeft <= 0">sudah kedaluarsa</ng-container>
               ({{ item.prodi.tanggal_kedaluarsa_akreditasi | date:'d MMM yyyy' }})
             </span>
+            <span class="akr-expiry-action">Lihat →</span>
           </div>
         </div>
 
@@ -100,6 +103,16 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
               <option *ngFor="let a of prodiAkreditasiOptions" [value]="a">{{ a }}</option>
             </select>
             <span class="filter-reset" *ngIf="filterProdiAkreditasi" (click)="filterProdiAkreditasi=''">✕</span>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Kedaluarsa:</label>
+            <select [(ngModel)]="filterProdiExp" class="filter-select filter-select-exp">
+              <option value="">Semua</option>
+              <option value="less_3m">Kurang dari 3 bulan</option>
+              <option value="less_2m">Kurang dari 2 bulan</option>
+              <option value="less_1m">Kurang dari 1 bulan</option>
+            </select>
+            <span class="filter-reset" *ngIf="filterProdiExp" (click)="filterProdiExp=''">✕</span>
           </div>
         </div>
 
@@ -123,7 +136,6 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
           <table class="data-table">
             <thead>
               <tr>
-                <th>Kode</th>
                 <th class="th-sort" (click)="setProdiSort('nama')">Nama Prodi <span class="si">{{ prodiSi('nama') }}</span></th>
                 <th class="th-sort" (click)="setProdiSort('jenjang')">Jenjang <span class="si">{{ prodiSi('jenjang') }}</span></th>
                 <th class="th-sort" (click)="setProdiSort('akreditasi')">Akreditasi <span class="si">{{ prodiSi('akreditasi') }}</span></th>
@@ -135,8 +147,10 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
             </thead>
             <tbody>
               <tr *ngFor="let p of filteredProgramStudi" class="prodi-row" (click)="openProdiModal(p)">
-                <td><code>{{ p.kode_prodi }}</code></td>
-                <td>{{ p.nama }}</td>
+                <td>
+                  {{ p.nama }}<br>
+                  <code class="prodi-kode">{{ p.kode_prodi }}</code>
+                </td>
                 <td>{{ p.jenjang_display }}</td>
                 <td>
                   <span class="badge">{{ p.akreditasi_display }}</span>
@@ -627,11 +641,15 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
     .sim-pct  { font-size: 11px; font-weight: 600; color: #555; white-space: nowrap; }
     .sim-namapt { font-size: 10px; color: #888; }
     .akr-expiry-notices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-    .akr-expiry-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; border-radius: 6px; font-size: 13px; border-left: 4px solid; }
+    .akr-expiry-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; border-radius: 6px; font-size: 13px; border-left: 4px solid; transition: filter .15s; }
+    .akr-expiry-item:hover { filter: brightness(.96); }
     .akr-red    { background: #fff0f0; border-color: #e53e3e; color: #7b1a1a; }
     .akr-yellow { background: #fffbea; border-color: #d69e2e; color: #7b5a00; }
     .akr-expiry-icon { font-size: 16px; line-height: 1.4; flex-shrink: 0; }
-    .akr-expiry-text { line-height: 1.5; }
+    .akr-expiry-text { line-height: 1.5; flex: 1; }
+    .akr-expiry-action { font-weight: 600; white-space: nowrap; opacity: .7; align-self: center; }
+    .prodi-kode { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 10px; color: #555; }
+    .filter-select-exp { background: #fff7ed !important; border-color: #fb923c !important; color: #92400e !important; }
     .prodi-filter-bar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
     .filter-group { display: flex; align-items: center; gap: 6px; }
     .prodi-charts-row { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 18px; }
@@ -863,6 +881,7 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
   // Filter & Sort Program Studi
   filterProdiJenjang    = '';
   filterProdiAkreditasi = '';
+  filterProdiExp        = '';
   prodiSortKey = 'mahasiswa_aktif_periode';
   prodiSortAsc = false;
 
@@ -1044,11 +1063,23 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     return result.sort((a, b) => a.daysLeft - b.daysLeft);
   }
 
+  setProdiExpFilter(val: string) { this.filterProdiExp = val; }
+
   get filteredProgramStudi(): ProgramStudi[] {
-    const list = (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
-      (!this.filterProdiJenjang    || p.jenjang_display    === this.filterProdiJenjang) &&
-      (!this.filterProdiAkreditasi || p.akreditasi_display === this.filterProdiAkreditasi)
-    );
+    const now = new Date();
+    const list = (this.pt?.program_studi || []).filter((p: ProgramStudi) => {
+      if (this.filterProdiJenjang    && p.jenjang_display    !== this.filterProdiJenjang)    return false;
+      if (this.filterProdiAkreditasi && p.akreditasi_display !== this.filterProdiAkreditasi) return false;
+      if (this.filterProdiExp && p.tanggal_kedaluarsa_akreditasi) {
+        const days = Math.ceil((new Date(p.tanggal_kedaluarsa_akreditasi).getTime() - now.getTime()) / 86400000);
+        if (this.filterProdiExp === 'less_1m' && days > 30)  return false;
+        if (this.filterProdiExp === 'less_2m' && days > 60)  return false;
+        if (this.filterProdiExp === 'less_3m' && days > 90)  return false;
+      } else if (this.filterProdiExp) {
+        return false; // tidak ada tanggal exp → tidak masuk filter kedaluarsa
+      }
+      return true;
+    });
     const key = this.prodiSortKey as keyof ProgramStudi;
     const dir = this.prodiSortAsc ? 1 : -1;
     return [...list].sort((a: any, b: any) => {
