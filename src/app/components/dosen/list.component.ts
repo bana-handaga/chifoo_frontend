@@ -4,6 +4,7 @@ import {
 } from '@angular/core';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { ApiService } from '../../services/api.service';
+import * as XLSX from 'xlsx';
 
 Chart.register(...registerables);
 
@@ -25,20 +26,20 @@ Chart.register(...registerables);
   </div>
 
   <!-- Accordion Pencarian -->
-  <div class="search-accordion" [class.open]="searchOpen">
-    <button class="search-toggle" (click)="toggleSearch()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+  <div class="ds-accordion" [class.open]="searchOpen">
+    <button class="ds-toggle" (click)="toggleSearch()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       Cari Dosen
-      <span class="search-toggle__chevron" [class.rotated]="searchOpen">▾</span>
+      <span class="ds-chevron" [class.rotated]="searchOpen">▾</span>
     </button>
 
-    <div class="search-body" *ngIf="searchOpen">
-      <div class="search-fields">
-        <div class="sf">
+    <div class="ds-body" *ngIf="searchOpen">
+      <div class="ds-fields">
+        <div class="dsf">
           <label>Nama Dosen</label>
           <input type="text" [(ngModel)]="searchForm.nama" placeholder="Ketik nama dosen..." (keyup.enter)="runSearch()">
         </div>
-        <div class="sf">
+        <div class="dsf">
           <label>Jabatan Fungsional</label>
           <select [(ngModel)]="searchForm.jabatan">
             <option value="">— Semua —</option>
@@ -48,7 +49,7 @@ Chart.register(...registerables);
             <option value="Asisten Ahli">Asisten Ahli</option>
           </select>
         </div>
-        <div class="sf">
+        <div class="dsf">
           <label>Pendidikan</label>
           <select [(ngModel)]="searchForm.pendidikan">
             <option value="">— Semua —</option>
@@ -58,7 +59,7 @@ Chart.register(...registerables);
             <option value="profesi">Profesi</option>
           </select>
         </div>
-        <div class="sf">
+        <div class="dsf">
           <label>Status</label>
           <select [(ngModel)]="searchForm.status">
             <option value="">— Semua —</option>
@@ -68,48 +69,45 @@ Chart.register(...registerables);
             <option value="CUTI">Cuti</option>
           </select>
         </div>
-        <div class="sf sf--action">
-          <button class="btn-search" (click)="runSearch()" [disabled]="searching">
+        <div class="dsf dsf--action">
+          <button class="ds-btn-search" (click)="runSearch()" [disabled]="searching">
             {{ searching ? 'Mencari...' : 'Cari' }}
           </button>
-          <button class="btn-reset" (click)="resetSearch()">Reset</button>
+          <button class="ds-btn-reset" (click)="resetSearch()" *ngIf="searchDone">Reset</button>
         </div>
       </div>
 
       <!-- Hasil -->
-      <div class="search-results" *ngIf="searchDone">
-        <div class="search-results__header">
-          <div class="search-results__info">
+      <div class="ds-results" *ngIf="searchDone">
+        <div class="ds-results__header">
+          <div class="ds-results__info">
             Ditemukan <strong>{{ searchTotal | number }}</strong> dosen
             <span *ngIf="searchTotalPages > 1"> — halaman {{ searchPage }} / {{ searchTotalPages }}</span>
           </div>
-          <div class="pagination" *ngIf="searchTotalPages > 1">
-            <button [disabled]="searchPage===1" (click)="goPage(searchPage-1)">‹ Prev</button>
-            <span>{{ searchPage }} / {{ searchTotalPages }}</span>
-            <button [disabled]="searchPage===searchTotalPages" (click)="goPage(searchPage+1)">Next ›</button>
+          <div class="ds-actions">
+            <div class="ds-pagination" *ngIf="searchTotalPages > 1">
+              <button [disabled]="searchPage===1" (click)="goPage(searchPage-1)">‹ Prev</button>
+              <span>{{ searchPage }} / {{ searchTotalPages }}</span>
+              <button [disabled]="searchPage===searchTotalPages" (click)="goPage(searchPage+1)">Next ›</button>
+            </div>
+            <div class="ds-export-btns">
+              <button class="ds-exp ds-exp--csv"  (click)="exportDosen('csv')">CSV</button>
+              <button class="ds-exp ds-exp--xlsx" (click)="exportDosen('xlsx')">XLSX</button>
+              <button class="ds-exp ds-exp--pdf"  (click)="exportDosen('pdf')">PDF</button>
+            </div>
           </div>
         </div>
-        <div class="table-wrap">
-          <table class="result-table">
+        <div class="ds-table-wrap">
+          <table class="ds-table">
             <thead>
               <tr>
-                <th (click)="setSort('nama')" class="sortable">
-                  Nama <span class="sort-icon">{{ sortIcon('nama') }}</span>
-                </th>
+                <th (click)="setSort('nama')" class="ds-sortable">Nama <span class="ds-si">{{ sortIcon('nama') }}</span></th>
                 <th>NIDN</th>
                 <th>NUPTK</th>
-                <th (click)="setSort('perguruan_tinggi__nama')" class="sortable">
-                  Perguruan Tinggi <span class="sort-icon">{{ sortIcon('perguruan_tinggi__nama') }}</span>
-                </th>
-                <th (click)="setSort('program_studi_nama')" class="sortable">
-                  Program Studi <span class="sort-icon">{{ sortIcon('program_studi_nama') }}</span>
-                </th>
-                <th (click)="setSort('jabatan_fungsional')" class="sortable">
-                  Jabatan <span class="sort-icon">{{ sortIcon('jabatan_fungsional') }}</span>
-                </th>
-                <th (click)="setSort('pendidikan_tertinggi')" class="sortable">
-                  Pend. <span class="sort-icon">{{ sortIcon('pendidikan_tertinggi') }}</span>
-                </th>
+                <th (click)="setSort('perguruan_tinggi__nama')" class="ds-sortable">Perguruan Tinggi <span class="ds-si">{{ sortIcon('perguruan_tinggi__nama') }}</span></th>
+                <th (click)="setSort('program_studi_nama')" class="ds-sortable">Program Studi <span class="ds-si">{{ sortIcon('program_studi_nama') }}</span></th>
+                <th (click)="setSort('jabatan_fungsional')" class="ds-sortable">Jabatan <span class="ds-si">{{ sortIcon('jabatan_fungsional') }}</span></th>
+                <th (click)="setSort('pendidikan_tertinggi')" class="ds-sortable">Pend. <span class="ds-si">{{ sortIcon('pendidikan_tertinggi') }}</span></th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -130,8 +128,7 @@ Chart.register(...registerables);
             </tbody>
           </table>
         </div>
-        <!-- Pagination -->
-        <div class="pagination" *ngIf="searchTotalPages > 1">
+        <div class="ds-pagination ds-pagination--bottom" *ngIf="searchTotalPages > 1">
           <button [disabled]="searchPage===1" (click)="goPage(searchPage-1)">‹ Prev</button>
           <span>{{ searchPage }} / {{ searchTotalPages }}</span>
           <button [disabled]="searchPage===searchTotalPages" (click)="goPage(searchPage+1)">Next ›</button>
@@ -273,81 +270,92 @@ Chart.register(...registerables);
       50% { opacity: .5; transform: scale(.7); }
     }
 
-    /* ── Search Accordion ─────────────────────────── */
-    .search-accordion {
-      background: #fff; border-radius: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.07);
-      margin-bottom: 1rem; overflow: hidden;
+    /* ── Search Accordion Dosen (biru) ── */
+    .ds-accordion {
+      background: #fff; border-radius: 12px; margin-bottom: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      border-left: 4px solid #1d4ed8;
     }
-    .search-toggle {
-      width: 100%; display: flex; align-items: center; gap: .5rem;
-      padding: .85rem 1.25rem; border: none; background: none;
-      font-size: .9rem; font-weight: 600; color: #334155; cursor: pointer;
-      text-align: left;
+    .ds-toggle {
+      width: 100%; display: flex; align-items: center; gap: .6rem;
+      background: none; border: none; padding: .85rem 1.1rem;
+      font-size: .9rem; font-weight: 600; color: #1e3a8a; cursor: pointer;
+      text-align: left; border-radius: 12px;
     }
-    .search-toggle:hover { background: #f8fafc; }
-    .search-toggle svg { width: 16px; height: 16px; stroke: #3b82f6; flex-shrink: 0; }
-    .search-toggle__chevron { margin-left: auto; font-size: .8rem; transition: transform .2s; }
-    .search-toggle__chevron.rotated { transform: rotate(180deg); }
+    .ds-toggle:hover { background: rgba(59,130,246,.05); }
+    .ds-chevron { margin-left: auto; font-size: .85rem; color: #2563eb; transition: transform .2s; }
+    .ds-chevron.rotated { transform: rotate(180deg); }
+    .ds-body { padding: 0 1.1rem 1.1rem; }
+    .ds-fields {
+      display: grid; grid-template-columns: 1fr; gap: .75rem; margin-bottom: 1rem;
+    }
+    @media (min-width: 600px)  { .ds-fields { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1024px) { .ds-fields { grid-template-columns: repeat(5, 1fr); } }
+    .dsf { display: flex; flex-direction: column; gap: .3rem; }
+    .dsf label { font-size: .78rem; font-weight: 600; color: #1e40af; }
+    .dsf input, .dsf select {
+      padding: .5rem .75rem; border: 1px solid #93c5fd; border-radius: 8px;
+      font-size: .875rem; outline: none; background: #eff6ff;
+    }
+    .dsf input:focus, .dsf select:focus { border-color: #1d4ed8; box-shadow: 0 0 0 2px rgba(29,78,216,.12); }
+    .dsf--action { justify-content: flex-end; flex-direction: row; align-items: flex-end; gap: .5rem; }
+    .ds-btn-search {
+      padding: .5rem 1.25rem; background: #1d4ed8; color: #fff;
+      border: none; border-radius: 8px; font-size: .875rem; font-weight: 600; cursor: pointer;
+    }
+    .ds-btn-search:hover:not(:disabled) { background: #1e3a8a; }
+    .ds-btn-search:disabled { opacity: .5; cursor: not-allowed; }
+    .ds-btn-reset {
+      padding: .5rem 1rem; background: #eff6ff; color: #1e40af;
+      border: 1px solid #93c5fd; border-radius: 8px; font-size: .875rem; cursor: pointer;
+    }
+    .ds-btn-reset:hover { background: #dbeafe; }
 
-    .search-body { padding: 0 1.25rem 1.25rem; border-top: 1px solid #f1f5f9; }
-
-    .search-fields {
-      display: grid; gap: .75rem;
-      grid-template-columns: 1fr;
-      padding-top: 1rem;
-    }
-    @media (min-width: 600px)  { .search-fields { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 1024px) { .search-fields { grid-template-columns: repeat(5, 1fr); } }
-
-    .sf { display: flex; flex-direction: column; gap: .3rem; }
-    .sf label { font-size: .75rem; font-weight: 600; color: #64748b; }
-    .sf input, .sf select {
-      padding: .45rem .65rem; border: 1px solid #e2e8f0;
-      border-radius: 8px; font-size: .85rem; color: #1e293b;
-      background: #f8fafc; outline: none;
-    }
-    .sf input:focus, .sf select:focus { border-color: #3b82f6; background: #fff; }
-    .sf--action { flex-direction: row; align-items: flex-end; gap: .5rem; }
-
-    .btn-search {
-      flex: 1; padding: .5rem; border: none; border-radius: 8px;
-      background: #3b82f6; color: #fff; font-weight: 600;
-      font-size: .85rem; cursor: pointer;
-    }
-    .btn-search:disabled { opacity: .6; cursor: not-allowed; }
-    .btn-search:hover:not(:disabled) { background: #2563eb; }
-    .btn-reset {
-      padding: .5rem .9rem; border: 1px solid #e2e8f0; border-radius: 8px;
-      background: #fff; color: #64748b; font-size: .85rem; cursor: pointer;
-    }
-    .btn-reset:hover { background: #f1f5f9; }
-
-    /* Hasil pencarian */
-    .search-results { margin-top: 1rem; }
-    .search-results__header {
+    /* Results */
+    .ds-results { margin-top: .5rem; }
+    .ds-results__header {
       display: flex; align-items: center; justify-content: space-between;
       flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem;
     }
-    .search-results__header .pagination { margin-top: 0; }
-    .search-results__info { font-size: .82rem; color: #64748b; }
-    .search-results__info strong { color: #1e293b; }
-
-    .table-wrap { overflow-x: auto; border-radius: 10px; background: rgba(59,130,246,.05); }
-    .result-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-    .result-table th {
+    .ds-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .ds-results__info { font-size: .82rem; color: #1e40af; }
+    .ds-results__info strong { color: #1e3a8a; }
+    .ds-pagination {
+      display: flex; align-items: center; gap: .6rem; font-size: .83rem;
+    }
+    .ds-pagination--bottom { justify-content: center; margin-top: .6rem; }
+    .ds-pagination button {
+      padding: .3rem .8rem; border: 1px solid #93c5fd;
+      border-radius: 8px; background: #eff6ff; cursor: pointer; color: #1e40af;
+    }
+    .ds-pagination button:disabled { opacity: .4; cursor: not-allowed; }
+    .ds-pagination button:hover:not(:disabled) { background: #dbeafe; }
+    .ds-export-btns { display: flex; gap: .35rem; }
+    .ds-exp {
+      padding: .28rem .7rem; border-radius: 6px; font-size: .75rem;
+      font-weight: 600; cursor: pointer; border: 1px solid;
+    }
+    .ds-exp--csv  { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .ds-exp--csv:hover  { background: #dcfce7; }
+    .ds-exp--xlsx { background: #f0fdf4; color: #15803d; border-color: #4ade80; }
+    .ds-exp--xlsx:hover { background: #bbf7d0; }
+    .ds-exp--pdf  { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+    .ds-exp--pdf:hover  { background: #fee2e2; }
+    .ds-table-wrap { overflow-x: auto; border-radius: 10px; background: rgba(59,130,246,.04); }
+    .ds-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .ds-table th {
       background: rgba(59,130,246,.08); padding: .55rem .75rem;
-      text-align: left; font-weight: 600; color: #475569;
+      text-align: left; font-weight: 600; color: #1e40af;
       border-bottom: 2px solid rgba(59,130,246,.15); white-space: nowrap;
     }
-    .result-table th.sortable { cursor: pointer; user-select: none; }
-    .result-table th.sortable:hover { background: rgba(59,130,246,.14); color: #1d4ed8; }
-    .sort-icon { font-style: normal; font-size: .72rem; color: #94a3b8; margin-left: .2rem; }
-    .result-table td {
+    .ds-table th.ds-sortable { cursor: pointer; user-select: none; }
+    .ds-table th.ds-sortable:hover { background: rgba(59,130,246,.14); color: #1e3a8a; }
+    .ds-si { font-size: .72rem; color: #93c5fd; margin-left: .2rem; }
+    .ds-table td {
       padding: .5rem .75rem; border-bottom: 1px solid rgba(59,130,246,.08);
       color: #1e293b; vertical-align: middle;
     }
-    .result-table tr:hover td { background: rgba(59,130,246,.06); }
+    .ds-table tr:hover td { background: rgba(59,130,246,.06); }
     .mono { font-family: monospace; font-size: .78rem; color: #64748b; }
     .empty-row { text-align: center; color: #94a3b8; padding: 1.5rem; }
 
@@ -367,17 +375,6 @@ Chart.register(...registerables);
       background: #f1f5f9; color: #64748b;
     }
     .status-chip.aktif { background: #dcfce7; color: #166534; }
-
-    .pagination {
-      display: flex; align-items: center; gap: .75rem;
-      justify-content: center; margin-top: .75rem; font-size: .83rem;
-    }
-    .pagination button {
-      padding: .35rem .85rem; border: 1px solid #e2e8f0;
-      border-radius: 8px; background: #fff; cursor: pointer; color: #334155;
-    }
-    .pagination button:disabled { opacity: .4; cursor: not-allowed; }
-    .pagination button:hover:not(:disabled) { background: #f1f5f9; }
 
     .loading-wrap { display: flex; align-items: center; gap: .75rem; color: #64748b; padding: 2rem; }
     .spinner { width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin .7s linear infinite; }
@@ -546,6 +543,55 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.searchPage    = 1;
     this.sortField     = 'nama';
     this.sortDir       = 'asc';
+  }
+
+  exportDosen(fmt: 'csv' | 'xlsx' | 'pdf') {
+    const headers = ['Nama', 'NIDN', 'NUPTK', 'Perguruan Tinggi', 'Program Studi', 'Jabatan', 'Pendidikan', 'Status'];
+    const data = this.searchResults.map(d => [
+      d.nama, d.nidn || '—', d.nuptk || '—',
+      d.pt_nama, d.program_studi_nama,
+      d.jabatan_fungsional || '—', (d.pendidikan_tertinggi || '').toUpperCase(), d.status,
+    ]);
+    const filename = `dosen-${this.searchForm.nama || 'semua'}`;
+
+    if (fmt === 'csv') {
+      const lines = [headers, ...data].map(row =>
+        row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+      );
+      const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${filename}.csv`; a.click();
+      URL.revokeObjectURL(url);
+
+    } else if (fmt === 'xlsx') {
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      ws['!cols'] = [28, 14, 16, 32, 26, 18, 12, 14].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Dosen');
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+
+    } else {
+      const rows_html = data.map(r => `<tr>${r.map(v => `<td>${v}</td>`).join('')}</tr>`).join('');
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <title>Dosen — ${this.searchForm.nama}</title>
+        <style>
+          body { font-family: Arial, sans-serif; font-size: 11px; margin: 16px; }
+          h2 { font-size: 14px; margin-bottom: 8px; color: #1e3a8a; }
+          table { width: 100%; border-collapse: collapse; }
+          th { background: #1d4ed8; color: #fff; padding: 6px 8px; text-align: left; font-size: 11px; }
+          td { padding: 5px 8px; border-bottom: 1px solid #dbeafe; font-size: 11px; }
+          tr:nth-child(even) td { background: #f0f7ff; }
+          @media print { @page { size: landscape; margin: 12mm; } }
+        </style></head><body>
+        <h2>Pencarian Dosen: ${this.searchForm.nama || '(semua)'}${this.searchForm.jabatan ? ' — ' + this.searchForm.jabatan : ''}</h2>
+        <p style="font-size:10px;color:#666;margin-bottom:8px">Total: ${this.searchTotal} dosen (halaman ${this.searchPage})</p>
+        <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${rows_html}</tbody></table>
+        <script>window.onload=function(){window.print();window.close();}</script>
+        </body></html>`;
+      const w = window.open('', '_blank');
+      if (w) { w.document.write(html); w.document.close(); }
+    }
   }
 
   jabatanClass(jabatan: string): string {
