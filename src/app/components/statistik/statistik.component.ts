@@ -81,86 +81,6 @@ import * as XLSX from 'xlsx';
             </div>
           </div>
 
-          <!-- Toolbar: info + pagination + export -->
-          <div class="sum-results-header">
-            <div class="sum-info">
-              Menampilkan <strong>{{ sumData.length }}</strong> dari <strong>{{ sumTotal | number }}</strong> PT
-            </div>
-            <div class="sum-actions">
-              <div class="sum-pagination" *ngIf="sumTotalPages > 1">
-                <button (click)="sumPrev()" [disabled]="sumPage <= 1">‹ Prev</button>
-                <span>{{ sumPage }} / {{ sumTotalPages }}</span>
-                <button (click)="sumNext()" [disabled]="sumPage >= sumTotalPages">Next ›</button>
-              </div>
-              <div class="sum-export-btns">
-                <button class="sum-exp sum-exp--csv"  (click)="exportSum('csv')">CSV</button>
-                <button class="sum-exp sum-exp--xlsx" (click)="exportSum('xlsx')">XLSX</button>
-                <button class="sum-exp sum-exp--pdf"  (click)="exportSum('pdf')">PDF</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- PT Table -->
-          <div class="sum-table-wrap">
-            <table class="sum-table">
-              <thead>
-                <tr>
-                  <th (click)="setSumSort('kode_pt')" class="th-sort">Kode PT <span class="sum-si">{{ sumSortIcon('kode_pt') }}</span></th>
-                  <th (click)="setSumSort('nama')" class="th-sort">Nama <span class="sum-si">{{ sumSortIcon('nama') }}</span></th>
-                  <th>Wilayah</th>
-                  <th>Jenis</th>
-                  <th>Organisasi</th>
-                  <th (click)="setSumSort('akreditasi_institusi')" class="th-sort">Akreditasi <span class="sum-si">{{ sumSortIcon('akreditasi_institusi') }}</span></th>
-                  <th class="sk-col">No. SK</th>
-                  <th (click)="setSumSort('tanggal_kadaluarsa_akreditasi')" class="th-sort">Berlaku s/d <span class="sum-si">{{ sumSortIcon('tanggal_kadaluarsa_akreditasi') }}</span></th>
-                  <th class="text-center">Prodi</th>
-                  <th (click)="setSumSort('mhs_sort')" class="th-sort text-right">Mahasiswa <span class="sum-si">{{ sumSortIcon('mhs_sort') }}</span></th>
-                  <th (click)="setSumSort('dosen_sort')" class="th-sort text-right">Dosen <span class="sum-si">{{ sumSortIcon('dosen_sort') }}</span></th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let pt of sumData"
-                    [class]="!pt.is_active ? 'row-inactive' : 'row-' + expStatus(pt.tanggal_kadaluarsa_akreditasi)"
-                    (click)="goToDetail(pt.id)" style="cursor:pointer">
-                  <td><code>{{ pt.kode_pt }}</code></td>
-                  <td>
-                    <a [routerLink]="['/perguruan-tinggi', pt.id]" class="pt-link">
-                      <strong>{{ pt.singkatan }}</strong><br><small>{{ pt.nama }}</small>
-                    </a>
-                  </td>
-                  <td>{{ pt.wilayah_nama || '—' }}</td>
-                  <td>{{ pt.jenis | titlecase }}</td>
-                  <td><span [class]="'badge ' + (pt.organisasi_induk === 'muhammadiyah' ? 'badge-muh' : 'badge-ais')">
-                    {{ pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}
-                  </span></td>
-                  <td><span [class]="'badge badge-' + pt.akreditasi_institusi">{{ fmtAkr(pt.akreditasi_institusi) }}</span></td>
-                  <td class="sk-col">{{ pt.nomor_sk_akreditasi || '—' }}</td>
-                  <td class="nowrap">
-                    <span *ngIf="pt.tanggal_kadaluarsa_akreditasi"
-                          [class]="'exp-pill exp-' + expStatus(pt.tanggal_kadaluarsa_akreditasi)">
-                      {{ pt.tanggal_kadaluarsa_akreditasi | date:'dd/MM/yyyy' }}
-                    </span>
-                    <span *ngIf="!pt.tanggal_kadaluarsa_akreditasi" class="no-data">—</span>
-                  </td>
-                  <td class="text-center">{{ pt.total_prodi }}</td>
-                  <td class="text-right">{{ pt.total_mahasiswa | number }}</td>
-                  <td class="text-right">{{ pt.total_dosen | number }}</td>
-                  <td><span [class]="pt.is_active ? 'badge badge-aktif' : 'badge badge-nonaktif'">
-                    {{ pt.is_active ? 'Aktif' : 'Tidak Aktif' }}
-                  </span></td>
-                </tr>
-                <tr *ngIf="sumLoading"><td colspan="12" class="sum-state-cell">Memuat...</td></tr>
-                <tr *ngIf="!sumLoading && sumData.length === 0"><td colspan="12" class="sum-state-cell">Tidak ada data</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="sum-pagination sum-pagination--bottom" *ngIf="sumTotalPages > 1">
-            <button (click)="sumPrev()" [disabled]="sumPage <= 1">‹ Prev</button>
-            <span>Hal {{ sumPage }} / {{ sumTotalPages }}</span>
-            <button (click)="sumNext()" [disabled]="sumPage >= sumTotalPages">Next ›</button>
-          </div>
-
           <!-- ── TOMBOL GENERATE LAPORAN ─────────────────────────── -->
           <div class="gen-section">
             <div class="gen-divider"></div>
@@ -253,7 +173,7 @@ import * as XLSX from 'xlsx';
                       <td>
                         <div class="dist-chips">
                           <span *ngFor="let kv of toKV(r.dosen_per_pendidikan)" class="dist-chip">
-                            <span class="chip-key">{{ kv.k?.toUpperCase() || '—' }}</span>
+                            <span class="chip-key">{{ kv.k.toUpperCase() || '—' }}</span>
                             <span class="chip-val">{{ kv.v }}</span>
                           </span>
                         </div>
@@ -289,11 +209,111 @@ import * as XLSX from 'xlsx';
                       <td colspan="10" class="sum-state-cell">Tidak ada data</td>
                     </tr>
                   </tbody>
+                  <tfoot *ngIf="filteredSnap.length > 0">
+                    <tr>
+                      <td class="foot-lbl">Total ({{ filteredSnap.length }} PT)</td>
+                      <td class="text-center">{{ snapTotals.prodi | number }}</td>
+                      <td class="text-center">{{ snapTotals.dosen | number }}</td>
+                      <td class="text-center">{{ snapTotals.pria | number }}</td>
+                      <td class="text-center">{{ snapTotals.wanita | number }}</td>
+                      <td></td><td></td><td></td><td></td><td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div><!-- /snap-result -->
 
           </div><!-- /gen-section -->
+
+          <!-- Toolbar: info + pagination + export -->
+          <div class="sum-results-header">
+            <div class="sum-info">
+              Menampilkan <strong>{{ sumData.length }}</strong> dari <strong>{{ sumTotal | number }}</strong> PT
+            </div>
+            <div class="sum-actions">
+              <div class="sum-pagination" *ngIf="sumTotalPages > 1">
+                <button (click)="sumPrev()" [disabled]="sumPage <= 1">‹ Prev</button>
+                <span>{{ sumPage }} / {{ sumTotalPages }}</span>
+                <button (click)="sumNext()" [disabled]="sumPage >= sumTotalPages">Next ›</button>
+              </div>
+              <div class="sum-export-btns">
+                <button class="sum-exp sum-exp--csv"  (click)="exportSum('csv')">CSV</button>
+                <button class="sum-exp sum-exp--xlsx" (click)="exportSum('xlsx')">XLSX</button>
+                <button class="sum-exp sum-exp--pdf"  (click)="exportSum('pdf')">PDF</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PT Table -->
+          <div class="sum-table-wrap">
+            <table class="sum-table">
+              <thead>
+                <tr>
+                  <th (click)="setSumSort('kode_pt')" class="th-sort">Kode PT <span class="sum-si">{{ sumSortIcon('kode_pt') }}</span></th>
+                  <th (click)="setSumSort('nama')" class="th-sort">Nama <span class="sum-si">{{ sumSortIcon('nama') }}</span></th>
+                  <th>Wilayah</th>
+                  <th>Jenis</th>
+                  <th>Organisasi</th>
+                  <th (click)="setSumSort('akreditasi_institusi')" class="th-sort">Akreditasi <span class="sum-si">{{ sumSortIcon('akreditasi_institusi') }}</span></th>
+                  <th class="sk-col">No. SK</th>
+                  <th (click)="setSumSort('tanggal_kadaluarsa_akreditasi')" class="th-sort">Berlaku s/d <span class="sum-si">{{ sumSortIcon('tanggal_kadaluarsa_akreditasi') }}</span></th>
+                  <th (click)="setSumSort('total_prodi')" class="th-sort text-center">Prodi <span class="sum-si">{{ sumSortIcon('total_prodi') }}</span></th>
+                  <th (click)="setSumSort('mhs_sort')" class="th-sort text-right">Mahasiswa <span class="sum-si">{{ sumSortIcon('mhs_sort') }}</span></th>
+                  <th (click)="setSumSort('dosen_sort')" class="th-sort text-right">Dosen <span class="sum-si">{{ sumSortIcon('dosen_sort') }}</span></th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let pt of sumData"
+                    [class]="!pt.is_active ? 'row-inactive' : 'row-' + expStatus(pt.tanggal_kadaluarsa_akreditasi)"
+                    (click)="goToDetail(pt.id)" style="cursor:pointer">
+                  <td><code>{{ pt.kode_pt }}</code></td>
+                  <td>
+                    <a [routerLink]="['/perguruan-tinggi', pt.id]" class="pt-link">
+                      <strong>{{ pt.singkatan }}</strong><br><small>{{ pt.nama }}</small>
+                    </a>
+                  </td>
+                  <td>{{ pt.wilayah_nama || '—' }}</td>
+                  <td>{{ pt.jenis | titlecase }}</td>
+                  <td><span [class]="'badge ' + (pt.organisasi_induk === 'muhammadiyah' ? 'badge-muh' : 'badge-ais')">
+                    {{ pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}
+                  </span></td>
+                  <td><span [class]="'badge badge-' + pt.akreditasi_institusi">{{ fmtAkr(pt.akreditasi_institusi) }}</span></td>
+                  <td class="sk-col">{{ pt.nomor_sk_akreditasi || '—' }}</td>
+                  <td class="nowrap">
+                    <span *ngIf="pt.tanggal_kadaluarsa_akreditasi"
+                          [class]="'exp-pill exp-' + expStatus(pt.tanggal_kadaluarsa_akreditasi)">
+                      {{ pt.tanggal_kadaluarsa_akreditasi | date:'dd/MM/yyyy' }}
+                    </span>
+                    <span *ngIf="!pt.tanggal_kadaluarsa_akreditasi" class="no-data">—</span>
+                  </td>
+                  <td class="text-center">{{ pt.total_prodi }}</td>
+                  <td class="text-right">{{ pt.total_mahasiswa | number }}</td>
+                  <td class="text-right">{{ pt.total_dosen | number }}</td>
+                  <td><span [class]="pt.is_active ? 'badge badge-aktif' : 'badge badge-nonaktif'">
+                    {{ pt.is_active ? 'Aktif' : 'Tidak Aktif' }}
+                  </span></td>
+                </tr>
+                <tr *ngIf="sumLoading"><td colspan="12" class="sum-state-cell">Memuat...</td></tr>
+                <tr *ngIf="!sumLoading && sumData.length === 0"><td colspan="12" class="sum-state-cell">Tidak ada data</td></tr>
+              </tbody>
+              <tfoot *ngIf="sumData.length > 0">
+                <tr>
+                  <td class="foot-lbl" colspan="8">Subtotal halaman ini ({{ sumData.length }} PT dari {{ sumTotal | number }})</td>
+                  <td class="text-center">{{ sumTotals.prodi | number }}</td>
+                  <td class="text-right">{{ sumTotals.mahasiswa | number }}</td>
+                  <td class="text-right">{{ sumTotals.dosen | number }}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div class="sum-pagination sum-pagination--bottom" *ngIf="sumTotalPages > 1">
+            <button (click)="sumPrev()" [disabled]="sumPage <= 1">‹ Prev</button>
+            <span>Hal {{ sumPage }} / {{ sumTotalPages }}</span>
+            <button (click)="sumNext()" [disabled]="sumPage >= sumTotalPages">Next ›</button>
+          </div>
+
         </div><!-- /sum-body -->
       </div><!-- /sum-accordion -->
 
@@ -356,8 +376,35 @@ import * as XLSX from 'xlsx';
           </div>
         </div>
 
-        <!-- Bar charts -->
+        <!-- Bar + Pie charts row -->
         <div class="charts-row charts-row--bar">
+
+          <!-- Pie: Sebaran per Wilayah -->
+          <div class="chart-card">
+            <div class="chart-card__title">Sebaran per Wilayah</div>
+            <div class="pie-wrap">
+              <svg viewBox="0 0 100 100" class="pie-svg">
+                <circle *ngFor="let s of wilayahPieSegments"
+                  cx="50" cy="50" r="40" fill="none"
+                  [attr.stroke]="s.color"
+                  stroke-width="20"
+                  [attr.stroke-dasharray]="s.dash + ' ' + s.gap"
+                  [attr.stroke-dashoffset]="s.offset"
+                  transform="rotate(-90 50 50)">
+                  <title>{{ s.label }}: {{ s.total }} PT ({{ s.pct }}%)</title>
+                </circle>
+              </svg>
+              <div class="pie-legend">
+                <div class="pie-legend-item" *ngFor="let s of wilayahPieSegments">
+                  <span class="pie-dot" [style.background]="s.color"></span>
+                  <span class="pie-lbl">{{ s.label }}</span>
+                  <span class="pie-val">{{ s.total }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bar: Distribusi Jenis PT -->
           <div class="chart-card">
             <div class="chart-card__title">Distribusi Jenis PT</div>
             <div class="chart-list">
@@ -368,6 +415,8 @@ import * as XLSX from 'xlsx';
               </div>
             </div>
           </div>
+
+          <!-- Bar: Status Akreditasi -->
           <div class="chart-card">
             <div class="chart-card__title">Status Akreditasi Institusi</div>
             <div class="chart-list">
@@ -378,24 +427,7 @@ import * as XLSX from 'xlsx';
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Sebaran Wilayah -->
-        <div class="chart-card">
-          <div class="chart-card__title">Sebaran per Wilayah</div>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>Wilayah</th><th>Provinsi</th><th class="col-num">Jumlah PT</th><th>Distribusi</th></tr></thead>
-              <tbody>
-                <tr *ngFor="let w of statistik.per_wilayah">
-                  <td>{{ w.wilayah__nama }}</td>
-                  <td class="col-prov">{{ w.wilayah__provinsi }}</td>
-                  <td class="col-num"><strong>{{ w.total }}</strong></td>
-                  <td class="col-bar"><div class="bar-track sm"><div class="bar-fill" [style.width.%]="(w.total/statistik.total_pt*100)"></div></div></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       </ng-container>
 
@@ -482,9 +514,11 @@ import * as XLSX from 'xlsx';
     .sum-table tr.row-inactive td { background: #fff0f0; }
     .sum-table tr:hover td { background: #dbeafe !important; }
     .sum-state-cell { text-align: center; padding: 24px; color: #94a3b8; font-size: 13px; }
+    .sum-table tfoot td { background: rgba(59,130,246,.1); border-top: 2px solid rgba(59,130,246,.2); font-weight: 700; color: #1e40af; padding: .5rem .75rem; font-size: .82rem; }
+    .foot-lbl { color: #1e3a8a; font-style: italic; }
 
     /* ── Generate Laporan section ── */
-    .gen-section { margin-top: 1.25rem; }
+    .gen-section { margin-top: 1rem; margin-bottom: 1.25rem; }
     .gen-divider { height: 1px; background: #e8eaf6; margin-bottom: 1rem; }
     .gen-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .gen-title { font-size: .95rem; font-weight: 700; color: #1e3a8a; margin-bottom: .25rem; }
@@ -531,6 +565,7 @@ import * as XLSX from 'xlsx';
     .snap-table td { padding: .45rem .65rem; border-bottom: 1px solid #e8eaf6; vertical-align: middle; }
     .snap-table tr:last-child td { border-bottom: none; }
     .snap-table tr:hover td { background: #f0f4ff; }
+    .snap-table tfoot td { background: #eef2ff; border-top: 2px solid #c7d2fe; font-weight: 700; color: #1e40af; padding: .5rem .65rem; font-size: .78rem; }
     .snap-pt-nama { font-weight: 600; color: #1e293b; }
     .snap-pt-kode { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: .7rem; color: #64748b; }
     .dist-chips { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -606,7 +641,16 @@ import * as XLSX from 'xlsx';
     .chart-card { background: #fff; border: 1px solid #e8eaf6; border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
     .chart-card__title { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 16px; }
     .charts-row { display: grid; gap: 16px; margin-bottom: 20px; }
-    .charts-row--bar { grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); }
+    .charts-row--bar { grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); }
+
+    /* Pie chart */
+    .pie-wrap { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+    .pie-svg { width: 110px; height: 110px; flex-shrink: 0; }
+    .pie-legend { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 4px; max-height: 190px; overflow-y: auto; }
+    .pie-legend-item { display: flex; align-items: center; gap: 6px; font-size: .75rem; }
+    .pie-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .pie-lbl { flex: 1; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pie-val { font-weight: 700; color: #1e40af; }
     .charts-row .chart-card { margin-bottom: 0; }
     .chart-list { display: flex; flex-direction: column; gap: 10px; }
     .chart-bar-item { display: flex; align-items: center; gap: 8px; }
@@ -676,6 +720,14 @@ export class StatistikComponent implements OnInit {
 
   // ── PT table ──────────────────────────────────────
   get sumTotalPages() { return Math.max(1, Math.ceil(this.sumTotal / this.SUM_PAGE_SIZE)); }
+
+  get sumTotals() {
+    return {
+      prodi:     this.sumData.reduce((a, r) => a + (r.total_prodi    || 0), 0),
+      mahasiswa: this.sumData.reduce((a, r) => a + (r.total_mahasiswa || 0), 0),
+      dosen:     this.sumData.reduce((a, r) => a + (r.total_dosen    || 0), 0),
+    };
+  }
 
   runSumSearch() { this.sumSearchDone = true; this.sumPage = 1; this.loadSummary(); }
 
@@ -754,6 +806,16 @@ export class StatistikComponent implements OnInit {
     return this.activeSnap.per_pt.filter((r: any) =>
       (r.pt_nama||'').toLowerCase().includes(q) || (r.pt_singkatan||'').toLowerCase().includes(q) || (r.pt_kode||'').toLowerCase().includes(q)
     );
+  }
+
+  get snapTotals() {
+    const rows = this.filteredSnap;
+    return {
+      prodi:  rows.reduce((a, r) => a + (r.total_prodi  || 0), 0),
+      dosen:  rows.reduce((a, r) => a + (r.total_dosen  || 0), 0),
+      pria:   rows.reduce((a, r) => a + (r.dosen_pria   || 0), 0),
+      wanita: rows.reduce((a, r) => a + (r.dosen_wanita || 0), 0),
+    };
   }
 
   toKV(obj: any): { k: string; v: number }[] {
@@ -835,4 +897,31 @@ export class StatistikComponent implements OnInit {
   }
 
   fmtAkr(v: string) { return ({unggul:'Unggul',baik_sekali:'Baik Sekali',baik:'Baik',belum:'Belum'} as any)[v]||v; }
+
+  private readonly PIE_COLORS = [
+    '#1a237e','#1d4ed8','#0ea5e9','#06b6d4','#10b981',
+    '#84cc16','#f59e0b','#ef4444','#8b5cf6','#ec4899',
+    '#6366f1','#14b8a6','#f97316','#64748b','#a855f7',
+  ];
+
+  get wilayahPieSegments(): any[] {
+    if (!this.statistik?.per_wilayah?.length) return [];
+    const total = this.statistik.total_pt || 1;
+    const C = 2 * Math.PI * 40;
+    let acc = 0;
+    return this.statistik.per_wilayah.map((w: any, i: number) => {
+      const dash = (w.total / total) * C;
+      const seg = {
+        dash,
+        gap: C - dash,
+        offset: C - acc,
+        color: this.PIE_COLORS[i % this.PIE_COLORS.length],
+        label: w.wilayah__nama,
+        total: w.total,
+        pct: Math.round((w.total / total) * 100),
+      };
+      acc += dash;
+      return seg;
+    });
+  }
 }
