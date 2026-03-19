@@ -68,6 +68,13 @@ Chart.register(...registerables);
               </div>
               <div class="ptf-row">
                 <div class="ptf-field">
+                  <label>Wilayah</label>
+                  <select [(ngModel)]="filterWilayah" (change)="applyFilter()">
+                    <option value="">Semua Wilayah</option>
+                    <option *ngFor="let w of wilayahList" [value]="w.id">{{ w.nama }}</option>
+                  </select>
+                </div>
+                <div class="ptf-field">
                   <label>Jenis</label>
                   <select [(ngModel)]="filterJenis" (change)="applyFilter()">
                     <option value="">Semua Jenis</option>
@@ -130,6 +137,7 @@ Chart.register(...registerables);
                   <tr>
                     <th class="th-sort" (click)="setSort('kode_pt')">Kode PT <span class="si">{{si('kode_pt')}}</span></th>
                     <th class="th-sort" (click)="setSort('nama')">Nama <span class="si">{{si('nama')}}</span></th>
+                    <th>Wilayah</th>
                     <th>Jenis</th>
                     <th>Organisasi</th>
                     <th class="th-sort" (click)="setSort('akreditasi_institusi')">Akreditasi <span class="si">{{si('akreditasi_institusi')}}</span></th>
@@ -152,6 +160,7 @@ Chart.register(...registerables);
                         <small>{{ pt.nama }}</small>
                       </a>
                     </td>
+                    <td>{{ pt.wilayah_nama || '—' }}</td>
                     <td>{{ pt.jenis | titlecase }}</td>
                     <td><span [class]="'badge ' + (pt.organisasi_induk === 'muhammadiyah' ? 'badge-muh' : 'badge-ais')">
                       {{ pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}
@@ -474,6 +483,8 @@ export class PerguruanTinggiListComponent implements OnInit {
   chartJenis: any[] = [];
   chartAkreditasi: any[] = [];
   chartWilayah: any[] = [];
+  filterWilayah = '';
+  wilayahList: any[] = [];
   filterOpen = false;
   searchDone = false;
   private akrChartInstance: Chart | null = null;
@@ -486,6 +497,9 @@ export class PerguruanTinggiListComponent implements OnInit {
   ngOnInit() {
     this.loadNotifCounts();
     this.loadCharts();
+    this.api.getWilayahList().subscribe({ next: (res: any) => {
+      this.wilayahList = Array.isArray(res) ? res : (res.results || []);
+    }});
   }
 
   get activeFilterCount(): number {
@@ -496,6 +510,7 @@ export class PerguruanTinggiListComponent implements OnInit {
     if (this.filterAkreditasi) n++;
     if (this.filterAktif) n++;
     if (this.filterExp) n++;
+    if (this.filterWilayah) n++;
     return n;
   }
 
@@ -506,6 +521,7 @@ export class PerguruanTinggiListComponent implements OnInit {
     this.filterAkreditasi = '';
     this.filterAktif = '';
     this.filterExp = '';
+    this.filterWilayah = '';
     this.searchDone = false;
     this.data = [];
     this.totalCount = 0;
@@ -726,6 +742,7 @@ export class PerguruanTinggiListComponent implements OnInit {
     if (this.filterAkreditasi) params['akreditasi_institusi'] = this.filterAkreditasi;
     if (this.filterAktif !== '') params['is_active'] = this.filterAktif;
     if (this.filterExp) params['exp_filter'] = this.filterExp;
+    if (this.filterWilayah) params['wilayah'] = this.filterWilayah;
     params['ordering'] = (this.sortAsc ? '' : '-') + this.sortKey;
     this.api.getPerguruanTinggiList(params).subscribe({
       next: res => {
@@ -774,15 +791,17 @@ export class PerguruanTinggiListComponent implements OnInit {
     if (this.filterAkreditasi) params['akreditasi_institusi'] = this.filterAkreditasi;
     if (this.filterAktif !== '') params['is_active'] = this.filterAktif;
     if (this.filterExp) params['exp_filter'] = this.filterExp;
+    if (this.filterWilayah) params['wilayah'] = this.filterWilayah;
     params['ordering'] = (this.sortAsc ? '' : '-') + this.sortKey;
 
     this.api.getPerguruanTinggiList(params).subscribe({ next: (res: any) => {
       const rows = (res.results || res) as any[];
-      const headers = ['Kode PT','Singkatan','Nama','Jenis','Organisasi','Akreditasi','Kota','Provinsi','Prodi','Mahasiswa','Dosen Tetap','Status'];
+      const headers = ['Kode PT','Singkatan','Nama','Jenis','Organisasi','Wilayah','Akreditasi','Kota','Provinsi','Prodi','Mahasiswa','Dosen Tetap','Status'];
       const body = rows.map((p: any) => [
         p.kode_pt, p.singkatan, p.nama,
         p.jenis ? (p.jenis as string).replace('_',' ') : '',
         p.organisasi_induk,
+        p.wilayah_nama || '',
         this.formatAkreditasi(p.akreditasi_institusi),
         p.kota, p.provinsi,
         p.total_prodi ?? '',
