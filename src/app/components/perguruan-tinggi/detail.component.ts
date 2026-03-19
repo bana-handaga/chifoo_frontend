@@ -130,6 +130,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
                 <th>No. SK</th>
                 <th class="th-sort" (click)="setProdiSort('tanggal_kedaluarsa_akreditasi')">Berlaku s/d <span class="si">{{ prodiSi('tanggal_kedaluarsa_akreditasi') }}</span></th>
                 <th class="text-right th-sort" (click)="setProdiSort('mahasiswa_aktif_periode')">Mhs Aktif <span class="si">{{ prodiSi('mahasiswa_aktif_periode') }}</span></th>
+                <th class="text-right th-sort" (click)="setProdiSort('dosen_tetap_periode')">Dosen Tetap <span class="si">{{ prodiSi('dosen_tetap_periode') }}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -156,6 +157,10 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
                 <td class="text-right mhs-col">
                   <span *ngIf="(p.mahasiswa_aktif_periode ?? 0) > 0">{{ p.mahasiswa_aktif_periode | number }}</span>
                   <span *ngIf="!(p.mahasiswa_aktif_periode ?? 0)" class="no-data">—</span>
+                </td>
+                <td class="text-right">
+                  <span *ngIf="(p.dosen_tetap_periode ?? 0) > 0">{{ p.dosen_tetap_periode | number }}</span>
+                  <span *ngIf="!(p.dosen_tetap_periode ?? 0)" class="no-data">—</span>
                 </td>
               </tr>
             </tbody>

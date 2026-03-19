@@ -53,6 +53,7 @@ export interface ProgramStudi {
   no_sk_akreditasi?: string;
   tanggal_kedaluarsa_akreditasi?: string;
   mahasiswa_aktif_periode?: number;
+  dosen_tetap_periode?: number;
   is_active: boolean;
 }
 
