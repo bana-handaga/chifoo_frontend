@@ -102,8 +102,6 @@ Chart.register(...registerables);
             <thead>
               <tr>
                 <th (click)="setSort('nama')" class="ds-sortable">Nama <span class="ds-si">{{ sortIcon('nama') }}</span></th>
-                <th>NIDN</th>
-                <th>NUPTK</th>
                 <th (click)="setSort('perguruan_tinggi__nama')" class="ds-sortable">Perguruan Tinggi <span class="ds-si">{{ sortIcon('perguruan_tinggi__nama') }}</span></th>
                 <th (click)="setSort('program_studi_nama')" class="ds-sortable">Program Studi <span class="ds-si">{{ sortIcon('program_studi_nama') }}</span></th>
                 <th (click)="setSort('jabatan_fungsional')" class="ds-sortable">Jabatan <span class="ds-si">{{ sortIcon('jabatan_fungsional') }}</span></th>
@@ -113,17 +111,27 @@ Chart.register(...registerables);
             </thead>
             <tbody>
               <tr *ngFor="let d of searchResults">
-                <td>{{ d.nama }}</td>
-                <td class="mono">{{ d.nidn || '—' }}</td>
-                <td class="mono">{{ d.nuptk || '—' }}</td>
-                <td>{{ d.pt_singkatan }}</td>
-                <td>{{ d.program_studi_nama }}</td>
+                <td>
+                  <div class="ds-nama">{{ d.nama }}</div>
+                  <div class="ds-sub-id">
+                    <span *ngIf="d.nidn">NIDN: {{ d.nidn }}</span>
+                    <span *ngIf="d.nuptk">NUPTK: {{ d.nuptk }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="ds-pt-nama">{{ d.pt_nama }}</div>
+                  <div class="ds-pt-kode">{{ d.pt_kode }}</div>
+                </td>
+                <td>
+                  <div class="ds-prodi-nama">{{ d.program_studi_nama }}</div>
+                  <div class="ds-prodi-kode">{{ d.kode_prodi }}</div>
+                </td>
                 <td><span [class]="jabatanClass(d.jabatan_fungsional)">{{ d.jabatan_fungsional || '—' }}</span></td>
                 <td>{{ d.pendidikan_tertinggi?.toUpperCase() }}</td>
                 <td><span class="status-chip" [class.aktif]="d.status==='Aktif'">{{ d.status }}</span></td>
               </tr>
               <tr *ngIf="!searchResults.length">
-                <td colspan="8" class="empty-row">Tidak ada hasil ditemukan</td>
+                <td colspan="6" class="empty-row">Tidak ada hasil ditemukan</td>
               </tr>
             </tbody>
           </table>
@@ -356,6 +364,12 @@ Chart.register(...registerables);
       color: #1e293b; vertical-align: middle;
     }
     .ds-table tr:hover td { background: rgba(59,130,246,.06); }
+    .ds-nama { font-weight: 500; color: #1e293b; }
+    .ds-sub-id { font-family: monospace; font-size: .72rem; color: #64748b; margin-top: 1px; display: flex; flex-wrap: wrap; gap: .4rem; }
+    .ds-pt-nama { font-size: .82rem; color: #1e293b; }
+    .ds-pt-kode { font-size: .72rem; color: #1e40af; font-family: monospace; margin-top: 1px; }
+    .ds-prodi-nama { font-size: .82rem; color: #1e293b; }
+    .ds-prodi-kode { font-size: .72rem; color: #64748b; font-family: monospace; margin-top: 1px; }
     .mono { font-family: monospace; font-size: .78rem; color: #64748b; }
     .empty-row { text-align: center; color: #94a3b8; padding: 1.5rem; }
 
