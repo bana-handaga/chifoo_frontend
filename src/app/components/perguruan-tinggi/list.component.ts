@@ -8,13 +8,15 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-pt-list',
   template: `
-    <div class="page">
+    <div class="page-wrap">
       <div class="page-header">
-        <h1>Perguruan Tinggi</h1>
-        <p>Daftar seluruh PTMA di Indonesia</p>
-        <div class="periode-badge" *ngIf="statistik?.periode_label">
-          <span class="periode-badge__dot"></span>
-          Periode Pelaporan Aktif: <strong>{{ statistik.periode_label }}</strong>
+        <div class="page-header__title">
+          <h1>Perguruan Tinggi PTMA</h1>
+          <p class="page-header__sub">Daftar seluruh PTMA di Indonesia</p>
+          <div class="periode-badge" *ngIf="statistik?.periode_label">
+            <span class="periode-badge__dot"></span>
+            Periode Pelaporan Aktif: <strong>{{ statistik.periode_label }}</strong>
+          </div>
         </div>
       </div>
 
@@ -198,69 +200,126 @@ Chart.register(...registerables);
         </ng-container>
       </div>
 
-      <!-- Stats overview -->
-      <div class="stats-overview" *ngIf="statistik">
-        <div class="stat-box">
-          <div class="val">{{ statistik.total_pt }}</div>
-          <div class="lbl">Total PT</div>
+      <div *ngIf="loading && !statistik" class="loading-wrap">
+        <div class="spinner"></div><span>Memuat data...</span>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-grid" *ngIf="statistik">
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+          </div>
+          <div class="stat-card__val">{{ statistik.total_pt }}</div>
+          <div class="stat-card__lbl">Total PT</div>
         </div>
-        <div class="stat-box">
-          <div class="val">{{ statistik.total_muhammadiyah }}</div>
-          <div class="lbl">Muhammadiyah</div>
+        <div class="stat-card stat-card--light">
+          <div class="stat-card__icon stat-card__icon--dark">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
+          </div>
+          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_muhammadiyah }}</div>
+          <div class="stat-card__lbl stat-card__lbl--dark">Muhammadiyah</div>
         </div>
-        <div class="stat-box">
-          <div class="val">{{ statistik.total_aisyiyah }}</div>
-          <div class="lbl">Aisyiyah</div>
+        <div class="stat-card stat-card--light">
+          <div class="stat-card__icon stat-card__icon--dark">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          </div>
+          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_aisyiyah }}</div>
+          <div class="stat-card__lbl stat-card__lbl--dark">Aisyiyah</div>
         </div>
-        <div class="stat-box">
-          <div class="val">{{ statistik.total_prodi }}</div>
-          <div class="lbl">Program Studi</div>
+        <div class="stat-card stat-card--light">
+          <div class="stat-card__icon stat-card__icon--dark">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+          </div>
+          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_prodi }}</div>
+          <div class="stat-card__lbl stat-card__lbl--dark">Program Studi</div>
         </div>
-        <div class="stat-box">
-          <div class="val">{{ statistik.total_dosen | number }}</div>
-          <div class="lbl">Dosen Tetap</div>
+        <div class="stat-card stat-card--light">
+          <div class="stat-card__icon stat-card__icon--dark">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          </div>
+          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_dosen | number }}</div>
+          <div class="stat-card__lbl stat-card__lbl--dark">Dosen Tetap</div>
         </div>
-        <div class="stat-box">
-          <div class="val">{{ statistik.total_mahasiswa | number }}</div>
-          <div class="lbl">Mahasiswa</div>
+        <div class="stat-card stat-card--light">
+          <div class="stat-card__icon stat-card__icon--dark">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </div>
+          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_mahasiswa | number }}</div>
+          <div class="stat-card__lbl stat-card__lbl--dark">Mahasiswa</div>
         </div>
       </div>
 
-      <!-- Charts: Akreditasi | Wilayah | Jenis -->
-      <div class="three-col" *ngIf="statistik">
-        <div class="card">
-          <h3>Distribusi Akreditasi</h3>
-          <div class="donut-wrap"><canvas #akrChart></canvas></div>
+      <!-- Charts -->
+      <div class="charts-row charts-row--pie" *ngIf="statistik">
+        <div class="chart-card">
+          <div class="chart-card__title">Distribusi Akreditasi</div>
+          <div class="chart-card__body chart-card__body--pie"><canvas #akrChart></canvas></div>
         </div>
-        <div class="card" *ngIf="chartWilayah.length">
-          <h3>Sebaran PT per Wilayah</h3>
-          <div class="donut-wrap"><canvas #wilayahChart></canvas></div>
+        <div class="chart-card" *ngIf="chartWilayah.length">
+          <div class="chart-card__title">Sebaran PT per Wilayah</div>
+          <div class="chart-card__body chart-card__body--pie"><canvas #wilayahChart></canvas></div>
         </div>
-        <div class="card">
-          <h3>Distribusi Jenis</h3>
-          <div *ngFor="let item of chartJenis" class="bar-row">
-            <div class="bar-lbl">{{ item.label }}</div>
-            <div class="bar-track"><div class="bar-fill" [style.width.%]="item.pct" [style.background]="item.color"></div></div>
-            <div class="bar-num">{{ item.total }}</div>
+        <div class="chart-card">
+          <div class="chart-card__title">Distribusi Jenis</div>
+          <div class="jenis-bars">
+            <div *ngFor="let item of chartJenis" class="bar-row">
+              <div class="bar-lbl">{{ item.label }}</div>
+              <div class="bar-track"><div class="bar-fill" [style.width.%]="item.pct" [style.background]="item.color"></div></div>
+              <div class="bar-num">{{ item.total }}</div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Loading bar saat data sedang dimuat -->
-      <div class="loading-bar" *ngIf="loading && !data.length">
-        <div class="loading-bar-fill"></div>
       </div>
     </div>
   `,
   styles: [`
-    /* ── Page header tight spacing ─── */
-    .page-header { margin-bottom: 10px; }
-    .page-header h1 { margin: 0 0 1px; line-height: 1.1; }
-    .page-header p  { margin: 0 0 4px; }
-    .periode-badge  { margin-top: 2px !important; }
+    /* ── Page wrapper ─── */
+    .page-wrap { padding: 1.25rem; max-width: 1400px; margin: 0 auto; }
 
-    /* ── Stats overview ─── */
-    .stats-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; margin-top: 12px; }
+    /* ── Page header ─── */
+    .page-header { margin-bottom: 1.5rem; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin: 0; }
+    .page-header__sub { color: #64748b; font-size: .875rem; margin: .25rem 0 0; }
+
+    /* ── Loading wrap ─── */
+    .loading-wrap { display: flex; align-items: center; gap: .75rem; color: #64748b; padding: 2rem; }
+
+    /* ── Stat grid — same as Dosen ─── */
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: .75rem; margin-bottom: 1.25rem;
+    }
+    @media (min-width: 600px)  { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 1024px) { .stat-grid { grid-template-columns: repeat(6, 1fr); } }
+    .stat-card {
+      border-radius: 12px; padding: 1rem 1.25rem;
+      display: flex; flex-direction: column; gap: .25rem; color: #fff;
+    }
+    .stat-card--blue  { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .stat-card--light { background: #fff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .stat-card__icon { width: 28px; height: 28px; opacity: .9; }
+    .stat-card__icon--dark { opacity: .45; }
+    .stat-card__icon svg { width: 100%; height: 100%; }
+    .stat-card__val  { font-size: 1.75rem; font-weight: 800; line-height: 1; }
+    .stat-card__val--dark { color: #1e293b; }
+    .stat-card__lbl  { font-size: .8rem; opacity: .88; }
+    .stat-card__lbl--dark { color: #64748b; opacity: 1; }
+
+    /* ── Charts ─── */
+    .charts-row { display: grid; gap: .75rem; margin-bottom: .75rem; }
+    .charts-row--pie { grid-template-columns: 1fr; }
+    @media (min-width: 600px)  { .charts-row--pie { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .charts-row--pie { grid-template-columns: repeat(3, 1fr); } }
+    .chart-card {
+      background: #fff; border-radius: 12px;
+      padding: 1rem 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .chart-card__title { font-size: .875rem; font-weight: 600; color: #334155; margin-bottom: .75rem; }
+    .chart-card__body { position: relative; height: 220px; }
+    .chart-card__body--pie { height: 200px; display: flex; align-items: center; }
+    .jenis-bars { display: flex; flex-direction: column; gap: .5rem; justify-content: center; height: 100%; }
+
     .periode-badge {
       display: inline-flex; align-items: center; gap: .4rem;
       margin-top: .6rem;
@@ -280,19 +339,7 @@ Chart.register(...registerables);
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: .5; transform: scale(.7); }
     }
-    .stat-box {
-      background: white; border-radius: 10px; padding: 10px 8px;
-      text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-    .val { font-size: 18px; font-weight: 700; color: #1a237e; }
-    .lbl { font-size: 10px; color: #666; margin-top: 4px; }
-
-    /* ── Charts row ─── */
-    .three-col { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
-    .card { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); position: relative; }
-    .card h3 { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px; }
-    .donut-wrap { position: relative; height: 200px; display: flex; align-items: center; justify-content: center; }
-    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; }
     .bar-lbl { width: 90px; font-size: 11px; color: #555; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .bar-track { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
     .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
@@ -427,18 +474,8 @@ Chart.register(...registerables);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .loading-bar { height: 3px; background: #e8eaf6; border-radius: 2px; overflow: hidden; margin-top: 12px; }
-    .loading-bar-fill { height: 100%; width: 40%; background: #1a237e; animation: slide 1s ease-in-out infinite alternate; }
-    @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
-
     /* ── Tablet ≥ 600px ─── */
     @media (min-width: 600px) {
-      .stats-overview { grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px; }
-      .stat-box { padding: 12px 8px; }
-      .val { font-size: 20px; }
-      .lbl { font-size: 11px; }
-      .three-col { grid-template-columns: 1fr 1fr; gap: 16px; }
-      .donut-wrap { height: 220px; }
       .bar-lbl { width: 110px; font-size: 12px; }
       .ptf-row { flex-direction: row; flex-wrap: wrap; }
       .ptf-field { flex: 1; min-width: 140px; }
@@ -452,16 +489,9 @@ Chart.register(...registerables);
 
     /* ── Desktop ≥ 1024px ─── */
     @media (min-width: 1024px) {
-      .stats-overview { grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 8px; }
-      .stat-box { padding: 16px 12px; }
-      .val { font-size: 28px; }
-      .lbl { font-size: 12px; }
-      .card { padding: 20px; }
-      .card h3 { font-size: 15px; margin-bottom: 16px; }
-      .three-col { grid-template-columns: 1fr 1fr 1fr; }
-      .donut-wrap { height: 260px; }
       .bar-lbl { width: 120px; font-size: 13px; }
-      .mt-16 { margin-top: 16px; }
+      .chart-card { padding: 1.25rem 1.5rem; }
+      .chart-card__body--pie { height: 240px; }
       th, td { padding: 10px 12px; font-size: 13px; }
       .pagination button { padding: 6px 16px; font-size: 13px; }
     }
