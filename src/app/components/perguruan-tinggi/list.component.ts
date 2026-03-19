@@ -253,6 +253,12 @@ Chart.register(...registerables);
     </div>
   `,
   styles: [`
+    /* ── Page header tight spacing ─── */
+    .page-header { margin-bottom: 10px; }
+    .page-header h1 { margin: 0 0 1px; line-height: 1.1; }
+    .page-header p  { margin: 0 0 4px; }
+    .periode-badge  { margin-top: 2px !important; }
+
     /* ── Stats overview ─── */
     .stats-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; margin-top: 12px; }
     .periode-badge {
