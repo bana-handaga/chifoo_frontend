@@ -138,6 +138,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
             <thead>
               <tr>
                 <th class="th-sort" (click)="setProdiSort('nama')">Nama Prodi <span class="si">{{ prodiSi('nama') }}</span></th>
+                <th>Perguruan Tinggi</th>
                 <th class="th-sort" (click)="setProdiSort('jenjang')">Jenjang <span class="si">{{ prodiSi('jenjang') }}</span></th>
                 <th class="th-sort" (click)="setProdiSort('akreditasi')">Akreditasi <span class="si">{{ prodiSi('akreditasi') }}</span></th>
                 <th>No. SK</th>
@@ -151,6 +152,10 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
                 <td>
                   {{ p.nama }}<br>
                   <code class="prodi-kode">{{ p.kode_prodi }}</code>
+                </td>
+                <td>
+                  <div class="dsc-pt-nama">{{ pt.singkatan || pt.nama }}</div>
+                  <code class="prodi-kode">{{ pt.kode_pt }}</code>
                 </td>
                 <td>{{ p.jenjang_display }}</td>
                 <td>
@@ -481,6 +486,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
                   <thead>
                     <tr>
                       <th (click)="dscSetSort('nama')" class="dsc-sortable">Nama <span class="dsc-si">{{ dscSortIcon('nama') }}</span></th>
+                      <th (click)="dscSetSort('perguruan_tinggi__nama')" class="dsc-sortable">Perguruan Tinggi <span class="dsc-si">{{ dscSortIcon('perguruan_tinggi__nama') }}</span></th>
                       <th (click)="dscSetSort('program_studi_nama')" class="dsc-sortable">Program Studi <span class="dsc-si">{{ dscSortIcon('program_studi_nama') }}</span></th>
                       <th (click)="dscSetSort('jabatan_fungsional')" class="dsc-sortable">Jabatan <span class="dsc-si">{{ dscSortIcon('jabatan_fungsional') }}</span></th>
                       <th (click)="dscSetSort('pendidikan_tertinggi')" class="dsc-sortable">Pend. <span class="dsc-si">{{ dscSortIcon('pendidikan_tertinggi') }}</span></th>
@@ -497,6 +503,10 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
                         </div>
                       </td>
                       <td>
+                        <div class="dsc-pt-nama">{{ d.pt_nama }}</div>
+                        <div class="dsc-prodi-kode">{{ d.pt_kode }}</div>
+                      </td>
+                      <td>
                         <div class="dsc-prodi-nama">{{ d.program_studi_nama }}</div>
                         <div class="dsc-prodi-kode">{{ d.kode_prodi }}</div>
                       </td>
@@ -505,7 +515,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
                       <td><span class="dsc-status-chip" [class.aktif]="d.status==='Aktif'">{{ d.status }}</span></td>
                     </tr>
                     <tr *ngIf="!dscResults.length">
-                      <td colspan="5" class="dsc-empty">Tidak ada hasil ditemukan</td>
+                      <td colspan="6" class="dsc-empty">Tidak ada hasil ditemukan</td>
                     </tr>
                   </tbody>
                 </table>
@@ -979,6 +989,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
     .dsc-table tr:hover td { background: rgba(59,130,246,.06); transition: background .15s; }
     .dsc-nama { font-weight: 500; color: #1e293b; }
     .dsc-sub-id { font-family: monospace; font-size: .68rem; color: #64748b; margin-top: 1px; display: flex; flex-wrap: wrap; gap: .35rem; }
+    .dsc-pt-nama { font-size: .8rem; font-weight: 500; color: #1e293b; }
     .dsc-prodi-nama { font-size: .8rem; }
     .dsc-prodi-kode { font-size: .68rem; color: #64748b; font-family: monospace; margin-top: 1px; }
     .dsc-empty { text-align: center; color: #94a3b8; padding: 1.25rem; }
