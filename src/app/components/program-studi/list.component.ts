@@ -35,6 +35,92 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     </div>
   </div>
 
+  <!-- Accordion Pencarian Prodi -->
+  <div class="ps-accordion" [class.open]="psOpen">
+    <button class="ps-toggle" (click)="togglePs()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Cari Program Studi
+      <span class="ps-chevron" [class.rotated]="psOpen">▾</span>
+    </button>
+
+    <div class="ps-body" *ngIf="psOpen">
+      <div class="ps-fields">
+        <div class="psf">
+          <label>Nama Program Studi</label>
+          <input type="text" [(ngModel)]="psForm.nama" placeholder="Ketik nama prodi..." (keyup.enter)="runPs()">
+        </div>
+        <div class="psf">
+          <label>Jenjang</label>
+          <select [(ngModel)]="psForm.jenjang">
+            <option value="">— Semua —</option>
+            <option value="d1">D1</option><option value="d2">D2</option>
+            <option value="d3">D3</option><option value="d4">D4 / Sarjana Terapan</option>
+            <option value="s1">S1</option><option value="profesi">Profesi</option>
+            <option value="s2">S2</option><option value="s3">S3</option>
+          </select>
+        </div>
+        <div class="psf psf--action">
+          <button class="ps-btn-search" (click)="runPs()" [disabled]="psSearching">
+            {{ psSearching ? 'Mencari...' : 'Cari' }}
+          </button>
+          <button class="ps-btn-reset" (click)="resetPs()" *ngIf="psDone">Reset</button>
+        </div>
+      </div>
+
+      <!-- Hasil -->
+      <div class="ps-results" *ngIf="psDone">
+        <div class="ps-results__header">
+          <div class="ps-results__info">
+            Ditemukan <strong>{{ psTotal | number }}</strong> program studi
+            <span *ngIf="psTotalPages > 1"> — halaman {{ psPage }} / {{ psTotalPages }}</span>
+          </div>
+          <div class="ps-pagination" *ngIf="psTotalPages > 1">
+            <button [disabled]="psPage===1" (click)="goPs(psPage-1)">‹ Prev</button>
+            <span>{{ psPage }} / {{ psTotalPages }}</span>
+            <button [disabled]="psPage===psTotalPages" (click)="goPs(psPage+1)">Next ›</button>
+          </div>
+        </div>
+        <div class="ps-table-wrap">
+          <table class="ps-table">
+            <thead>
+              <tr>
+                <th (click)="setPsSort('nama_prodi')" class="ps-sortable">Nama Prodi <span class="ps-si">{{ psSortIcon('nama_prodi') }}</span></th>
+                <th>Jenjang</th>
+                <th (click)="setPsSort('nama_pt')" class="ps-sortable">Perguruan Tinggi <span class="ps-si">{{ psSortIcon('nama_pt') }}</span></th>
+                <th class="num-col" (click)="setPsSort('mahasiswa_aktif')" style="cursor:pointer">Mhs. Aktif <span class="ps-si">{{ psSortIcon('mahasiswa_aktif') }}</span></th>
+                <th class="num-col" (click)="setPsSort('dosen_tetap')" style="cursor:pointer">Dosen Tetap <span class="ps-si">{{ psSortIcon('dosen_tetap') }}</span></th>
+                <th>Akreditasi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of psPaginated">
+                <td class="ps-nama">{{ r.nama_prodi }}</td>
+                <td><span class="badge-jenjang jenjang-{{ r.jenjang?.toLowerCase() }}">{{ r.jenjang }}</span></td>
+                <td>
+                  <div class="ps-pt-nama">{{ r.nama_pt }}</div>
+                  <div class="ps-pt-kode">{{ r.kode_pt }}</div>
+                </td>
+                <td class="num-col">{{ r.mahasiswa_aktif ? (r.mahasiswa_aktif | number) : '—' }}</td>
+                <td class="num-col">{{ r.dosen_tetap ? (r.dosen_tetap | number) : '—' }}</td>
+                <td>
+                  <span class="akr-badge" [ngClass]="akrClass(r.akreditasi)">{{ r.akreditasi || '—' }}</span>
+                </td>
+              </tr>
+              <tr *ngIf="!psResults.length">
+                <td colspan="6" class="empty-row">Tidak ada hasil ditemukan</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ps-pagination ps-pagination--bottom" *ngIf="psTotalPages > 1">
+          <button [disabled]="psPage===1" (click)="goPs(psPage-1)">‹ Prev</button>
+          <span>{{ psPage }} / {{ psTotalPages }}</span>
+          <button [disabled]="psPage===psTotalPages" (click)="goPs(psPage+1)">Next ›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats overview -->
   <div class="stats-overview" *ngIf="!loading && rows.length">
     <div class="stat-box">
@@ -269,6 +355,84 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: .5; transform: scale(.7); }
     }
+
+    /* ── Search Accordion Prodi (coklat) ── */
+    .ps-accordion {
+      background: #fff; border-radius: 12px; margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      border-left: 4px solid #92400e;
+    }
+    .ps-toggle {
+      width: 100%; display: flex; align-items: center; gap: .6rem;
+      background: none; border: none; padding: .85rem 1.1rem;
+      font-size: .9rem; font-weight: 600; color: #78350f; cursor: pointer;
+      text-align: left; border-radius: 12px;
+    }
+    .ps-toggle:hover { background: rgba(180,83,9,.05); }
+    .ps-chevron { margin-left: auto; font-size: .85rem; color: #a16207; transition: transform .2s; }
+    .ps-chevron.rotated { transform: rotate(180deg); }
+    .ps-body { padding: 0 1.1rem 1.1rem; }
+    .ps-fields {
+      display: grid; grid-template-columns: 1fr; gap: .75rem; margin-bottom: 1rem;
+    }
+    @media (min-width: 600px) { .ps-fields { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 900px) { .ps-fields { grid-template-columns: 1fr 1fr auto; } }
+    .psf { display: flex; flex-direction: column; gap: .3rem; }
+    .psf label { font-size: .78rem; font-weight: 600; color: #78350f; }
+    .psf input, .psf select {
+      padding: .5rem .75rem; border: 1px solid #d6b58a; border-radius: 8px;
+      font-size: .875rem; outline: none; background: #fffbf5;
+    }
+    .psf input:focus, .psf select:focus { border-color: #92400e; box-shadow: 0 0 0 2px rgba(146,64,14,.12); }
+    .psf--action { justify-content: flex-end; flex-direction: row; align-items: flex-end; gap: .5rem; }
+    .ps-btn-search {
+      padding: .5rem 1.25rem; background: #92400e; color: #fff;
+      border: none; border-radius: 8px; font-size: .875rem; font-weight: 600; cursor: pointer;
+    }
+    .ps-btn-search:hover:not(:disabled) { background: #78350f; }
+    .ps-btn-search:disabled { opacity: .5; cursor: not-allowed; }
+    .ps-btn-reset {
+      padding: .5rem 1rem; background: #f5f0ea; color: #78350f;
+      border: 1px solid #d6b58a; border-radius: 8px; font-size: .875rem; cursor: pointer;
+    }
+    .ps-btn-reset:hover { background: #efe6d8; }
+
+    /* Results */
+    .ps-results { margin-top: .5rem; }
+    .ps-results__header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem;
+    }
+    .ps-results__info { font-size: .82rem; color: #92400e; }
+    .ps-results__info strong { color: #451a03; }
+    .ps-pagination {
+      display: flex; align-items: center; gap: .6rem; font-size: .83rem;
+    }
+    .ps-pagination--bottom { justify-content: center; margin-top: .6rem; }
+    .ps-pagination button {
+      padding: .3rem .8rem; border: 1px solid #d6b58a;
+      border-radius: 8px; background: #fffbf5; cursor: pointer; color: #78350f;
+    }
+    .ps-pagination button:disabled { opacity: .4; cursor: not-allowed; }
+    .ps-pagination button:hover:not(:disabled) { background: #f5ece0; }
+    .ps-table-wrap { overflow-x: auto; border-radius: 10px; background: rgba(180,83,9,.04); }
+    .ps-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .ps-table th {
+      background: rgba(180,83,9,.08); padding: .55rem .75rem;
+      text-align: left; font-weight: 600; color: #6b3410;
+      border-bottom: 2px solid rgba(180,83,9,.15); white-space: nowrap;
+    }
+    .ps-table th.ps-sortable { cursor: pointer; user-select: none; }
+    .ps-table th.ps-sortable:hover { background: rgba(180,83,9,.14); color: #451a03; }
+    .ps-si { font-size: .72rem; color: #c4956a; margin-left: .2rem; }
+    .ps-table td {
+      padding: .5rem .75rem; border-bottom: 1px solid rgba(180,83,9,.08);
+      color: #1e293b; vertical-align: middle;
+    }
+    .ps-table tr:hover td { background: rgba(180,83,9,.06); }
+    .ps-nama { font-weight: 500; }
+    .ps-pt-nama { font-size: .82rem; color: #1e293b; }
+    .ps-pt-kode { font-size: .72rem; color: #92400e; font-family: monospace; }
 
     /* Charts row — mobile-first */
     .charts-row {
@@ -569,6 +733,94 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     dLabels: string[]; dData: number[]; dColors: string[];
     dAllLabels: string[]; dAllData: number[]; dAllColors: string[];
   } | null = null;
+
+  // ── Search Accordion Prodi ──
+  psOpen       = false;
+  psSearching  = false;
+  psDone       = false;
+  psForm       = { nama: '', jenjang: '' };
+  psResults: any[] = [];
+  psPaginated: any[] = [];
+  psTotal      = 0;
+  psPage       = 1;
+  psTotalPages = 1;
+  psPageSize   = 5;
+  psSortField  = 'nama_prodi';
+  psSortDir    = 'asc';
+
+  togglePs() { this.psOpen = !this.psOpen; }
+
+  runPs(page = 1) {
+    if (!this.psForm.nama.trim() && !this.psForm.jenjang) return;
+    this.psSearching = true;
+    this.psPage = page;
+    this.api.getProgramStudiPtList(this.psForm.nama.trim(), this.psForm.jenjang).subscribe({
+      next: (res: any[]) => {
+        this.psResults    = res;
+        this.psTotal      = res.length;
+        this.psSearching  = false;
+        this.psDone       = true;
+        this.applyPsSort();
+      },
+      error: () => { this.psSearching = false; }
+    });
+  }
+
+  goPs(p: number) {
+    this.psPage = p;
+    this.updatePsPaginated();
+  }
+
+  resetPs() {
+    this.psForm      = { nama: '', jenjang: '' };
+    this.psDone      = false;
+    this.psResults   = [];
+    this.psPaginated = [];
+    this.psTotal     = 0;
+    this.psPage      = 1;
+    this.psSortField = 'nama_prodi';
+    this.psSortDir   = 'asc';
+  }
+
+  setPsSort(field: string) {
+    if (this.psSortField === field) {
+      this.psSortDir = this.psSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.psSortField = field;
+      this.psSortDir   = 'asc';
+    }
+    this.psPage = 1;
+    this.applyPsSort();
+  }
+
+  psSortIcon(field: string): string {
+    if (this.psSortField !== field) return '⇅';
+    return this.psSortDir === 'asc' ? '▲' : '▼';
+  }
+
+  private applyPsSort() {
+    const dir = this.psSortDir === 'asc' ? 1 : -1;
+    const sorted = [...this.psResults].sort((a, b) => {
+      const av = a[this.psSortField] ?? '';
+      const bv = b[this.psSortField] ?? '';
+      if (typeof av === 'number') return dir * (av - bv);
+      return dir * String(av).localeCompare(String(bv), 'id');
+    });
+    this.psTotalPages = Math.max(1, Math.ceil(sorted.length / this.psPageSize));
+    const off = (this.psPage - 1) * this.psPageSize;
+    this.psPaginated = sorted.slice(off, off + this.psPageSize);
+  }
+
+  private updatePsPaginated() { this.applyPsSort(); }
+
+  akrClass(akr: string): string {
+    if (!akr) return 'akr-belum';
+    const map: {[k:string]:string} = {
+      'Unggul': 'akr-unggul', 'Baik Sekali': 'akr-baik_sekali',
+      'Baik': 'akr-baik', 'C': 'akr-c',
+    };
+    return map[akr] || 'akr-belum';
+  }
 
   constructor(private api: ApiService, private zone: NgZone) {}
 
