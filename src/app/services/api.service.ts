@@ -178,4 +178,16 @@ export class ApiService {
   updateProgramStudi(id: number, data: any): Observable<any> {
     return this.http.patch(`${this.baseUrl}/program-studi/${id}/`, data);
   }
+
+  getSnapshotList(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/snapshot-laporan/`);
+  }
+
+  getSnapshotDetail(id: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/snapshot-laporan/${id}/`);
+  }
+
+  generateSnapshot(keterangan: string = ''): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/snapshot-laporan/generate/`, { keterangan });
+  }
 }
