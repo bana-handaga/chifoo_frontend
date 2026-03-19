@@ -102,7 +102,10 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
             </thead>
             <tbody>
               <tr *ngFor="let r of psPaginated">
-                <td class="ps-nama">{{ r.nama_prodi }}</td>
+                <td>
+                  <div class="ps-nama">{{ r.nama_prodi }}</div>
+                  <div class="ps-prodi-kode">{{ r.kode_prodi }}</div>
+                </td>
                 <td><span class="badge-jenjang jenjang-{{ r.jenjang?.toLowerCase() }}">{{ r.jenjang }}</span></td>
                 <td><span class="akr-badge" [ngClass]="akrClass(r.akreditasi)">{{ r.akreditasi || '—' }}</span></td>
                 <td>
@@ -448,9 +451,10 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       color: #1e293b; vertical-align: middle;
     }
     .ps-table tr:hover td { background: rgba(180,83,9,.06); }
-    .ps-nama { font-weight: 500; }
+    .ps-nama { font-weight: 500; color: #1e293b; }
+    .ps-prodi-kode { font-size: .72rem; color: #92400e; font-family: monospace; margin-top: 1px; }
     .ps-pt-nama { font-size: .82rem; color: #1e293b; }
-    .ps-pt-kode { font-size: .72rem; color: #92400e; font-family: monospace; }
+    .ps-pt-kode { font-size: .72rem; color: #64748b; font-family: monospace; margin-top: 1px; }
 
     /* Charts row — mobile-first */
     .charts-row {
@@ -613,14 +617,14 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     .pt-nama { font-weight: 500; color: #1e293b; }
     .pt-kode { font-size: .75rem; }
     .akr-badge {
-      display: inline-block; padding: 2px 7px; border-radius: 10px;
-      font-size: .72rem; font-weight: 600; text-transform: uppercase;
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
     }
-    .akr-unggul    { background: #d1fae5; color: #065f46; }
-    .akr-baik_sekali { background: #dbeafe; color: #1e40af; }
-    .akr-baik      { background: #e0f2fe; color: #0369a1; }
-    .akr-c         { background: #fef9c3; color: #854d0e; }
-    .akr-belum     { background: #f1f5f9; color: #94a3b8; }
+    .akr-unggul      { background: #059669; color: #fff; }
+    .akr-baik_sekali { background: #2563eb; color: #fff; }
+    .akr-baik        { background: #0891b2; color: #fff; }
+    .akr-c           { background: #d97706; color: #fff; }
+    .akr-belum       { background: #94a3b8; color: #fff; }
     .exp-warn      { color: #dc2626; font-weight: 600; }
 
     .chart-card--clickable { cursor: pointer; }
