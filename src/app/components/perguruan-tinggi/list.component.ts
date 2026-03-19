@@ -347,7 +347,7 @@ Chart.register(...registerables);
 
     /* ── PT Search Accordion ─── */
     .pt-accordion {
-      background: white; border-radius: 12px; margin-bottom: 0;
+      background: white; border-radius: 12px; margin-bottom: .75rem;
       box-shadow: 0 1px 4px rgba(0,0,0,0.09); overflow: hidden;
       border-left: 4px solid #16a34a;
     }
