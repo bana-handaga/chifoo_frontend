@@ -743,7 +743,7 @@ export class StatistikComponent implements OnInit {
 
   // ── Generate Laporan ──────────────────────────────
   loadSnapshots() {
-    this.api.getSnapshotList().subscribe({ next: (d: any) => this.snapshots = d, error: () => {} });
+    this.api.getSnapshotList().subscribe({ next: (d: any) => { this.snapshots = Array.isArray(d) ? d : (d.results || []); }, error: () => {} });
   }
 
   generateLaporan() {
