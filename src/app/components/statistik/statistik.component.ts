@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-statistik',
@@ -22,39 +23,93 @@ import { ApiService } from '../../services/api.service';
 
       <!-- ── Ringkasan accordion ───────────────────── -->
       <div class="sum-accordion">
-        <div class="sum-toggle" (click)="summaryOpen = !summaryOpen">
-          <svg class="sum-toggle-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
-          </svg>
-          <span class="sum-toggle-text">Ringkasan <span class="sum-title-en">(Summary)</span></span>
-          <span class="sum-count" *ngIf="sumTotal > 0">{{ sumTotal }} PT</span>
-          <span class="sum-chevron">{{ summaryOpen ? '▲' : '▼' }}</span>
-        </div>
+        <button class="sum-toggle" (click)="summaryOpen = !summaryOpen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Ringkasan <span class="sum-title-en">(Summary)</span>
+          <span class="sum-count" *ngIf="sumTotal > 0">{{ sumTotal | number }} PT</span>
+          <span class="sum-chevron" [class.rotated]="summaryOpen">▾</span>
+        </button>
 
         <div class="sum-body" *ngIf="summaryOpen">
-          <div class="sum-toolbar">
-            <span class="sum-info">Menampilkan {{ sumData.length }} dari {{ sumTotal }} PT</span>
-            <div class="sum-pagination">
-              <button (click)="sumPrev()" [disabled]="sumPage <= 1">‹ Prev</button>
-              <span>{{ sumPage }} / {{ sumTotalPages }}</span>
-              <button (click)="sumNext()" [disabled]="sumPage >= sumTotalPages">Next ›</button>
+
+          <!-- Search form — Dosen style -->
+          <div class="sum-fields">
+            <div class="sumf">
+              <label>Nama / Singkatan PT</label>
+              <input type="text" [(ngModel)]="sumSearch" placeholder="Cari nama, singkatan..." (keyup.enter)="runSumSearch()">
+            </div>
+            <div class="sumf">
+              <label>Jenis</label>
+              <select [(ngModel)]="sumJenis">
+                <option value="">— Semua —</option>
+                <option value="universitas">Universitas</option>
+                <option value="institut">Institut</option>
+                <option value="sekolah_tinggi">Sekolah Tinggi</option>
+                <option value="politeknik">Politeknik</option>
+                <option value="akademi">Akademi</option>
+              </select>
+            </div>
+            <div class="sumf">
+              <label>Organisasi</label>
+              <select [(ngModel)]="sumOrganisasi">
+                <option value="">— Semua —</option>
+                <option value="muhammadiyah">Muhammadiyah</option>
+                <option value="aisyiyah">Aisyiyah</option>
+              </select>
+            </div>
+            <div class="sumf">
+              <label>Akreditasi</label>
+              <select [(ngModel)]="sumAkreditasi">
+                <option value="">— Semua —</option>
+                <option value="unggul">Unggul</option>
+                <option value="baik_sekali">Baik Sekali</option>
+                <option value="baik">Baik</option>
+                <option value="belum">Belum</option>
+              </select>
+            </div>
+            <div class="sumf sumf--action">
+              <button class="sum-btn-search" (click)="runSumSearch()" [disabled]="sumLoading">
+                {{ sumLoading ? 'Mencari...' : 'Cari' }}
+              </button>
+              <button class="sum-btn-reset" (click)="resetSumSearch()" *ngIf="sumSearchDone">Reset</button>
             </div>
           </div>
-          <div class="table-wrapper">
-            <table class="data-table">
+
+          <!-- Results header: info + pagination + export -->
+          <div class="sum-results-header">
+            <div class="sum-info">
+              Menampilkan <strong>{{ sumData.length }}</strong> dari <strong>{{ sumTotal | number }}</strong> PT
+            </div>
+            <div class="sum-actions">
+              <div class="sum-pagination" *ngIf="sumTotalPages > 1">
+                <button (click)="sumPrev()" [disabled]="sumPage <= 1">‹ Prev</button>
+                <span>{{ sumPage }} / {{ sumTotalPages }}</span>
+                <button (click)="sumNext()" [disabled]="sumPage >= sumTotalPages">Next ›</button>
+              </div>
+              <div class="sum-export-btns">
+                <button class="sum-exp sum-exp--csv"  (click)="exportSum('csv')">CSV</button>
+                <button class="sum-exp sum-exp--xlsx" (click)="exportSum('xlsx')">XLSX</button>
+                <button class="sum-exp sum-exp--pdf"  (click)="exportSum('pdf')">PDF</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="sum-table-wrap">
+            <table class="sum-table">
               <thead>
                 <tr>
-                  <th>Kode PT</th>
-                  <th>Nama</th>
+                  <th (click)="setSumSort('kode_pt')" class="th-sort">Kode PT <span class="sum-si">{{ sumSortIcon('kode_pt') }}</span></th>
+                  <th (click)="setSumSort('nama')" class="th-sort">Nama <span class="sum-si">{{ sumSortIcon('nama') }}</span></th>
                   <th>Wilayah</th>
                   <th>Jenis</th>
                   <th>Organisasi</th>
-                  <th>Akreditasi</th>
+                  <th (click)="setSumSort('akreditasi_institusi')" class="th-sort">Akreditasi <span class="sum-si">{{ sumSortIcon('akreditasi_institusi') }}</span></th>
                   <th class="sk-col">No. SK</th>
-                  <th>Berlaku s/d</th>
+                  <th (click)="setSumSort('tanggal_kadaluarsa_akreditasi')" class="th-sort">Berlaku s/d <span class="sum-si">{{ sumSortIcon('tanggal_kadaluarsa_akreditasi') }}</span></th>
                   <th class="text-center">Prodi</th>
-                  <th class="text-right">Mahasiswa</th>
-                  <th class="text-right">Dosen</th>
+                  <th (click)="setSumSort('mhs_sort')" class="th-sort text-right">Mahasiswa <span class="sum-si">{{ sumSortIcon('mhs_sort') }}</span></th>
+                  <th (click)="setSumSort('dosen_sort')" class="th-sort text-right">Dosen <span class="sum-si">{{ sumSortIcon('dosen_sort') }}</span></th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -90,16 +145,19 @@ import { ApiService } from '../../services/api.service';
                     {{ pt.is_active ? 'Aktif' : 'Tidak Aktif' }}
                   </span></td>
                 </tr>
-                <tr *ngIf="sumLoading"><td colspan="12" class="sum-loading-cell">Memuat...</td></tr>
-                <tr *ngIf="!sumLoading && sumData.length === 0"><td colspan="12" class="sum-empty-cell">Tidak ada data</td></tr>
+                <tr *ngIf="sumLoading"><td colspan="12" class="sum-state-cell">Memuat...</td></tr>
+                <tr *ngIf="!sumLoading && sumData.length === 0"><td colspan="12" class="sum-state-cell">Tidak ada data</td></tr>
               </tbody>
             </table>
           </div>
-          <div class="sum-pagination sum-pagination--bottom">
+
+          <!-- Bottom pagination -->
+          <div class="sum-pagination sum-pagination--bottom" *ngIf="sumTotalPages > 1">
             <button (click)="sumPrev()" [disabled]="sumPage <= 1">‹ Prev</button>
             <span>Hal {{ sumPage }} / {{ sumTotalPages }}</span>
             <button (click)="sumNext()" [disabled]="sumPage >= sumTotalPages">Next ›</button>
           </div>
+
         </div>
       </div>
 
@@ -153,6 +211,14 @@ import { ApiService } from '../../services/api.service';
             </div>
             <div class="stat-card__val stat-card__val--dark">{{ statistik.total_mahasiswa | number }}</div>
             <div class="stat-card__lbl stat-card__lbl--dark">Total Mahasiswa</div>
+          </div>
+          <div class="stat-card stat-card--light">
+            <div class="stat-card__icon stat-card__icon--dark">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/><circle cx="18" cy="18" r="5" fill="#22c55e"/><path d="M17 20.5l-2-2 .7-.7 1.3 1.3 2.8-2.8.7.7z" fill="white"/></svg>
+            </div>
+            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_dosen | number }}</div>
+            <div class="stat-card__lbl stat-card__lbl--dark">Dosen Tetap</div>
+            <div class="stat-card__sub stat-card__sub--dark" *ngIf="statistik.tahun_dosen">data {{ statistik.tahun_dosen }}</div>
           </div>
         </div>
 
@@ -235,49 +301,135 @@ import { ApiService } from '../../services/api.service';
     }
     @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
 
-    /* ── Ringkasan accordion ─────────────────────────── */
+    /* ── Ringkasan accordion (Dosen-style biru) ──────── */
     .sum-accordion {
-      background: #fff; border: 1px solid #e8eaf6; border-radius: 14px;
-      margin-bottom: 20px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-      border-left: 4px solid #1a237e;
+      background: #fff; border-radius: 12px; margin-bottom: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      border-left: 4px solid #1d4ed8;
     }
     .sum-toggle {
-      display: flex; align-items: center; gap: 10px;
-      padding: 14px 20px; cursor: pointer; user-select: none;
-      transition: background .15s; color: #1a237e;
+      width: 100%; display: flex; align-items: center; gap: .6rem;
+      background: none; border: none; padding: .85rem 1.1rem;
+      font-size: .9rem; font-weight: 600; color: #1e3a8a; cursor: pointer;
+      text-align: left; border-radius: 12px;
     }
-    .sum-toggle:hover { background: #f0f4ff; }
-    .sum-toggle-icon { width: 18px; height: 18px; flex-shrink: 0; }
-    .sum-toggle-text {
-      flex: 1; font-size: 14px; font-weight: 700; color: #1a237e;
-    }
-    .sum-title-en { font-weight: 400; color: #64748b; font-size: 13px; }
+    .sum-toggle:hover { background: rgba(59,130,246,.05); }
+    .sum-title-en { font-weight: 400; color: #64748b; font-size: .82rem; }
     .sum-count {
-      font-size: 11px; font-weight: 600; padding: 2px 10px;
-      background: #e8eaf6; color: #1a237e; border-radius: 20px;
+      margin-left: .4rem; font-size: .75rem; font-weight: 600;
+      padding: 2px 9px; background: #dbeafe; color: #1e40af; border-radius: 20px;
     }
-    .sum-chevron { font-size: 11px; color: #94a3b8; }
+    .sum-chevron { margin-left: auto; font-size: .85rem; color: #2563eb; transition: transform .2s; }
+    .sum-chevron.rotated { transform: rotate(180deg); }
 
-    .sum-body { border-top: 1px solid #e8eaf6; padding: 14px 20px 20px; }
+    .sum-body { padding: 0 1.1rem 1.1rem; border-top: 1px solid #e8eaf6; }
 
-    .sum-toolbar {
+    /* Search form — same Dosen ds-fields style */
+    .sum-fields {
+      display: grid; grid-template-columns: 1fr; gap: .75rem;
+      margin-bottom: .75rem; padding-top: .9rem;
+    }
+    @media (min-width: 600px)  { .sum-fields { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1024px) { .sum-fields { grid-template-columns: repeat(5, 1fr); } }
+    .sumf { display: flex; flex-direction: column; gap: .3rem; }
+    .sumf label { font-size: .78rem; font-weight: 600; color: #1e40af; }
+    .sumf input, .sumf select {
+      padding: .5rem .75rem; border: 1px solid #93c5fd; border-radius: 8px;
+      font-size: .875rem; outline: none; background: #eff6ff; color: #1e293b;
+    }
+    .sumf input:focus, .sumf select:focus {
+      border-color: #1d4ed8; box-shadow: 0 0 0 2px rgba(29,78,216,.12);
+    }
+    .sumf--action { justify-content: flex-end; flex-direction: row; align-items: flex-end; gap: .5rem; }
+    .sum-btn-search {
+      padding: .5rem 1.25rem; background: #1d4ed8; color: #fff;
+      border: none; border-radius: 8px; font-size: .875rem; font-weight: 600; cursor: pointer;
+    }
+    .sum-btn-search:hover:not(:disabled) { background: #1e3a8a; }
+    .sum-btn-search:disabled { opacity: .5; cursor: not-allowed; }
+    .sum-btn-reset {
+      padding: .5rem 1rem; background: #eff6ff; color: #1e40af;
+      border: 1px solid #93c5fd; border-radius: 8px; font-size: .875rem; cursor: pointer;
+    }
+    .sum-btn-reset:hover { background: #dbeafe; }
+
+    /* Results header */
+    .sum-results-header {
       display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 8px; margin-bottom: 10px;
+      flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem;
     }
-    .sum-info { font-size: 12px; color: #94a3b8; }
-    .sum-pagination { display: flex; align-items: center; gap: 6px; }
-    .sum-pagination span { font-size: 12px; color: #555; white-space: nowrap; }
+    .sum-info { font-size: .82rem; color: #1e40af; }
+    .sum-info strong { color: #1e3a8a; }
+    .sum-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .sum-pagination { display: flex; align-items: center; gap: .6rem; font-size: .83rem; }
+    .sum-pagination--bottom { justify-content: center; margin-top: .6rem; }
+    .sum-pagination span { color: #555; white-space: nowrap; }
     .sum-pagination button {
-      padding: 3px 10px; border: 1px solid #ddd; border-radius: 6px;
-      background: #fff; cursor: pointer; font-size: 12px; transition: background .15s;
+      padding: .3rem .8rem; border: 1px solid #93c5fd;
+      border-radius: 8px; background: #eff6ff; cursor: pointer; color: #1e40af;
     }
-    .sum-pagination button:hover:not(:disabled) { background: #e8eaf6; }
-    .sum-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .sum-pagination--bottom { justify-content: center; margin-top: 12px; }
+    .sum-pagination button:disabled { opacity: .4; cursor: not-allowed; }
+    .sum-pagination button:hover:not(:disabled) { background: #dbeafe; }
+    .sum-export-btns { display: flex; gap: .35rem; }
+    .sum-exp {
+      padding: .28rem .7rem; border-radius: 6px; font-size: .75rem;
+      font-weight: 600; cursor: pointer; border: 1px solid;
+    }
+    .sum-exp--csv  { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .sum-exp--csv:hover  { background: #dcfce7; }
+    .sum-exp--xlsx { background: #f0fdf4; color: #15803d; border-color: #4ade80; }
+    .sum-exp--xlsx:hover { background: #bbf7d0; }
+    .sum-exp--pdf  { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+    .sum-exp--pdf:hover  { background: #fee2e2; }
 
-    .sum-loading-cell, .sum-empty-cell {
-      text-align: center; padding: 24px; color: #94a3b8; font-size: 13px;
+    /* Table — same as PT list */
+    .sum-table-wrap { overflow-x: auto; border-radius: 10px; background: rgba(59,130,246,.03); }
+    .sum-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .sum-table th {
+      background: rgba(59,130,246,.08); padding: .55rem .75rem;
+      text-align: left; font-weight: 600; color: #1e40af;
+      border-bottom: 2px solid rgba(59,130,246,.15); white-space: nowrap;
     }
+    .sum-table th.th-sort { cursor: pointer; user-select: none; }
+    .sum-table th.th-sort:hover { background: rgba(59,130,246,.14); color: #1e3a8a; }
+    .sum-si { font-size: .72rem; color: #93c5fd; margin-left: .2rem; }
+    .sum-table td {
+      padding: .5rem .75rem; border-bottom: 1px solid rgba(59,130,246,.08);
+      color: #1e293b; vertical-align: middle;
+    }
+    .sum-table tr:last-child td { border-bottom: none; }
+    .sum-table tr.row-yellow td { background: #fffbec; }
+    .sum-table tr.row-red    td { background: #fff4f4; }
+    .sum-table tr.row-inactive td { background: #fff0f0; }
+    .sum-table tr:hover td { background: #dbeafe !important; cursor: pointer; }
+    .sum-state-cell { text-align: center; padding: 24px; color: #94a3b8; font-size: 13px; }
+
+    /* Shared table elements */
+    .pt-link { text-decoration: none; color: inherit; }
+    .pt-link:hover strong { color: #1a237e; text-decoration: underline; }
+    small { color: #888; font-size: 11px; }
+    code { background: #f0f0f0; padding: 2px 5px; border-radius: 4px; font-size: 10px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+    .badge-muh { background: #e3f2fd; color: #1565c0; }
+    .badge-ais { background: #fce4ec; color: #c62828; }
+    .badge-unggul { background: #e6f4ea; color: #137333; }
+    .badge-baik_sekali { background: #e8f5e9; color: #2e7d32; }
+    .badge-baik { background: #fff8e1; color: #f57f17; }
+    .badge-belum { background: #f1f3f4; color: #5f6368; }
+    .badge-aktif { background: #e6f4ea; color: #137333; }
+    .badge-nonaktif { background: #fce8e6; color: #c5221f; }
+    .text-center { text-align: center; }
+    .text-right  { text-align: right; }
+    .nowrap { white-space: nowrap; }
+    .sk-col { display: none; }
+    .no-data { color: #bbb; }
+    .exp-pill {
+      display: inline-block; padding: 3px 8px; border-radius: 6px;
+      font-weight: 700; color: #111; font-size: 12px; white-space: nowrap;
+    }
+    .exp-green  { background: #d4edda; }
+    .exp-yellow { background: #fff3cd; }
+    .exp-red    { background: #f8d7da; }
 
     /* ── Filter card ─────────────────────────────────── */
     .filter-card {
@@ -289,10 +441,7 @@ import { ApiService } from '../../services/api.service';
       padding: 14px 20px; cursor: pointer; user-select: none; transition: background .15s;
     }
     .filter-header:hover { background: #f5f7ff; }
-    .filter-title {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 14px; font-weight: 600; color: #334155;
-    }
+    .filter-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #334155; }
     .filter-icon { width: 18px; height: 18px; color: #1a237e; }
     .badge-filter {
       font-size: 11px; font-weight: 600; padding: 2px 8px;
@@ -342,19 +491,17 @@ import { ApiService } from '../../services/api.service';
     .stat-card--blue .stat-card__lbl { color: #c5cae9; }
     .stat-card__lbl--dark { color: #64748b; }
     .stat-card__sub { font-size: 11px; margin-top: 2px; color: #9fa8da; }
+    .stat-card__sub--dark { color: #94a3b8; }
 
     /* ── Chart card ──────────────────────────────────── */
     .chart-card {
       background: #fff; border: 1px solid #e8eaf6; border-radius: 14px;
-      padding: 20px; margin-bottom: 20px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
     .chart-card__title { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 16px; }
     .charts-row { display: grid; gap: 16px; margin-bottom: 20px; }
     .charts-row--bar { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
     .charts-row .chart-card { margin-bottom: 0; }
-
-    /* ── Bar charts ──────────────────────────────────── */
     .chart-list { display: flex; flex-direction: column; gap: 10px; }
     .chart-bar-item { display: flex; align-items: center; gap: 8px; }
     .bar-label { width: 110px; font-size: 12px; color: #555; flex-shrink: 0; }
@@ -364,57 +511,22 @@ import { ApiService } from '../../services/api.service';
     .bar-fill--green { background: #137333; }
     .bar-val { width: 28px; text-align: right; font-size: 12px; font-weight: 600; color: #333; }
 
-    /* ── PT Table (same as halaman PT) ──────────────── */
+    /* ── Wilayah summary table ───────────────────────── */
     .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th {
+    .data-table th {
       text-align: left; padding: 8px 10px; background: #f8f9fa;
       font-weight: 600; color: #555; border-bottom: 2px solid #e9ecef; white-space: nowrap;
     }
-    td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr.row-yellow td { background: #fffbec; }
-    tr.row-red    td { background: #fff4f4; }
-    tr.row-inactive td { background: #fff0f0; }
-    tr:hover td { background: #dbeafe !important; cursor: pointer; }
-    .pt-link { text-decoration: none; color: inherit; }
-    .pt-link:hover strong { color: #1a237e; text-decoration: underline; }
-    small { color: #888; font-size: 11px; }
-    code { background: #f0f0f0; padding: 2px 5px; border-radius: 4px; font-size: 10px; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
-    .badge-muh { background: #e3f2fd; color: #1565c0; }
-    .badge-ais { background: #fce4ec; color: #c62828; }
-    .badge-unggul { background: #e6f4ea; color: #137333; }
-    .badge-baik_sekali { background: #e8f5e9; color: #2e7d32; }
-    .badge-baik { background: #fff8e1; color: #f57f17; }
-    .badge-belum { background: #f1f3f4; color: #5f6368; }
-    .badge-aktif { background: #e6f4ea; color: #137333; }
-    .badge-nonaktif { background: #fce8e6; color: #c5221f; }
-    .text-center { text-align: center; }
-    .text-right  { text-align: right; }
-    .nowrap { white-space: nowrap; }
-    .sk-col { display: none; }
-    .no-data { color: #bbb; }
-    .exp-pill {
-      display: inline-block; padding: 3px 8px; border-radius: 6px;
-      font-weight: 700; color: #111; font-size: 12px; white-space: nowrap;
-    }
-    .exp-green  { background: #d4edda; }
-    .exp-yellow { background: #fff3cd; }
-    .exp-red    { background: #f8d7da; }
-
-    /* ── Wilayah table extras ────────────────────────── */
+    .data-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
     .col-num  { text-align: right; }
     .col-prov { color: #64748b; font-size: 12px; }
     .col-bar  { min-width: 100px; }
 
-    /* ── Tablet / Desktop ────────────────────────────── */
+    /* ── Responsive ──────────────────────────────────── */
     @media (min-width: 600px) {
       .sk-col { display: table-cell; font-size: 11px; color: #555; }
-      th, td { padding: 10px 12px; font-size: 13px; }
-    }
-    @media (min-width: 1024px) {
-      th, td { padding: 10px 14px; }
     }
   `]
 })
@@ -425,12 +537,19 @@ export class StatistikComponent implements OnInit {
   selectedIds = new Set<number>();
   filterOpen = false;
 
-  // Ringkasan summary
-  summaryOpen = true;
+  // ── Ringkasan summary ──────────────────────────────
+  summaryOpen = false;
   sumData: any[] = [];
   sumPage = 1;
   sumTotal = 0;
   sumLoading = false;
+  sumSearchDone = false;
+  sumSearch = '';
+  sumJenis = '';
+  sumOrganisasi = '';
+  sumAkreditasi = '';
+  sumSortKey = 'mhs_sort';
+  sumSortAsc = false;
   private readonly SUM_PAGE_SIZE = 5;
 
   private debounceTimer: any;
@@ -453,13 +572,47 @@ export class StatistikComponent implements OnInit {
   // ── Ringkasan ──────────────────────────────────────
   get sumTotalPages() { return Math.max(1, Math.ceil(this.sumTotal / this.SUM_PAGE_SIZE)); }
 
+  runSumSearch() {
+    this.sumSearchDone = true;
+    this.sumPage = 1;
+    this.loadSummary();
+  }
+
+  resetSumSearch() {
+    this.sumSearch = '';
+    this.sumJenis = '';
+    this.sumOrganisasi = '';
+    this.sumAkreditasi = '';
+    this.sumSearchDone = false;
+    this.sumPage = 1;
+    this.loadSummary();
+  }
+
+  setSumSort(key: string) {
+    if (this.sumSortKey === key) { this.sumSortAsc = !this.sumSortAsc; }
+    else { this.sumSortKey = key; this.sumSortAsc = true; }
+    this.sumPage = 1;
+    this.loadSummary();
+  }
+
+  sumSortIcon(key: string): string {
+    if (this.sumSortKey !== key) return '↕';
+    return this.sumSortAsc ? '↑' : '↓';
+  }
+
   loadSummary() {
     this.sumLoading = true;
-    this.api.getPerguruanTinggiList({
+    const params: any = {
       page: this.sumPage,
       page_size: this.SUM_PAGE_SIZE,
-      ordering: '-mhs_sort'
-    }).subscribe({
+      ordering: (this.sumSortAsc ? '' : '-') + this.sumSortKey
+    };
+    if (this.sumSearch)      params['search']              = this.sumSearch;
+    if (this.sumJenis)       params['jenis']               = this.sumJenis;
+    if (this.sumOrganisasi)  params['organisasi_induk']    = this.sumOrganisasi;
+    if (this.sumAkreditasi)  params['akreditasi_institusi'] = this.sumAkreditasi;
+
+    this.api.getPerguruanTinggiList(params).subscribe({
       next: (res: any) => {
         this.sumData  = res.results || res;
         this.sumTotal = res.count || this.sumData.length;
@@ -471,6 +624,52 @@ export class StatistikComponent implements OnInit {
 
   sumNext() { if (this.sumPage < this.sumTotalPages) { this.sumPage++; this.loadSummary(); } }
   sumPrev() { if (this.sumPage > 1) { this.sumPage--; this.loadSummary(); } }
+
+  exportSum(fmt: 'csv' | 'xlsx' | 'pdf') {
+    const params: any = { page: 1, page_size: 500, ordering: (this.sumSortAsc ? '' : '-') + this.sumSortKey };
+    if (this.sumSearch)     params['search']               = this.sumSearch;
+    if (this.sumJenis)      params['jenis']                = this.sumJenis;
+    if (this.sumOrganisasi) params['organisasi_induk']     = this.sumOrganisasi;
+    if (this.sumAkreditasi) params['akreditasi_institusi'] = this.sumAkreditasi;
+
+    this.api.getPerguruanTinggiList(params).subscribe({ next: (res: any) => {
+      const rows = (res.results || res) as any[];
+      const headers = ['Kode PT','Singkatan','Nama','Jenis','Organisasi','Wilayah','Akreditasi',
+                       'No. SK','Berlaku s/d','Prodi','Mahasiswa','Dosen Tetap','Status'];
+      const body = rows.map((p: any) => [
+        p.kode_pt, p.singkatan, p.nama,
+        p.jenis ? (p.jenis as string).replace('_',' ') : '',
+        p.organisasi_induk, p.wilayah_nama || '',
+        this.fmtAkr(p.akreditasi_institusi),
+        p.nomor_sk_akreditasi || '',
+        p.tanggal_kadaluarsa_akreditasi || '',
+        p.total_prodi ?? '', p.total_mahasiswa ?? '', p.total_dosen ?? '',
+        p.is_active ? 'Aktif' : 'Tidak Aktif',
+      ]);
+      const ts = new Date().toISOString().slice(0, 10);
+      if (fmt === 'csv') {
+        const lines = [headers, ...body].map(r =>
+          r.map((c: any) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','));
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `ringkasan-pt-${ts}.csv`; a.click();
+      } else if (fmt === 'xlsx') {
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...body]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Ringkasan PT');
+        XLSX.writeFile(wb, `ringkasan-pt-${ts}.xlsx`);
+      } else {
+        const html = `<html><head><title>Ringkasan PT</title>
+          <style>body{font-family:sans-serif;font-size:11px}table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #ccc;padding:4px 6px}th{background:#eff6ff;color:#1e40af}</style></head>
+          <body><h3>Laporan Performa Perguruan Tinggi</h3>
+          <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${body.map(r => `<tr>${r.map((c: any) => `<td>${c ?? ''}</td>`).join('')}</tr>`).join('')}
+          </tbody></table></body></html>`;
+        const w = window.open('', '_blank')!; w.document.write(html); w.document.close(); w.print();
+      }
+    }});
+  }
 
   goToDetail(id: number) { this.router.navigate(['/perguruan-tinggi', id]); }
 
