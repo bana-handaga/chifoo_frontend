@@ -85,7 +85,7 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
             <thead>
               <tr>
                 <th (click)="setPsSort('nama_prodi')" class="ps-sortable">Nama Prodi <span class="ps-si">{{ psSortIcon('nama_prodi') }}</span></th>
-                <th>Jenjang</th>
+                <th (click)="setPsSort('jenjang')" class="ps-sortable">Jenjang <span class="ps-si">{{ psSortIcon('jenjang') }}</span></th>
                 <th (click)="setPsSort('nama_pt')" class="ps-sortable">Perguruan Tinggi <span class="ps-si">{{ psSortIcon('nama_pt') }}</span></th>
                 <th class="num-col" (click)="setPsSort('mahasiswa_aktif')" style="cursor:pointer">Mhs. Aktif <span class="ps-si">{{ psSortIcon('mahasiswa_aktif') }}</span></th>
                 <th class="num-col" (click)="setPsSort('dosen_tetap')" style="cursor:pointer">Dosen Tetap <span class="ps-si">{{ psSortIcon('dosen_tetap') }}</span></th>
