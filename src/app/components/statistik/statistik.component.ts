@@ -37,54 +37,9 @@ import * as XLSX from 'xlsx';
 
         <div class="sum-body" *ngIf="summaryOpen">
 
-          <!-- Search form -->
-          <div class="sum-fields">
-            <div class="sumf">
-              <label>Nama / Singkatan PT</label>
-              <input type="text" [(ngModel)]="sumSearch" placeholder="Cari nama, singkatan..."
-                     (keyup.enter)="runSumSearch()">
-            </div>
-            <div class="sumf">
-              <label>Jenis</label>
-              <select [(ngModel)]="sumJenis">
-                <option value="">— Semua —</option>
-                <option value="universitas">Universitas</option>
-                <option value="institut">Institut</option>
-                <option value="sekolah_tinggi">Sekolah Tinggi</option>
-                <option value="politeknik">Politeknik</option>
-                <option value="akademi">Akademi</option>
-              </select>
-            </div>
-            <div class="sumf">
-              <label>Organisasi</label>
-              <select [(ngModel)]="sumOrganisasi">
-                <option value="">— Semua —</option>
-                <option value="muhammadiyah">Muhammadiyah</option>
-                <option value="aisyiyah">Aisyiyah</option>
-              </select>
-            </div>
-            <div class="sumf">
-              <label>Akreditasi</label>
-              <select [(ngModel)]="sumAkreditasi">
-                <option value="">— Semua —</option>
-                <option value="unggul">Unggul</option>
-                <option value="baik_sekali">Baik Sekali</option>
-                <option value="baik">Baik</option>
-                <option value="belum">Belum</option>
-              </select>
-            </div>
-            <div class="sumf sumf--action">
-              <button class="sum-btn-search" (click)="runSumSearch()" [disabled]="sumLoading">
-                {{ sumLoading ? 'Mencari...' : 'Cari' }}
-              </button>
-              <button class="sum-btn-reset" (click)="resetSumSearch()" *ngIf="sumSearchDone">Reset</button>
-            </div>
-          </div>
-
           <!-- ── TOMBOL GENERATE LAPORAN ─────────────────────────── -->
-          <div class="gen-section">
-            <div class="gen-divider"></div>
-            <div class="gen-header">
+          <div class="gen-section gen-section--top">
+            <div class="gen-header" style="padding-top:.9rem">
               <div>
                 <div class="gen-title">Generate Laporan Performa</div>
                 <div class="gen-desc">Hitung distribusi prodi, gender, jabatan, pendidikan, status, ikatan kerja dosen, dan tren mahasiswa 7 semester terakhir untuk seluruh PT.</div>
@@ -162,42 +117,13 @@ import * as XLSX from 'xlsx';
                       <td class="text-center"><strong>{{ r.total_dosen }}</strong></td>
                       <td class="text-center">{{ r.dosen_pria }}</td>
                       <td class="text-center">{{ r.dosen_wanita }}</td>
-                      <td>
-                        <div class="dist-chips">
-                          <span *ngFor="let kv of toKV(r.dosen_per_jabatan)" class="dist-chip">
-                            <span class="chip-key">{{ kv.k || '—' }}</span>
-                            <span class="chip-val">{{ kv.v }}</span>
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="dist-chips">
-                          <span *ngFor="let kv of toKV(r.dosen_per_pendidikan)" class="dist-chip">
-                            <span class="chip-key">{{ kv.k.toUpperCase() || '—' }}</span>
-                            <span class="chip-val">{{ kv.v }}</span>
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="dist-chips">
-                          <span *ngFor="let kv of toKV(r.dosen_per_status)" class="dist-chip">
-                            <span class="chip-key">{{ kv.k || '—' }}</span>
-                            <span class="chip-val">{{ kv.v }}</span>
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="dist-chips">
-                          <span *ngFor="let kv of toKV(r.dosen_per_ikatan)" class="dist-chip">
-                            <span class="chip-key">{{ kv.k || '—' }}</span>
-                            <span class="chip-val">{{ kv.v }}</span>
-                          </span>
-                        </div>
-                      </td>
+                      <td><div class="dist-chips"><span *ngFor="let kv of toKV(r.dosen_per_jabatan)" class="dist-chip"><span class="chip-key">{{ kv.k || '—' }}</span><span class="chip-val">{{ kv.v }}</span></span></div></td>
+                      <td><div class="dist-chips"><span *ngFor="let kv of toKV(r.dosen_per_pendidikan)" class="dist-chip"><span class="chip-key">{{ kv.k.toUpperCase() || '—' }}</span><span class="chip-val">{{ kv.v }}</span></span></div></td>
+                      <td><div class="dist-chips"><span *ngFor="let kv of toKV(r.dosen_per_status)" class="dist-chip"><span class="chip-key">{{ kv.k || '—' }}</span><span class="chip-val">{{ kv.v }}</span></span></div></td>
+                      <td><div class="dist-chips"><span *ngFor="let kv of toKV(r.dosen_per_ikatan)" class="dist-chip"><span class="chip-key">{{ kv.k || '—' }}</span><span class="chip-val">{{ kv.v }}</span></span></div></td>
                       <td>
                         <div class="tren-mini">
-                          <span *ngFor="let t of r.mhs_tren; let last = last" class="tren-dot"
-                                [title]="t.periode + ': ' + (t.total | number)">
+                          <span *ngFor="let t of r.mhs_tren" class="tren-dot" [title]="t.periode + ': ' + (t.total | number)">
                             <span class="tren-bar" [style.height.px]="trenHeight(t.total, r.mhs_tren)"></span>
                           </span>
                           <span class="tren-last">{{ lastTren(r.mhs_tren) | number }}</span>
@@ -205,9 +131,7 @@ import * as XLSX from 'xlsx';
                       </td>
                     </tr>
                     <tr *ngIf="snapLoading"><td colspan="10" class="sum-state-cell">Memuat laporan...</td></tr>
-                    <tr *ngIf="!snapLoading && filteredSnap.length === 0 && activeSnap">
-                      <td colspan="10" class="sum-state-cell">Tidak ada data</td>
-                    </tr>
+                    <tr *ngIf="!snapLoading && filteredSnap.length === 0 && activeSnap"><td colspan="10" class="sum-state-cell">Tidak ada data</td></tr>
                   </tbody>
                   <tfoot *ngIf="filteredSnap.length > 0">
                     <tr>
@@ -222,8 +146,52 @@ import * as XLSX from 'xlsx';
                 </table>
               </div>
             </div><!-- /snap-result -->
+            <div class="gen-divider" style="margin-top:1rem"></div>
+          </div><!-- /gen-section top -->
 
-          </div><!-- /gen-section -->
+          <!-- Search form -->
+          <div class="sum-fields">
+            <div class="sumf">
+              <label>Nama / Singkatan PT</label>
+              <input type="text" [(ngModel)]="sumSearch" placeholder="Cari nama, singkatan..."
+                     (keyup.enter)="runSumSearch()">
+            </div>
+            <div class="sumf">
+              <label>Jenis</label>
+              <select [(ngModel)]="sumJenis">
+                <option value="">— Semua —</option>
+                <option value="universitas">Universitas</option>
+                <option value="institut">Institut</option>
+                <option value="sekolah_tinggi">Sekolah Tinggi</option>
+                <option value="politeknik">Politeknik</option>
+                <option value="akademi">Akademi</option>
+              </select>
+            </div>
+            <div class="sumf">
+              <label>Organisasi</label>
+              <select [(ngModel)]="sumOrganisasi">
+                <option value="">— Semua —</option>
+                <option value="muhammadiyah">Muhammadiyah</option>
+                <option value="aisyiyah">Aisyiyah</option>
+              </select>
+            </div>
+            <div class="sumf">
+              <label>Akreditasi</label>
+              <select [(ngModel)]="sumAkreditasi">
+                <option value="">— Semua —</option>
+                <option value="unggul">Unggul</option>
+                <option value="baik_sekali">Baik Sekali</option>
+                <option value="baik">Baik</option>
+                <option value="belum">Belum</option>
+              </select>
+            </div>
+            <div class="sumf sumf--action">
+              <button class="sum-btn-search" (click)="runSumSearch()" [disabled]="sumLoading">
+                {{ sumLoading ? 'Mencari...' : 'Cari' }}
+              </button>
+              <button class="sum-btn-reset" (click)="resetSumSearch()" *ngIf="sumSearchDone">Reset</button>
+            </div>
+          </div>
 
           <!-- Toolbar: info + pagination + export -->
           <div class="sum-results-header">
