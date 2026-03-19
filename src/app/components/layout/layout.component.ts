@@ -31,8 +31,8 @@ import { AuthService } from '../../services/auth.service';
           <span class="nav-label">Dosen</span>
         </a>
         <a routerLink="/statistik" routerLinkActive="active">
-          <span class="nav-icon">📈</span>
-          <span class="nav-label">Statistik</span>
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Laporan</span>
         </a>
       </nav>
 
@@ -75,8 +75,8 @@ import { AuthService } from '../../services/auth.service';
         <span class="tab-label">Dosen</span>
       </a>
       <a routerLink="/statistik" routerLinkActive="active">
-        <span class="tab-icon">📈</span>
-        <span class="tab-label">Statistik</span>
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">Laporan</span>
       </a>
     </nav>
   `,
