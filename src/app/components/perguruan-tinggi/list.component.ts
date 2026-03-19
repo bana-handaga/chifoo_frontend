@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, ElementRef, NgZone } from '@angular/core'
 import { Router } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { ApiService } from '../../services/api.service';
+import * as XLSX from 'xlsx';
 Chart.register(...registerables);
 
 @Component({
@@ -79,60 +80,87 @@ Chart.register(...registerables);
         </div>
       </div>
 
-      <!-- Collapsible filter card -->
-      <div class="filter-card">
-        <div class="filter-header" (click)="filterOpen = !filterOpen">
-          <span class="filter-title">
-            Filter &amp; Pencarian
-            <span class="badge-count" *ngIf="activeFilterCount > 0">{{ activeFilterCount }} aktif</span>
+      <!-- Search Accordion -->
+      <div class="pt-accordion">
+        <div class="pt-toggle" (click)="filterOpen = !filterOpen">
+          <span class="pt-toggle-icon">🔍</span>
+          <span class="pt-toggle-text">
+            Pencarian Perguruan Tinggi
+            <span class="pt-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }} filter aktif</span>
           </span>
-          <span class="chevron">{{ filterOpen ? '▲' : '▼' }}</span>
-        </div>
-        <div class="filter-body" *ngIf="filterOpen">
-          <input type="text" [(ngModel)]="search" (input)="onSearch()"
-                 placeholder="🔍 Cari nama, kota, singkatan..." class="search-input">
-          <div class="filter-row">
-            <select [(ngModel)]="filterExp" (change)="applyFilter()" class="filter-exp">
-              <option value="">Semua Kadaluarsa</option>
-              <option value="more_1y">Lebih dari 1 tahun</option>
-              <option value="less_3m">Kurang dari 3 bulan</option>
-              <option value="less_2m">Kurang dari 2 bulan</option>
-              <option value="less_1m">Kurang dari 1 bulan</option>
-            </select>
-            <select [(ngModel)]="filterJenis" (change)="applyFilter()">
-              <option value="">Semua Jenis</option>
-              <option value="universitas">Universitas</option>
-              <option value="institut">Institut</option>
-              <option value="sekolah_tinggi">Sekolah Tinggi</option>
-              <option value="politeknik">Politeknik</option>
-              <option value="akademi">Akademi</option>
-            </select>
-            <select [(ngModel)]="filterOrganisasi" (change)="applyFilter()">
-              <option value="">Semua Organisasi</option>
-              <option value="muhammadiyah">Muhammadiyah</option>
-              <option value="aisyiyah">Aisyiyah</option>
-            </select>
-            <select [(ngModel)]="filterAkreditasi" (change)="applyFilter()">
-              <option value="">Semua Akreditasi</option>
-              <option value="unggul">Unggul</option>
-              <option value="baik_sekali">Baik Sekali</option>
-              <option value="baik">Baik</option>
-              <option value="belum">Belum</option>
-            </select>
-            <select [(ngModel)]="filterAktif" (change)="applyFilter()">
-              <option value="">Semua Status</option>
-              <option value="true">Aktif</option>
-              <option value="false">Tidak Aktif</option>
-            </select>
+          <div class="pt-header-actions" (click)="$event.stopPropagation()">
+            <button class="pt-btn-exp pt-btn-csv"  (click)="exportPt('csv')"  title="Export CSV">CSV</button>
+            <button class="pt-btn-exp pt-btn-xlsx" (click)="exportPt('xlsx')" title="Export XLSX">XLSX</button>
+            <button class="pt-btn-exp pt-btn-pdf"  (click)="exportPt('pdf')"  title="Export PDF">PDF</button>
           </div>
-          <div class="filter-actions" *ngIf="activeFilterCount > 0">
-            <button (click)="resetFilters()">Reset Filter</button>
+          <span class="pt-chevron">{{ filterOpen ? '▲' : '▼' }}</span>
+        </div>
+        <div class="pt-body" *ngIf="filterOpen">
+          <div class="ptf">
+            <div class="ptf-row">
+              <div class="ptf-field">
+                <label>Nama / Singkatan PT</label>
+                <input type="text" [(ngModel)]="search" (input)="onSearch()" placeholder="Cari nama, singkatan, kota...">
+              </div>
+              <div class="ptf-field">
+                <label>Kadaluarsa Akreditasi</label>
+                <select [(ngModel)]="filterExp" (change)="applyFilter()">
+                  <option value="">Semua</option>
+                  <option value="more_1y">Lebih dari 1 tahun</option>
+                  <option value="less_3m">Kurang dari 3 bulan</option>
+                  <option value="less_2m">Kurang dari 2 bulan</option>
+                  <option value="less_1m">Kurang dari 1 bulan</option>
+                </select>
+              </div>
+            </div>
+            <div class="ptf-row">
+              <div class="ptf-field">
+                <label>Jenis</label>
+                <select [(ngModel)]="filterJenis" (change)="applyFilter()">
+                  <option value="">Semua Jenis</option>
+                  <option value="universitas">Universitas</option>
+                  <option value="institut">Institut</option>
+                  <option value="sekolah_tinggi">Sekolah Tinggi</option>
+                  <option value="politeknik">Politeknik</option>
+                  <option value="akademi">Akademi</option>
+                </select>
+              </div>
+              <div class="ptf-field">
+                <label>Organisasi</label>
+                <select [(ngModel)]="filterOrganisasi" (change)="applyFilter()">
+                  <option value="">Semua</option>
+                  <option value="muhammadiyah">Muhammadiyah</option>
+                  <option value="aisyiyah">Aisyiyah</option>
+                </select>
+              </div>
+              <div class="ptf-field">
+                <label>Akreditasi</label>
+                <select [(ngModel)]="filterAkreditasi" (change)="applyFilter()">
+                  <option value="">Semua</option>
+                  <option value="unggul">Unggul</option>
+                  <option value="baik_sekali">Baik Sekali</option>
+                  <option value="baik">Baik</option>
+                  <option value="belum">Belum</option>
+                </select>
+              </div>
+              <div class="ptf-field">
+                <label>Status</label>
+                <select [(ngModel)]="filterAktif" (change)="applyFilter()">
+                  <option value="">Semua</option>
+                  <option value="true">Aktif</option>
+                  <option value="false">Tidak Aktif</option>
+                </select>
+              </div>
+            </div>
+            <div class="ptf-btn-row">
+              <button class="pt-btn-reset" *ngIf="activeFilterCount > 0" (click)="resetFilters()">✕ Reset Filter</button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Tabel -->
-      <div class="card mt-16">
+      <div class="card mt-16 pt-table-card">
         <div class="table-toolbar">
           <div class="table-info">Menampilkan {{ data.length }} dari {{ totalCount }} PT</div>
           <div class="toolbar-right">
@@ -252,41 +280,48 @@ Chart.register(...registerables);
     .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
     .bar-num { width: 28px; text-align: right; font-size: 12px; font-weight: 600; color: #333; }
 
-    /* ── Filter card ─── */
-    .filter-card {
+    /* ── PT Search Accordion ─── */
+    .pt-accordion {
       background: white; border-radius: 12px; margin-bottom: 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.09); overflow: hidden;
+      border-left: 4px solid #16a34a;
     }
-    .filter-header {
-      display: flex; align-items: center; justify-content: space-between;
+    .pt-toggle {
+      display: flex; align-items: center; gap: 8px;
       padding: 10px 14px; cursor: pointer; user-select: none; transition: background 0.15s;
+      color: #14532d;
     }
-    .filter-header:hover { background: #f5f5f5; }
-    .filter-title { font-size: 14px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 10px; }
-    .badge-count {
-      font-size: 11px; font-weight: 600; padding: 2px 8px;
-      background: #e8eaf6; color: #1a237e; border-radius: 20px;
+    .pt-toggle:hover { background: #f0fdf4; }
+    .pt-toggle-icon { font-size: 14px; }
+    .pt-toggle-text { flex: 1; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .pt-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; background: #dcfce7; color: #166534; border-radius: 20px; }
+    .pt-chevron { font-size: 11px; color: #166534; }
+    .pt-header-actions { display: flex; gap: 4px; }
+    .pt-btn-exp { padding: 3px 8px; font-size: 11px; font-weight: 600; border: none; border-radius: 5px; cursor: pointer; transition: filter 0.15s; }
+    .pt-btn-exp:hover { filter: brightness(0.9); }
+    .pt-btn-csv  { background: #16a34a; color: #fff; }
+    .pt-btn-xlsx { background: #15803d; color: #fff; }
+    .pt-btn-pdf  { background: #dc2626; color: #fff; }
+    .pt-body { padding: 10px 14px 14px; border-top: 1px solid #dcfce7; }
+    .ptf { display: flex; flex-direction: column; gap: 10px; }
+    .ptf-row { display: flex; flex-direction: column; gap: 8px; }
+    .ptf-field { display: flex; flex-direction: column; gap: 3px; }
+    .ptf-field label { font-size: 11px; font-weight: 600; color: #166534; letter-spacing: .02em; }
+    .ptf-field input, .ptf-field select {
+      width: 100%; padding: 7px 10px; background: #f0fdf4;
+      border: 1px solid #86efac; border-radius: 7px; font-size: 13px;
+      box-sizing: border-box; color: #14532d;
     }
-    .chevron { font-size: 11px; color: #999; }
-
-    .filter-body { padding: 10px 14px 14px; border-top: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 10px; }
-    .search-input {
-      width: 100%; padding: 8px 12px; border: 1px solid #ddd;
-      border-radius: 8px; font-size: 13px; background: #fff; box-sizing: border-box;
+    .ptf-field input:focus, .ptf-field select:focus {
+      outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
     }
-    .search-input:focus { outline: none; border-color: #3949ab; box-shadow: 0 0 0 3px rgba(57,73,171,0.1); }
-    .filter-row { display: flex; flex-direction: column; gap: 8px; }
-    .filter-row select {
-      width: 100%; padding: 8px 12px; border: 1px solid #ddd;
-      border-radius: 8px; font-size: 13px; background: #fff;
+    .ptf-btn-row { display: flex; gap: 8px; }
+    .pt-btn-reset {
+      padding: 5px 14px; font-size: 12px; font-weight: 600;
+      border: 1px solid #16a34a; border-radius: 7px;
+      cursor: pointer; background: white; color: #16a34a; transition: all 0.15s;
     }
-    .filter-exp { background: #fee2e2 !important; border-color: #fca5a5 !important; color: #b91c1c !important; }
-    .filter-actions { display: flex; gap: 8px; }
-    .filter-actions button {
-      padding: 4px 12px; font-size: 12px; border: 1px solid #1a237e;
-      border-radius: 5px; cursor: pointer; background: white; color: #1a237e; transition: all 0.15s;
-    }
-    .filter-actions button:hover { background: #1a237e; color: white; }
+    .pt-btn-reset:hover { background: #16a34a; color: #fff; }
 
     /* ── Notif bar ─── */
     .notif-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
@@ -302,6 +337,8 @@ Chart.register(...registerables);
 
     /* ── Table card ─── */
     .mt-16 { margin-top: 12px; }
+    .pt-table-card { border-top: 3px solid #16a34a; }
+    .pt-table-card .table-wrapper { background: rgba(34,197,94,.03); }
     .table-toolbar { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
     .table-info { font-size: 12px; color: #888; }
     .toolbar-right { width: 100%; }
@@ -377,10 +414,10 @@ Chart.register(...registerables);
       .three-col { grid-template-columns: 1fr 1fr; gap: 16px; }
       .donut-wrap { height: 220px; }
       .bar-lbl { width: 110px; font-size: 12px; }
-      .filter-row { flex-direction: row; flex-wrap: wrap; }
-      .filter-row select { flex: 1; min-width: 130px; width: auto; }
-      .filter-header { padding: 12px 20px; }
-      .filter-body { padding: 12px 20px 16px; }
+      .ptf-row { flex-direction: row; flex-wrap: wrap; }
+      .ptf-field { flex: 1; min-width: 140px; }
+      .pt-toggle { padding: 12px 20px; }
+      .pt-body { padding: 12px 20px 16px; }
       .notif-item { padding: 10px 16px; font-size: 13px; }
       .sk-col { display: table-cell; }
       .table-toolbar { flex-direction: row; align-items: center; }
@@ -707,6 +744,53 @@ export class PerguruanTinggiListComponent implements OnInit {
 
   formatAkreditasi(v: string) {
     return ({ unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', belum: 'Belum' } as any)[v] || v;
+  }
+
+  exportPt(fmt: 'csv' | 'xlsx' | 'pdf') {
+    const params: any = { page: 1, page_size: 500 };
+    if (this.search) params['search'] = this.search;
+    if (this.filterJenis) params['jenis'] = this.filterJenis;
+    if (this.filterOrganisasi) params['organisasi_induk'] = this.filterOrganisasi;
+    if (this.filterAkreditasi) params['akreditasi_institusi'] = this.filterAkreditasi;
+    if (this.filterAktif !== '') params['is_active'] = this.filterAktif;
+    if (this.filterExp) params['exp_filter'] = this.filterExp;
+    params['ordering'] = (this.sortAsc ? '' : '-') + this.sortKey;
+
+    this.api.getPerguruanTinggiList(params).subscribe({ next: (res: any) => {
+      const rows = (res.results || res) as any[];
+      const headers = ['Kode PT','Singkatan','Nama','Jenis','Organisasi','Akreditasi','Kota','Provinsi','Prodi','Mahasiswa','Dosen Tetap','Status'];
+      const body = rows.map((p: any) => [
+        p.kode_pt, p.singkatan, p.nama,
+        p.jenis ? (p.jenis as string).replace('_',' ') : '',
+        p.organisasi_induk,
+        this.formatAkreditasi(p.akreditasi_institusi),
+        p.kota, p.provinsi,
+        p.total_prodi ?? '',
+        p.total_mahasiswa ?? '',
+        p.total_dosen ?? '',
+        p.is_active ? 'Aktif' : 'Tidak Aktif',
+      ]);
+      const ts = new Date().toISOString().slice(0,10);
+      if (fmt === 'csv') {
+        const lines = [headers, ...body].map(r => r.map((c: any) => `"${String(c ?? '').replace(/"/g,'""')}"`).join(','));
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `perguruan-tinggi-${ts}.csv`; a.click();
+      } else if (fmt === 'xlsx') {
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...body]);
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Perguruan Tinggi');
+        XLSX.writeFile(wb, `perguruan-tinggi-${ts}.xlsx`);
+      } else {
+        const html = `<html><head><title>Perguruan Tinggi</title>
+          <style>body{font-family:sans-serif;font-size:11px}table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #ccc;padding:4px 6px}th{background:#f0fdf4;color:#166534}</style></head>
+          <body><h3>Data Perguruan Tinggi</h3>
+          <table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+          <tbody>${body.map(r=>`<tr>${r.map((c: any)=>`<td>${c??''}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table></body></html>`;
+        const w = window.open('','_blank')!; w.document.write(html); w.document.close(); w.print();
+      }
+    }});
   }
 
   expStatus(tgl: string): string {
