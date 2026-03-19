@@ -106,13 +106,14 @@ Chart.register(...registerables);
                 </div>
               </div>
               <div class="ptf-btn-row">
-                <button class="pt-btn-reset" *ngIf="activeFilterCount > 0" (click)="resetFilters()">✕ Reset Filter</button>
+                <button class="pt-btn-search" (click)="runSearch()">🔍 Cari</button>
+                <button class="pt-btn-reset" *ngIf="searchDone" (click)="resetFilters()">✕ Reset</button>
               </div>
             </div>
           </div>
 
-          <!-- Tabel dalam satu box accordion -->
-          <div class="pt-results">
+          <!-- Tabel dalam satu box accordion, hanya tampil setelah pencarian -->
+          <div class="pt-results" *ngIf="searchDone">
             <div class="table-toolbar">
               <div class="table-info">Menampilkan {{ data.length }} dari {{ totalCount }} PT</div>
               <div class="toolbar-right">
@@ -318,6 +319,12 @@ Chart.register(...registerables);
       outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
     }
     .ptf-btn-row { display: flex; gap: 8px; }
+    .pt-btn-search {
+      padding: 6px 18px; font-size: 13px; font-weight: 600;
+      border: none; border-radius: 7px;
+      cursor: pointer; background: #16a34a; color: #fff; transition: filter 0.15s;
+    }
+    .pt-btn-search:hover { filter: brightness(0.9); }
     .pt-btn-reset {
       padding: 5px 14px; font-size: 12px; font-weight: 600;
       border: 1px solid #16a34a; border-radius: 7px;
@@ -468,6 +475,7 @@ export class PerguruanTinggiListComponent implements OnInit {
   chartAkreditasi: any[] = [];
   chartWilayah: any[] = [];
   filterOpen = false;
+  searchDone = false;
   private akrChartInstance: Chart | null = null;
   private wilayahChartInstance: Chart | null = null;
   @ViewChild('akrChart')     akrChartRef!:     ElementRef<HTMLCanvasElement>;
@@ -476,7 +484,6 @@ export class PerguruanTinggiListComponent implements OnInit {
   constructor(private api: ApiService, private router: Router, private zone: NgZone) {}
 
   ngOnInit() {
-    this.loadData();
     this.loadNotifCounts();
     this.loadCharts();
   }
@@ -499,7 +506,9 @@ export class PerguruanTinggiListComponent implements OnInit {
     this.filterAkreditasi = '';
     this.filterAktif = '';
     this.filterExp = '';
-    this.applyFilter();
+    this.searchDone = false;
+    this.data = [];
+    this.totalCount = 0;
   }
 
   loadNotifCounts() {
@@ -514,7 +523,13 @@ export class PerguruanTinggiListComponent implements OnInit {
   setExpFilter(val: string) {
     this.filterExp = val;
     this.filterOpen = true;
-    this.applyFilter();
+    this.runSearch();
+  }
+
+  runSearch() {
+    this.searchDone = true;
+    this.page = 1;
+    this.loadData();
   }
 
   loadCharts() {
@@ -724,11 +739,11 @@ export class PerguruanTinggiListComponent implements OnInit {
     });
   }
 
-  applyFilter() { this.page = 1; this.loadData(); }
+  applyFilter() { if (this.searchDone) { this.page = 1; this.loadData(); } }
 
   setSort(key: string) {
     if (this.sortKey === key) { this.sortAsc = !this.sortAsc; } else { this.sortKey = key; this.sortAsc = true; }
-    this.page = 1; this.loadData();
+    if (this.searchDone) { this.page = 1; this.loadData(); }
   }
 
   si(key: string): string {
@@ -739,6 +754,7 @@ export class PerguruanTinggiListComponent implements OnInit {
   goToDetail(id: number) { this.router.navigate(['/perguruan-tinggi', id]); }
 
   onSearch() {
+    if (!this.searchDone) return;
     clearTimeout(this.searchTimeout);
     this.searchTimeout = setTimeout(() => { this.page = 1; this.loadData(); }, 400);
   }
