@@ -21,7 +21,7 @@
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.json",
             "inlineStyleLanguage": "scss",
-            "assets": ["src/favicon.ico", "src/assets", { "glob": ".htaccess", "input": "src", "output": "/" }],
+            "assets": ["src/favicon.ico", "src/favicon.png", "src/assets", { "glob": ".htaccess", "input": "src", "output": "/" }],
             "styles": ["src/styles.scss"],
             "scripts": []
           },
