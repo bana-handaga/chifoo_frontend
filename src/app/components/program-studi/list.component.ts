@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
 import { ApiService } from '../../services/api.service';
+import * as XLSX from 'xlsx';
 import {
   Chart, BarController, BarElement,
   ArcElement, DoughnutController,
@@ -74,10 +75,17 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
             Ditemukan <strong>{{ psTotal | number }}</strong> program studi
             <span *ngIf="psTotalPages > 1"> — halaman {{ psPage }} / {{ psTotalPages }}</span>
           </div>
-          <div class="ps-pagination" *ngIf="psTotalPages > 1">
-            <button [disabled]="psPage===1" (click)="goPs(psPage-1)">‹ Prev</button>
-            <span>{{ psPage }} / {{ psTotalPages }}</span>
-            <button [disabled]="psPage===psTotalPages" (click)="goPs(psPage+1)">Next ›</button>
+          <div class="ps-actions">
+            <div class="ps-pagination" *ngIf="psTotalPages > 1">
+              <button [disabled]="psPage===1" (click)="goPs(psPage-1)">‹ Prev</button>
+              <span>{{ psPage }} / {{ psTotalPages }}</span>
+              <button [disabled]="psPage===psTotalPages" (click)="goPs(psPage+1)">Next ›</button>
+            </div>
+            <div class="ps-export-btns">
+              <button class="ps-exp ps-exp--csv"  (click)="exportPs('csv')">CSV</button>
+              <button class="ps-exp ps-exp--xlsx" (click)="exportPs('xlsx')">XLSX</button>
+              <button class="ps-exp ps-exp--pdf"  (click)="exportPs('pdf')">PDF</button>
+            </div>
           </div>
         </div>
         <div class="ps-table-wrap">
@@ -86,25 +94,23 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
               <tr>
                 <th (click)="setPsSort('nama_prodi')" class="ps-sortable">Nama Prodi <span class="ps-si">{{ psSortIcon('nama_prodi') }}</span></th>
                 <th (click)="setPsSort('jenjang')" class="ps-sortable">Jenjang <span class="ps-si">{{ psSortIcon('jenjang') }}</span></th>
+                <th (click)="setPsSort('akreditasi')" class="ps-sortable">Akreditasi <span class="ps-si">{{ psSortIcon('akreditasi') }}</span></th>
                 <th (click)="setPsSort('nama_pt')" class="ps-sortable">Perguruan Tinggi <span class="ps-si">{{ psSortIcon('nama_pt') }}</span></th>
-                <th class="num-col" (click)="setPsSort('mahasiswa_aktif')" style="cursor:pointer">Mhs. Aktif <span class="ps-si">{{ psSortIcon('mahasiswa_aktif') }}</span></th>
-                <th class="num-col" (click)="setPsSort('dosen_tetap')" style="cursor:pointer">Dosen Tetap <span class="ps-si">{{ psSortIcon('dosen_tetap') }}</span></th>
-                <th>Akreditasi</th>
+                <th class="num-col" (click)="setPsSort('mahasiswa_aktif')" class="ps-sortable num-col">Mhs. Aktif <span class="ps-si">{{ psSortIcon('mahasiswa_aktif') }}</span></th>
+                <th class="num-col" (click)="setPsSort('dosen_tetap')" class="ps-sortable num-col">Dosen Tetap <span class="ps-si">{{ psSortIcon('dosen_tetap') }}</span></th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let r of psPaginated">
                 <td class="ps-nama">{{ r.nama_prodi }}</td>
                 <td><span class="badge-jenjang jenjang-{{ r.jenjang?.toLowerCase() }}">{{ r.jenjang }}</span></td>
+                <td><span class="akr-badge" [ngClass]="akrClass(r.akreditasi)">{{ r.akreditasi || '—' }}</span></td>
                 <td>
                   <div class="ps-pt-nama">{{ r.nama_pt }}</div>
                   <div class="ps-pt-kode">{{ r.kode_pt }}</div>
                 </td>
                 <td class="num-col">{{ r.mahasiswa_aktif ? (r.mahasiswa_aktif | number) : '—' }}</td>
                 <td class="num-col">{{ r.dosen_tetap ? (r.dosen_tetap | number) : '—' }}</td>
-                <td>
-                  <span class="akr-badge" [ngClass]="akrClass(r.akreditasi)">{{ r.akreditasi || '—' }}</span>
-                </td>
               </tr>
               <tr *ngIf="!psResults.length">
                 <td colspan="6" class="empty-row">Tidak ada hasil ditemukan</td>
@@ -403,6 +409,7 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       display: flex; align-items: center; justify-content: space-between;
       flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem;
     }
+    .ps-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
     .ps-results__info { font-size: .82rem; color: #92400e; }
     .ps-results__info strong { color: #451a03; }
     .ps-pagination {
@@ -415,6 +422,17 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     }
     .ps-pagination button:disabled { opacity: .4; cursor: not-allowed; }
     .ps-pagination button:hover:not(:disabled) { background: #f5ece0; }
+    .ps-export-btns { display: flex; gap: .35rem; }
+    .ps-exp {
+      padding: .28rem .7rem; border-radius: 6px; font-size: .75rem;
+      font-weight: 600; cursor: pointer; border: 1px solid;
+    }
+    .ps-exp--csv  { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .ps-exp--csv:hover  { background: #dcfce7; }
+    .ps-exp--xlsx { background: #f0fdf4; color: #15803d; border-color: #4ade80; }
+    .ps-exp--xlsx:hover { background: #bbf7d0; }
+    .ps-exp--pdf  { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+    .ps-exp--pdf:hover  { background: #fee2e2; }
     .ps-table-wrap { overflow-x: auto; border-radius: 10px; background: rgba(180,83,9,.04); }
     .ps-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
     .ps-table th {
@@ -812,6 +830,63 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   }
 
   private updatePsPaginated() { this.applyPsSort(); }
+
+  exportPs(fmt: 'csv' | 'xlsx' | 'pdf') {
+    const rows = this.psResults;
+    const headers = ['Nama Prodi', 'Jenjang', 'Akreditasi', 'Perguruan Tinggi', 'Kode PT', 'Mhs. Aktif', 'Dosen Tetap'];
+    const data = rows.map(r => [
+      r.nama_prodi, r.jenjang, r.akreditasi || '—',
+      r.nama_pt, r.kode_pt,
+      r.mahasiswa_aktif ?? 0, r.dosen_tetap ?? 0,
+    ]);
+    const filename = `prodi-${this.psForm.nama || 'semua'}`;
+
+    if (fmt === 'csv') {
+      const lines = [headers, ...data].map(row =>
+        row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+      );
+      const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      this.downloadBlob(blob, `${filename}.csv`);
+
+    } else if (fmt === 'xlsx') {
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      ws['!cols'] = [30, 10, 14, 36, 10, 12, 12].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Program Studi');
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+
+    } else {
+      const rows_html = data.map(row =>
+        `<tr>${row.map(v => `<td>${v}</td>`).join('')}</tr>`
+      ).join('');
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <title>Program Studi — ${this.psForm.nama}</title>
+        <style>
+          body { font-family: Arial, sans-serif; font-size: 11px; margin: 16px; }
+          h2 { font-size: 14px; margin-bottom: 8px; color: #78350f; }
+          table { width: 100%; border-collapse: collapse; }
+          th { background: #92400e; color: #fff; padding: 6px 8px; text-align: left; font-size: 11px; }
+          td { padding: 5px 8px; border-bottom: 1px solid #e7e0d8; font-size: 11px; }
+          tr:nth-child(even) td { background: #fdf8f3; }
+          @media print { @page { size: landscape; margin: 12mm; } }
+        </style></head><body>
+        <h2>Program Studi: ${this.psForm.nama}${this.psForm.jenjang ? ' — ' + this.psForm.jenjang.toUpperCase() : ''}</h2>
+        <p style="font-size:10px;color:#666;margin-bottom:8px">Total: ${rows.length} program studi</p>
+        <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${rows_html}</tbody></table>
+        <script>window.onload=function(){window.print();window.close();}</script>
+        </body></html>`;
+      const w = window.open('', '_blank');
+      if (w) { w.document.write(html); w.document.close(); }
+    }
+  }
+
+  private downloadBlob(blob: Blob, name: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   akrClass(akr: string): string {
     if (!akr) return 'akr-belum';
