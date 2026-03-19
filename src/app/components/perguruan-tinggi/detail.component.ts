@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { ProgramStudi } from '../../models';
+import * as XLSX from 'xlsx';
 import {
   Chart, LineController, LineElement, PointElement,
   BarController, BarElement,
@@ -404,6 +405,120 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
       <div class="card dosen-card" *ngIf="tab==='dosen'">
         <div class="no-data-msg" *ngIf="!pt.data_dosen?.length">Belum ada data dosen.</div>
 
+        <!-- ── Accordion: Cari Dosen (biru) ── -->
+        <div class="dsc-accordion" [class.open]="dscOpen">
+          <button class="dsc-toggle" (click)="dscOpen = !dscOpen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Cari Dosen — {{ pt.singkatan }}
+            <span class="dsc-chevron" [class.rotated]="dscOpen">▾</span>
+          </button>
+
+          <div class="dsc-body" *ngIf="dscOpen">
+            <div class="dsc-fields">
+              <div class="dscf">
+                <label>Nama Dosen</label>
+                <input type="text" [(ngModel)]="dscForm.nama" placeholder="Ketik nama dosen..." (keyup.enter)="runDscSearch()">
+              </div>
+              <div class="dscf">
+                <label>Jabatan Fungsional</label>
+                <select [(ngModel)]="dscForm.jabatan">
+                  <option value="">— Semua —</option>
+                  <option value="Profesor">Profesor</option>
+                  <option value="Lektor Kepala">Lektor Kepala</option>
+                  <option value="Lektor">Lektor</option>
+                  <option value="Asisten Ahli">Asisten Ahli</option>
+                </select>
+              </div>
+              <div class="dscf">
+                <label>Pendidikan</label>
+                <select [(ngModel)]="dscForm.pendidikan">
+                  <option value="">— Semua —</option>
+                  <option value="s3">S3</option>
+                  <option value="s2">S2</option>
+                  <option value="s1">S1</option>
+                  <option value="profesi">Profesi</option>
+                </select>
+              </div>
+              <div class="dscf">
+                <label>Status</label>
+                <select [(ngModel)]="dscForm.status">
+                  <option value="">— Semua —</option>
+                  <option value="Aktif">Aktif</option>
+                  <option value="TUGAS BELAJAR">Tugas Belajar</option>
+                  <option value="IJIN BELAJAR">Ijin Belajar</option>
+                  <option value="CUTI">Cuti</option>
+                </select>
+              </div>
+              <div class="dscf dscf--action">
+                <button class="dsc-btn-search" (click)="runDscSearch()" [disabled]="dscSearching">
+                  {{ dscSearching ? 'Mencari...' : 'Cari' }}
+                </button>
+                <button class="dsc-btn-reset" (click)="resetDscSearch()" *ngIf="dscDone">Reset</button>
+              </div>
+            </div>
+
+            <!-- Hasil -->
+            <div class="dsc-results" *ngIf="dscDone">
+              <div class="dsc-results__header">
+                <div class="dsc-results__info">
+                  Ditemukan <strong>{{ dscTotal | number }}</strong> dosen
+                  <span *ngIf="dscTotalPages > 1"> — halaman {{ dscPage }} / {{ dscTotalPages }}</span>
+                </div>
+                <div class="dsc-actions">
+                  <div class="dsc-pagination" *ngIf="dscTotalPages > 1">
+                    <button [disabled]="dscPage===1" (click)="dscGoPage(dscPage-1)">‹ Prev</button>
+                    <span>{{ dscPage }} / {{ dscTotalPages }}</span>
+                    <button [disabled]="dscPage===dscTotalPages" (click)="dscGoPage(dscPage+1)">Next ›</button>
+                  </div>
+                  <div class="dsc-export-btns">
+                    <button class="dsc-exp dsc-exp--csv"  (click)="exportDsc('csv')">CSV</button>
+                    <button class="dsc-exp dsc-exp--xlsx" (click)="exportDsc('xlsx')">XLSX</button>
+                  </div>
+                </div>
+              </div>
+              <div class="dsc-table-wrap">
+                <table class="dsc-table">
+                  <thead>
+                    <tr>
+                      <th (click)="dscSetSort('nama')" class="dsc-sortable">Nama <span class="dsc-si">{{ dscSortIcon('nama') }}</span></th>
+                      <th (click)="dscSetSort('program_studi_nama')" class="dsc-sortable">Program Studi <span class="dsc-si">{{ dscSortIcon('program_studi_nama') }}</span></th>
+                      <th (click)="dscSetSort('jabatan_fungsional')" class="dsc-sortable">Jabatan <span class="dsc-si">{{ dscSortIcon('jabatan_fungsional') }}</span></th>
+                      <th (click)="dscSetSort('pendidikan_tertinggi')" class="dsc-sortable">Pend. <span class="dsc-si">{{ dscSortIcon('pendidikan_tertinggi') }}</span></th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let d of dscResults">
+                      <td>
+                        <div class="dsc-nama">{{ d.nama }}</div>
+                        <div class="dsc-sub-id">
+                          <span *ngIf="d.nidn">NIDN: {{ d.nidn }}</span>
+                          <span *ngIf="d.nuptk">NUPTK: {{ d.nuptk }}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="dsc-prodi-nama">{{ d.program_studi_nama }}</div>
+                        <div class="dsc-prodi-kode">{{ d.kode_prodi }}</div>
+                      </td>
+                      <td><span [class]="dscJabatanClass(d.jabatan_fungsional)">{{ d.jabatan_fungsional || '—' }}</span></td>
+                      <td>{{ d.pendidikan_tertinggi?.toUpperCase() }}</td>
+                      <td><span class="dsc-status-chip" [class.aktif]="d.status==='Aktif'">{{ d.status }}</span></td>
+                    </tr>
+                    <tr *ngIf="!dscResults.length">
+                      <td colspan="5" class="dsc-empty">Tidak ada hasil ditemukan</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dsc-pagination dsc-pagination--bottom" *ngIf="dscTotalPages > 1">
+                <button [disabled]="dscPage===1" (click)="dscGoPage(dscPage-1)">‹ Prev</button>
+                <span>{{ dscPage }} / {{ dscTotalPages }}</span>
+                <button [disabled]="dscPage===dscTotalPages" (click)="dscGoPage(dscPage+1)">Next ›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Accordion per periode -->
         <div class="accordion" *ngFor="let d of pt.data_dosen; let i = index"
              [class.accordion--open]="expandedDosen.has(i)">
@@ -777,7 +892,111 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
     .sub-acc__body { background: white; }
     .sub-table th { background: #f0f4ff; font-size: 12px; padding: 8px 12px; }
     .sub-table td { font-size: 12px; padding: 7px 12px; }
+    .sub-table tr:hover td { background: rgba(26,35,126,.06); transition: background .15s; }
     .num-col { color: #333; }
+
+    /* ── Dosen Search Accordion (biru) ── */
+    .dsc-accordion {
+      background: #fff; border-radius: 10px; margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      border-left: 4px solid #1d4ed8;
+    }
+    .dsc-toggle {
+      width: 100%; display: flex; align-items: center; gap: .6rem;
+      background: none; border: none; padding: .75rem 1rem;
+      font-size: .875rem; font-weight: 600; color: #1e3a8a; cursor: pointer;
+      text-align: left; border-radius: 10px;
+    }
+    .dsc-toggle:hover { background: rgba(59,130,246,.05); }
+    .dsc-chevron { margin-left: auto; font-size: .82rem; color: #2563eb; transition: transform .2s; }
+    .dsc-chevron.rotated { transform: rotate(180deg); }
+    .dsc-body { padding: 0 1rem 1rem; }
+    .dsc-fields {
+      display: grid; grid-template-columns: 1fr; gap: .65rem; margin-bottom: .85rem;
+    }
+    @media (min-width: 600px)  { .dsc-fields { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1024px) { .dsc-fields { grid-template-columns: repeat(5, 1fr); } }
+    .dscf { display: flex; flex-direction: column; gap: .25rem; }
+    .dscf label { font-size: .75rem; font-weight: 600; color: #1e40af; }
+    .dscf input, .dscf select {
+      padding: .45rem .7rem; border: 1px solid #93c5fd; border-radius: 7px;
+      font-size: .82rem; outline: none; background: #eff6ff;
+    }
+    .dscf input:focus, .dscf select:focus { border-color: #1d4ed8; box-shadow: 0 0 0 2px rgba(29,78,216,.1); }
+    .dscf--action { justify-content: flex-end; flex-direction: row; align-items: flex-end; gap: .4rem; }
+    .dsc-btn-search {
+      padding: .45rem 1.1rem; background: #1d4ed8; color: #fff;
+      border: none; border-radius: 7px; font-size: .82rem; font-weight: 600; cursor: pointer;
+    }
+    .dsc-btn-search:hover:not(:disabled) { background: #1e3a8a; }
+    .dsc-btn-search:disabled { opacity: .5; cursor: not-allowed; }
+    .dsc-btn-reset {
+      padding: .45rem .9rem; background: #eff6ff; color: #1e40af;
+      border: 1px solid #93c5fd; border-radius: 7px; font-size: .82rem; cursor: pointer;
+    }
+    .dsc-btn-reset:hover { background: #dbeafe; }
+    .dsc-results { margin-top: .4rem; }
+    .dsc-results__header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: .4rem; margin-bottom: .4rem;
+    }
+    .dsc-actions { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+    .dsc-results__info { font-size: .78rem; color: #1e40af; }
+    .dsc-results__info strong { color: #1e3a8a; }
+    .dsc-pagination {
+      display: flex; align-items: center; gap: .5rem; font-size: .78rem;
+    }
+    .dsc-pagination--bottom { justify-content: center; margin-top: .5rem; }
+    .dsc-pagination button {
+      padding: .25rem .7rem; border: 1px solid #93c5fd;
+      border-radius: 6px; background: #eff6ff; cursor: pointer; color: #1e40af;
+    }
+    .dsc-pagination button:disabled { opacity: .4; cursor: not-allowed; }
+    .dsc-pagination button:hover:not(:disabled) { background: #dbeafe; }
+    .dsc-export-btns { display: flex; gap: .3rem; }
+    .dsc-exp {
+      padding: .22rem .6rem; border-radius: 5px; font-size: .72rem;
+      font-weight: 600; cursor: pointer; border: 1px solid;
+    }
+    .dsc-exp--csv  { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .dsc-exp--csv:hover  { background: #dcfce7; }
+    .dsc-exp--xlsx { background: #f0fdf4; color: #15803d; border-color: #4ade80; }
+    .dsc-exp--xlsx:hover { background: #bbf7d0; }
+    .dsc-table-wrap { overflow-x: auto; border-radius: 8px; background: rgba(59,130,246,.03); }
+    .dsc-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .dsc-table th {
+      background: rgba(59,130,246,.07); padding: .5rem .7rem;
+      text-align: left; font-weight: 600; color: #1e40af;
+      border-bottom: 2px solid rgba(59,130,246,.13); white-space: nowrap;
+    }
+    .dsc-table th.dsc-sortable { cursor: pointer; user-select: none; }
+    .dsc-table th.dsc-sortable:hover { background: rgba(59,130,246,.13); }
+    .dsc-si { font-size: .68rem; color: #93c5fd; margin-left: .15rem; }
+    .dsc-table td {
+      padding: .45rem .7rem; border-bottom: 1px solid rgba(59,130,246,.07);
+      color: #1e293b; vertical-align: middle;
+    }
+    .dsc-table tr:hover td { background: rgba(59,130,246,.06); transition: background .15s; }
+    .dsc-nama { font-weight: 500; color: #1e293b; }
+    .dsc-sub-id { font-family: monospace; font-size: .68rem; color: #64748b; margin-top: 1px; display: flex; flex-wrap: wrap; gap: .35rem; }
+    .dsc-prodi-nama { font-size: .8rem; }
+    .dsc-prodi-kode { font-size: .68rem; color: #64748b; font-family: monospace; margin-top: 1px; }
+    .dsc-empty { text-align: center; color: #94a3b8; padding: 1.25rem; }
+    .dsc-jabatan-chip {
+      display: inline-block; padding: .18rem .5rem;
+      border-radius: 20px; font-size: .72rem; font-weight: 600;
+      background: #f1f5f9; color: #475569;
+    }
+    .dsc-jabatan-chip--profesor      { background: #fef9c3; color: #854d0e; }
+    .dsc-jabatan-chip--lektor-kepala { background: #dbeafe; color: #1e40af; }
+    .dsc-jabatan-chip--lektor        { background: #e0f2fe; color: #0369a1; }
+    .dsc-jabatan-chip--asisten-ahli  { background: #f0fdf4; color: #166534; }
+    .dsc-status-chip {
+      display: inline-block; padding: .18rem .5rem;
+      border-radius: 20px; font-size: .72rem;
+      background: #f1f5f9; color: #64748b;
+    }
+    .dsc-status-chip.aktif { background: #dcfce7; color: #166534; }
     .badge-jenjang { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; background: #f0f0f0; color: #555; white-space: nowrap; }
 
     .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; }
@@ -834,6 +1053,101 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
   tab = 'prodi';
   expandedDosen = new Set<number>();
   private dosenSubView = new Map<number, 'chart' | 'table' | null>();
+
+  // ── Dosen Search (per PT) ──
+  dscOpen     = false;
+  dscSearching = false;
+  dscDone     = false;
+  dscTotal    = 0;
+  dscPage     = 1;
+  dscTotalPages = 1;
+  dscResults: any[] = [];
+  dscForm = { nama: '', jabatan: '', pendidikan: '', status: '' };
+  dscSortField = 'nama';
+  dscSortDir   = 'asc';
+
+  runDscSearch(page = 1) {
+    this.dscSearching = true;
+    this.dscPage = page;
+    const ordering = (this.dscSortDir === 'desc' ? '-' : '') + this.dscSortField;
+    const params = { ...this.dscForm, pt_kode: this.pt?.kode_pt || '', page: String(page), ordering };
+    this.api.dosenSearch(params).subscribe({
+      next: (res: any) => {
+        this.dscResults     = res.results;
+        this.dscTotal       = res.total;
+        this.dscTotalPages  = Math.ceil(res.total / res.page_size);
+        this.dscDone        = true;
+        this.dscSearching   = false;
+      },
+      error: () => { this.dscSearching = false; }
+    });
+  }
+
+  dscGoPage(p: number) { this.runDscSearch(p); }
+
+  resetDscSearch() {
+    this.dscForm      = { nama: '', jabatan: '', pendidikan: '', status: '' };
+    this.dscDone      = false;
+    this.dscResults   = [];
+    this.dscTotal     = 0;
+    this.dscPage      = 1;
+    this.dscSortField = 'nama';
+    this.dscSortDir   = 'asc';
+  }
+
+  dscSetSort(field: string) {
+    if (this.dscSortField === field) { this.dscSortDir = this.dscSortDir === 'asc' ? 'desc' : 'asc'; }
+    else { this.dscSortField = field; this.dscSortDir = 'asc'; }
+    this.runDscSearch(1);
+  }
+
+  dscSortIcon(field: string): string {
+    if (this.dscSortField !== field) return '⇅';
+    return this.dscSortDir === 'asc' ? '▲' : '▼';
+  }
+
+  dscJabatanClass(jabatan: string): string {
+    const map: {[k: string]: string} = {
+      'Profesor':       'dsc-jabatan-chip dsc-jabatan-chip--profesor',
+      'Lektor Kepala':  'dsc-jabatan-chip dsc-jabatan-chip--lektor-kepala',
+      'Lektor':         'dsc-jabatan-chip dsc-jabatan-chip--lektor',
+      'Asisten Ahli':   'dsc-jabatan-chip dsc-jabatan-chip--asisten-ahli',
+    };
+    return map[jabatan] || 'dsc-jabatan-chip';
+  }
+
+  exportDsc(fmt: 'csv' | 'xlsx') {
+    const ordering = (this.dscSortDir === 'desc' ? '-' : '') + this.dscSortField;
+    const params = { ...this.dscForm, pt_kode: this.pt?.kode_pt || '', page: '1', page_size: String(this.dscTotal || 5000), ordering };
+    this.api.dosenSearch(params).subscribe({ next: (res: any) => this.doDscExport(fmt, res.results) });
+  }
+
+  private doDscExport(fmt: 'csv' | 'xlsx', rows: any[]) {
+    const headers = ['Nama', 'NIDN', 'NUPTK', 'Program Studi', 'Kode Prodi', 'Jabatan', 'Pendidikan', 'Status'];
+    const data = rows.map((d: any) => [
+      d.nama, d.nidn || '—', d.nuptk || '—',
+      d.program_studi_nama, d.kode_prodi || '—',
+      d.jabatan_fungsional || '—', (d.pendidikan_tertinggi || '').toUpperCase(), d.status,
+    ]);
+    const ptLabel = this.pt?.singkatan || this.pt?.kode_pt || 'pt';
+    const filename = `dosen-${ptLabel}`;
+
+    if (fmt === 'csv') {
+      const lines = [headers, ...data].map(row =>
+        row.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(',')
+      );
+      const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${filename}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      ws['!cols'] = [28, 14, 16, 28, 10, 18, 12, 14].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Dosen');
+      XLSX.writeFile(wb, `${filename}.xlsx`);
+    }
+  }
 
   subView(i: number): 'chart' | 'table' | null {
     return this.dosenSubView.has(i) ? this.dosenSubView.get(i)! : 'chart';
