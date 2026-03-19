@@ -432,7 +432,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
           <!-- Accordion body -->
           <div class="accordion__body" *ngIf="expandedDosen.has(i)">
 
-            <!-- Toolbar: filter jenjang + dataset toggles -->
+            <!-- Toolbar: filter jenjang -->
             <div class="acc-toolbar">
               <div class="acc-toolbar__left">
                 <label class="filter-label">Jenjang:</label>
@@ -445,67 +445,44 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
                   {{ filteredProdi(d.per_prodi).length }}/{{ d.per_prodi?.length }} prodi
                 </span>
               </div>
-              <div class="acc-toolbar__right">
-                <span class="toggle-label">Grafik:</span>
-                <button *ngFor="let ds of DOSEN_DATASETS"
-                        class="ds-toggle"
-                        [class.active]="visibleDatasets.has(ds.key)"
-                        [style.--ds-color]="ds.color"
-                        (click)="toggleDataset(ds.key)">
-                  {{ ds.label }}
-                </button>
-              </div>
             </div>
 
-            <!-- Sub-accordion: Grafik -->
-            <div class="sub-acc" [class.sub-acc--open]="subView(i)==='chart'">
-              <button class="sub-acc__header" (click)="setSubView(i, 'chart')">
-                <span>📊 Grafik per Program Studi</span>
-                <span class="sub-acc__chevron">{{ subView(i)==='chart' ? '▲' : '▼' }}</span>
-              </button>
-              <div class="sub-acc__body" *ngIf="subView(i)==='chart'">
-                <div class="acc-chart-wrap" [style.height.px]="chartHeight(d.per_prodi)">
-                  <canvas [id]="'dosenChart-' + i"></canvas>
-                </div>
-              </div>
-            </div>
-
-            <!-- Sub-accordion: Tabel -->
-            <div class="sub-acc" [class.sub-acc--open]="subView(i)==='table'">
-              <button class="sub-acc__header" (click)="setSubView(i, 'table')">
-                <span>📋 Tabel Rincian per Program Studi</span>
-                <span class="sub-acc__chevron">{{ subView(i)==='table' ? '▲' : '▼' }}</span>
-              </button>
-              <div class="sub-acc__body" *ngIf="subView(i)==='table'">
-                <div class="table-wrapper">
-                  <table class="data-table sub-table">
-                    <thead>
-                      <tr>
-                        <th>Program Studi</th><th>Jenjang</th>
-                        <th class="text-right">Tetap</th><th class="text-right">Tdk Tetap</th>
-                        <th class="text-right">S3</th><th class="text-right">S2</th><th class="text-right">S1</th>
-                        <th class="text-right">Profesor</th><th class="text-right">L.Kepala</th>
-                        <th class="text-right">Lektor</th><th class="text-right">Ast.Ahli</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngFor="let p of filteredProdi(d.per_prodi)">
-                        <td>{{ p.prodi_nama }}</td>
-                        <td><span class="badge-jenjang">{{ p.prodi_jenjang }}</span></td>
-                        <td class="text-right num-col">{{ p.dosen_tetap }}</td>
-                        <td class="text-right num-col">{{ p.dosen_tidak_tetap }}</td>
-                        <td class="text-right num-col">{{ p.dosen_s3 }}</td>
-                        <td class="text-right num-col">{{ p.dosen_s2 }}</td>
-                        <td class="text-right num-col">{{ p.dosen_s1 }}</td>
-                        <td class="text-right num-col">{{ p.dosen_guru_besar }}</td>
-                        <td class="text-right num-col">{{ p.dosen_lektor_kepala }}</td>
-                        <td class="text-right num-col">{{ p.dosen_lektor }}</td>
-                        <td class="text-right num-col">{{ p.dosen_asisten_ahli }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+            <!-- Tabel Rincian per Program Studi -->
+            <div class="table-wrapper">
+              <table class="data-table sub-table">
+                <thead>
+                  <tr>
+                    <th>Perguruan Tinggi</th>
+                    <th>Program Studi</th><th>Jenjang</th>
+                    <th class="text-right">Tetap</th><th class="text-right">Tdk Tetap</th>
+                    <th class="text-right">S3</th><th class="text-right">S2</th><th class="text-right">S1</th>
+                    <th class="text-right">Profesor</th><th class="text-right">L.Kepala</th>
+                    <th class="text-right">Lektor</th><th class="text-right">Ast.Ahli</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of filteredProdi(d.per_prodi)">
+                    <td>
+                      {{ p.pt_nama }}<br>
+                      <code class="prodi-kode">{{ p.pt_kode }}</code>
+                    </td>
+                    <td>
+                      {{ p.prodi_nama }}<br>
+                      <code class="prodi-kode">{{ p.prodi_kode }}</code>
+                    </td>
+                    <td><span class="badge-jenjang">{{ p.prodi_jenjang }}</span></td>
+                    <td class="text-right num-col">{{ p.dosen_tetap }}</td>
+                    <td class="text-right num-col">{{ p.dosen_tidak_tetap }}</td>
+                    <td class="text-right num-col">{{ p.dosen_s3 }}</td>
+                    <td class="text-right num-col">{{ p.dosen_s2 }}</td>
+                    <td class="text-right num-col">{{ p.dosen_s1 }}</td>
+                    <td class="text-right num-col">{{ p.dosen_guru_besar }}</td>
+                    <td class="text-right num-col">{{ p.dosen_lektor_kepala }}</td>
+                    <td class="text-right num-col">{{ p.dosen_lektor }}</td>
+                    <td class="text-right num-col">{{ p.dosen_asisten_ahli }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
           </div><!-- /accordion__body -->
