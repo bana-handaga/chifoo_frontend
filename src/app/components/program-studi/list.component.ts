@@ -107,7 +107,7 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
                   <div class="ps-prodi-kode">{{ r.kode_prodi }}</div>
                 </td>
                 <td><span class="badge-jenjang jenjang-{{ r.jenjang?.toLowerCase() }}">{{ r.jenjang }}</span></td>
-                <td><span class="akr-badge" [ngClass]="akrClass(r.akreditasi)">{{ r.akreditasi || '—' }}</span></td>
+                <td><span class="akr-badge" [ngClass]="akrClass(r.akreditasi)">{{ r.akreditasi_display || r.akreditasi || '—' }}</span></td>
                 <td>
                   <div class="ps-pt-nama">{{ r.nama_pt }}</div>
                   <div class="ps-pt-kode">{{ r.kode_pt }}</div>
@@ -894,11 +894,9 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
 
   akrClass(akr: string): string {
     if (!akr) return 'akr-belum';
-    const map: {[k:string]:string} = {
-      'Unggul': 'akr-unggul', 'Baik Sekali': 'akr-baik_sekali',
-      'Baik': 'akr-baik', 'C': 'akr-c',
-    };
-    return map[akr] || 'akr-belum';
+    const valid = new Set(['unggul', 'baik_sekali', 'baik', 'c']);
+    const key = akr.toLowerCase().replace(/\s+/g, '_');
+    return valid.has(key) ? `akr-${key}` : 'akr-belum';
   }
 
   constructor(private api: ApiService, private zone: NgZone) {}
