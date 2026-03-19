@@ -18,6 +18,7 @@ import { LoginComponent } from './components/auth/login.component';
 import { LayoutComponent } from './components/layout/layout.component';
 import { StatistikComponent } from './components/statistik/statistik.component';
 import { ProgramStudiListComponent } from './components/program-studi/list.component';
+import { DosenListComponent } from './components/dosen/list.component';
 
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
@@ -35,6 +36,7 @@ const routes: Routes = [
       { path: 'perguruan-tinggi', component: PerguruanTinggiListComponent },
       { path: 'perguruan-tinggi/:id', component: PerguruanTinggiDetailComponent },
       { path: 'program-studi', component: ProgramStudiListComponent },
+      { path: 'dosen', component: DosenListComponent },
       { path: 'laporan', component: LaporanComponent, canActivate: [AuthGuard] },
       { path: 'statistik', component: StatistikComponent },
     ]
@@ -49,6 +51,7 @@ const routes: Routes = [
     PerguruanTinggiListComponent,
     PerguruanTinggiDetailComponent,
     ProgramStudiListComponent,
+    DosenListComponent,
     LaporanComponent,
     LoginComponent,
     LayoutComponent,

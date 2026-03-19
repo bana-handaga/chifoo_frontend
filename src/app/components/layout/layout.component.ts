@@ -26,6 +26,10 @@ import { AuthService } from '../../services/auth.service';
           <span class="nav-icon">📚</span>
           <span class="nav-label">Program Studi</span>
         </a>
+        <a routerLink="/dosen" routerLinkActive="active">
+          <span class="nav-icon">👨‍🏫</span>
+          <span class="nav-label">Dosen</span>
+        </a>
         <a routerLink="/statistik" routerLinkActive="active">
           <span class="nav-icon">📈</span>
           <span class="nav-label">Statistik</span>
@@ -65,6 +69,10 @@ import { AuthService } from '../../services/auth.service';
       <a routerLink="/program-studi" routerLinkActive="active">
         <span class="tab-icon">📚</span>
         <span class="tab-label">Prodi</span>
+      </a>
+      <a routerLink="/dosen" routerLinkActive="active">
+        <span class="tab-icon">👨‍🏫</span>
+        <span class="tab-label">Dosen</span>
       </a>
       <a routerLink="/statistik" routerLinkActive="active">
         <span class="tab-icon">📈</span>

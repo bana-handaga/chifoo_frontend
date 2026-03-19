@@ -165,6 +165,10 @@ export class ApiService {
     return this.http.get<any[]>(`${this.baseUrl}/program-studi/pt_list/`, { params });
   }
 
+  getDosenStats(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/dosen-stats/`);
+  }
+
   updateProgramStudi(id: number, data: any): Observable<any> {
     return this.http.patch(`${this.baseUrl}/program-studi/${id}/`, data);
   }
