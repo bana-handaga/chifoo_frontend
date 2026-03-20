@@ -46,6 +46,12 @@ import { AuthService } from '../../services/auth.service';
           </svg>
           <span class="nav-label">Laporan</span>
         </a>
+        <a routerLink="/sinta" routerLinkActive="active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.5 3.09L15 7.59V4h-2v7h7V9h-3.59l4.5-4.5-1.41-1.41zM4 13v2h3.59l-4.5 4.5 1.41 1.41L9 16.41V20h2v-7H4z"/>
+          </svg>
+          <span class="nav-label">SINTA</span>
+        </a>
       </nav>
 
       <!-- Kanan: user / login -->
@@ -108,6 +114,12 @@ import { AuthService } from '../../services/auth.service';
           <path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/>
         </svg>
         <span class="tab-label">Laporan</span>
+      </a>
+      <a routerLink="/sinta" routerLinkActive="active">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.5 3.09L15 7.59V4h-2v7h7V9h-3.59l4.5-4.5-1.41-1.41zM4 13v2h3.59l-4.5 4.5 1.41 1.41L9 16.41V20h2v-7H4z"/>
+        </svg>
+        <span class="tab-label">SINTA</span>
       </a>
     </nav>
   `,

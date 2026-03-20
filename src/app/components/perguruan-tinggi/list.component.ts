@@ -214,38 +214,48 @@ Chart.register(...registerables);
           <div class="stat-card__lbl">Total PT</div>
         </div>
         <div class="stat-card stat-card--light">
-          <div class="stat-card__icon stat-card__icon--dark">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
+          <div class="stat-card__main">
+            <div class="stat-card__icon stat-card__icon--dark">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
+            </div>
+            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_muhammadiyah }}</div>
           </div>
-          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_muhammadiyah }}</div>
           <div class="stat-card__lbl stat-card__lbl--dark">Muhammadiyah</div>
         </div>
         <div class="stat-card stat-card--light">
-          <div class="stat-card__icon stat-card__icon--dark">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          <div class="stat-card__main">
+            <div class="stat-card__icon stat-card__icon--dark">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            </div>
+            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_aisyiyah }}</div>
           </div>
-          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_aisyiyah }}</div>
           <div class="stat-card__lbl stat-card__lbl--dark">Aisyiyah</div>
         </div>
         <div class="stat-card stat-card--light">
-          <div class="stat-card__icon stat-card__icon--dark">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+          <div class="stat-card__main">
+            <div class="stat-card__icon stat-card__icon--dark">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+            </div>
+            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_prodi | number }}</div>
           </div>
-          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_prodi | number }}</div>
           <div class="stat-card__lbl stat-card__lbl--dark">Program Studi</div>
         </div>
         <div class="stat-card stat-card--light">
-          <div class="stat-card__icon stat-card__icon--dark">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          <div class="stat-card__main">
+            <div class="stat-card__icon stat-card__icon--dark">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            </div>
+            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_dosen | number }}</div>
           </div>
-          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_dosen | number }}</div>
           <div class="stat-card__lbl stat-card__lbl--dark">Dosen Tetap</div>
         </div>
         <div class="stat-card stat-card--light">
-          <div class="stat-card__icon stat-card__icon--dark">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <div class="stat-card__main">
+            <div class="stat-card__icon stat-card__icon--dark">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            </div>
+            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_mahasiswa | number }}</div>
           </div>
-          <div class="stat-card__val stat-card__val--dark">{{ statistik.total_mahasiswa | number }}</div>
           <div class="stat-card__lbl stat-card__lbl--dark">Mahasiswa</div>
         </div>
       </div>
@@ -298,8 +308,9 @@ Chart.register(...registerables);
     }
     .stat-card--blue  { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
     .stat-card--light { background: #fff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-    .stat-card__icon { width: 28px; height: 28px; opacity: .9; }
-    .stat-card__icon--dark { opacity: .45; }
+    .stat-card__main { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+    .stat-card__icon { width: 42px; height: 42px; flex-shrink: 0; opacity: .9; }
+    .stat-card__icon--dark { color: #1d4ed8; opacity: 1; }
     .stat-card__icon svg { width: 100%; height: 100%; }
     .stat-card__val  { font-size: 1.75rem; font-weight: 800; line-height: 1; }
     .stat-card__val--dark { color: #1e293b; }

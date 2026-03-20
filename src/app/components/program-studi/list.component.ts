@@ -146,25 +146,40 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       <div class="stat-card__lbl">Kelompok Prodi</div>
     </div>
     <div class="stat-card stat-card--light">
-      <div class="stat-card__icon stat-card__icon--dark">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+      <div class="stat-card__main">
+        <div class="stat-card__icon stat-card__icon--dark">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+        </div>
+        <div class="stat-card__val stat-card__val--dark">{{ totalPt | number }}</div>
       </div>
-      <div class="stat-card__val stat-card__val--dark">{{ totalPt | number }}</div>
       <div class="stat-card__lbl stat-card__lbl--dark">Total Program Studi</div>
     </div>
     <div class="stat-card stat-card--light">
-      <div class="stat-card__icon stat-card__icon--dark">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      <div class="stat-card__main">
+        <div class="stat-card__icon stat-card__icon--dark">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        </div>
+        <div class="stat-card__val stat-card__val--dark">{{ totalMhs | number }}</div>
       </div>
-      <div class="stat-card__val stat-card__val--dark">{{ totalMhs | number }}</div>
       <div class="stat-card__lbl stat-card__lbl--dark">Mahasiswa Aktif</div>
     </div>
     <div class="stat-card stat-card--light">
-      <div class="stat-card__icon stat-card__icon--dark">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/><circle cx="18" cy="18" r="5" fill="#22c55e"/><path d="M17 20.5l-2-2 .7-.7 1.3 1.3 2.8-2.8.7.7z" fill="white"/></svg>
+      <div class="stat-card__main">
+        <div class="stat-card__icon stat-card__icon--dark">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/><circle cx="18" cy="18" r="5" fill="#22c55e"/><path d="M17 20.5l-2-2 .7-.7 1.3 1.3 2.8-2.8.7.7z" fill="white"/></svg>
+        </div>
+        <div class="stat-card__val stat-card__val--dark">{{ totalDsn | number }}</div>
       </div>
-      <div class="stat-card__val stat-card__val--dark">{{ totalDsn | number }}</div>
-      <div class="stat-card__lbl stat-card__lbl--dark">Dosen Tetap</div>
+      <div class="stat-card__lbl stat-card__lbl--dark">Dosen</div>
+    </div>
+    <div class="stat-card stat-card--light">
+      <div class="stat-card__main">
+        <div class="stat-card__icon stat-card__icon--dark">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/><path d="M13 8h-2v3H8v2h3v3h2v-3h3v-2h-3z" fill="#22c55e"/></svg>
+        </div>
+        <div class="stat-card__val stat-card__val--dark stat-card__val--ratio">1 : {{ rasioDosenMhs }}</div>
+      </div>
+      <div class="stat-card__lbl stat-card__lbl--dark">Rasio Dosen : Mahasiswa</div>
     </div>
   </div>
 
@@ -367,17 +382,20 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       display: grid; grid-template-columns: repeat(2, 1fr);
       gap: .75rem; margin-bottom: 1.25rem;
     }
-    @media (min-width: 600px)  { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 600px)  { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 900px)  { .stat-grid { grid-template-columns: repeat(5, 1fr); } }
     .stat-card {
       border-radius: 12px; padding: 1rem 1.25rem;
       display: flex; flex-direction: column; gap: .25rem; color: #fff;
     }
     .stat-card--blue  { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
     .stat-card--light { background: #fff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-    .stat-card__icon { width: 28px; height: 28px; opacity: .9; }
-    .stat-card__icon--dark { opacity: .45; }
+    .stat-card__main { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+    .stat-card__icon { width: 42px; height: 42px; flex-shrink: 0; opacity: .9; }
+    .stat-card__icon--dark { color: #1d4ed8; opacity: 1; }
     .stat-card__icon svg { width: 100%; height: 100%; }
     .stat-card__val  { font-size: 1.75rem; font-weight: 800; line-height: 1; }
+    .stat-card__val--ratio { font-size: 1.35rem; }
     .stat-card__val--dark { color: #1e293b; }
     .stat-card__lbl  { font-size: .8rem; opacity: .88; }
     .stat-card__lbl--dark { color: #64748b; opacity: 1; }
@@ -748,6 +766,11 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   totalPt      = 0;
   totalMhs     = 0;
   totalDsn     = 0;
+
+  get rasioDosenMhs(): string {
+    if (!this.totalDsn) return '—';
+    return (this.totalMhs / this.totalDsn).toFixed(1);
+  }
   maxPt        = 1;
   topNama      = '';
   periodeLabel = '';

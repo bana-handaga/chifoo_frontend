@@ -1,5 +1,4 @@
 export const environment = {
   production: true,
-  // Ganti dengan URL subdomain API Anda
-  apiUrl: '/api'
+  apiUrl: 'https://api.biroti-ums.id/api'
 };

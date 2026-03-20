@@ -1,15 +1,35 @@
 /**
  * proxy-serve.js
- * Serves the Angular dist and proxies /api/* to the Django backend on port 8001.
+ * Menyajikan Angular dist dan mem-proxy /api/* ke Django backend.
+ *
+ * Konfigurasi via file .env (salin dari .env.example):
+ *   API_TARGET  — URL Django backend, default http://127.0.0.1:8001
+ *   PORT        — Port server ini berjalan, default 4200
+ *
+ * Jalankan: node proxy-serve.js
  */
-const http = require('http');
-const httpProxy = require('./node_modules/http-proxy');
-const fs = require('fs');
-const path = require('path');
 
-const DIST = path.join(__dirname, 'dist/ptma-frontend/browser');
-const API_TARGET = 'http://127.0.0.1:8001';
-const PORT = 4200;
+// ── Baca .env jika ada (tanpa library tambahan) ──────────────
+;(function loadEnv() {
+  try {
+    const lines = require('fs').readFileSync('.env', 'utf8').split('\n');
+    for (const line of lines) {
+      const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/);
+      if (m && !process.env[m[1]]) {
+        process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, '');
+      }
+    }
+  } catch { /* .env tidak wajib ada */ }
+})();
+
+const http      = require('http');
+const httpProxy = require('./node_modules/http-proxy');
+const fs        = require('fs');
+const path      = require('path');
+
+const DIST       = path.join(__dirname, 'dist/ptma-frontend/browser');
+const API_TARGET = process.env.API_TARGET || 'http://127.0.0.1:8001';
+const PORT       = parseInt(process.env.PORT || '4200', 10);
 
 const MIME = {
   '.html': 'text/html',
@@ -37,12 +57,12 @@ const server = http.createServer((req, res) => {
     return proxy.web(req, res, { target: API_TARGET });
   }
 
-  // Serve static files
+  // Sajikan file statis Angular
   let filePath = path.join(DIST, req.url.split('?')[0]);
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     filePath = path.join(DIST, 'index.html');
   }
-  const ext = path.extname(filePath);
+  const ext  = path.extname(filePath);
   const mime = MIME[ext] || 'application/octet-stream';
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not Found'); }
@@ -52,6 +72,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Serving at http://0.0.0.0:${PORT}`);
-  console.log(`API proxy: /api -> ${API_TARGET}`);
+  console.log(`Frontend : http://0.0.0.0:${PORT}`);
+  console.log(`API proxy: /api → ${API_TARGET}`);
 });

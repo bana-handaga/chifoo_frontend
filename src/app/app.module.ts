@@ -19,6 +19,12 @@ import { LayoutComponent } from './components/layout/layout.component';
 import { StatistikComponent } from './components/statistik/statistik.component';
 import { ProgramStudiListComponent } from './components/program-studi/list.component';
 import { DosenListComponent } from './components/dosen/list.component';
+import { SintaComponent } from './components/sinta/sinta.component';
+import {
+  SintaAfiliasiComponent, SintaDepartemenComponent, SintaAuthorComponent,
+  SintaArtikelComponent, SintaPenelitianComponent, SintaPengabdianComponent,
+  SintaIprComponent, SintaBukuComponent,
+} from './components/sinta/pages';
 
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
@@ -39,6 +45,15 @@ const routes: Routes = [
       { path: 'dosen', component: DosenListComponent },
       { path: 'laporan', component: LaporanComponent, canActivate: [AuthGuard] },
       { path: 'statistik', component: StatistikComponent },
+      { path: 'sinta', component: SintaComponent },
+      { path: 'sinta/afiliasi',   component: SintaAfiliasiComponent },
+      { path: 'sinta/departemen', component: SintaDepartemenComponent },
+      { path: 'sinta/author',     component: SintaAuthorComponent },
+      { path: 'sinta/artikel',    component: SintaArtikelComponent },
+      { path: 'sinta/penelitian', component: SintaPenelitianComponent },
+      { path: 'sinta/pengabdian', component: SintaPengabdianComponent },
+      { path: 'sinta/ipr',        component: SintaIprComponent },
+      { path: 'sinta/buku',       component: SintaBukuComponent },
     ]
   },
   { path: '**', redirectTo: '' }
@@ -56,6 +71,10 @@ const routes: Routes = [
     LoginComponent,
     LayoutComponent,
     StatistikComponent,
+    SintaComponent,
+    SintaAfiliasiComponent, SintaDepartemenComponent, SintaAuthorComponent,
+    SintaArtikelComponent, SintaPenelitianComponent, SintaPengabdianComponent,
+    SintaIprComponent, SintaBukuComponent,
   ],
   imports: [
     BrowserModule,

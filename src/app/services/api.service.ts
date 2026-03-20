@@ -175,6 +175,12 @@ export class ApiService {
     return this.http.get<any>(`${this.baseUrl}/dosen-search/`, { params: p });
   }
 
+  riwayatPendidikanSearch(params: any): Observable<any> {
+    let p = new HttpParams();
+    Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== null && params[k] !== '') p = p.set(k, params[k]); });
+    return this.http.get<any>(`${this.baseUrl}/riwayat-pendidikan/`, { params: p });
+  }
+
   updateProgramStudi(id: number, data: any): Observable<any> {
     return this.http.patch(`${this.baseUrl}/program-studi/${id}/`, data);
   }
@@ -189,5 +195,21 @@ export class ApiService {
 
   generateSnapshot(keterangan: string = ''): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/snapshot-laporan/generate/`, { keterangan });
+  }
+
+  deleteSnapshot(id: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/snapshot-laporan/${id}/`);
+  }
+
+  getProdiDistribusi(params: any): Observable<any> {
+    let p = new HttpParams();
+    Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== null && params[k] !== '') p = p.set(k, params[k]); });
+    return this.http.get<any>(`${this.baseUrl}/prodi-distribusi/`, { params: p });
+  }
+
+  getProdiDaftar(params: any): Observable<any> {
+    let p = new HttpParams();
+    Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== null && params[k] !== '') p = p.set(k, params[k]); });
+    return this.http.get<any>(`${this.baseUrl}/prodi-daftar/`, { params: p });
   }
 }
