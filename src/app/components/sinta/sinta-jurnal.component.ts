@@ -206,7 +206,7 @@ import { ApiService } from '../../services/api.service';
 </div>
   `,
   styles: [`
-    .page-wrap { padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+    .page-wrap { padding: 1.25rem; max-width: 960px; margin: 0 auto; overflow: hidden; }
 
     /* Back */
     .back-link {
@@ -324,12 +324,10 @@ import { ApiService } from '../../services/api.service';
       grid-template-columns: 1fr;
       gap: .75rem;
       margin-bottom: 1.25rem;
+      min-width: 0;
     }
-    @media (min-width: 640px) {
+    @media (min-width: 900px) {
       .journal-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (min-width: 1024px) {
-      .journal-grid { grid-template-columns: repeat(3, 1fr); }
     }
 
     /* Journal card */
@@ -339,6 +337,7 @@ import { ApiService } from '../../services/api.service';
       background: #fff; border: 1px solid #e2e8f0;
       border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
       transition: box-shadow .15s, border-color .15s;
+      min-width: 0; overflow: hidden;
     }
     .journal-card:hover {
       box-shadow: 0 4px 14px rgba(8,145,178,.12);
