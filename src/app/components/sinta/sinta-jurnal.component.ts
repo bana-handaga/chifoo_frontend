@@ -111,6 +111,16 @@ import { ApiService } from '../../services/api.service';
     <button class="btn-reset" (click)="resetFilter()">Reset Filter</button>
   </div>
 
+  <!-- Pagination atas + info -->
+  <div class="pagination pagination--top" *ngIf="!loading && journals.length > 0">
+    <span class="pg-count">{{ totalCount | number }} jurnal</span>
+    <div class="pg-nav" *ngIf="totalCount > pageSize">
+      <button class="pg-btn" [disabled]="currentPage === 1" (click)="goPage(currentPage - 1)">‹</button>
+      <span class="pg-info">{{ currentPage }} / {{ totalPages }}</span>
+      <button class="pg-btn" [disabled]="currentPage === totalPages" (click)="goPage(currentPage + 1)">›</button>
+    </div>
+  </div>
+
   <!-- Journal grid -->
   <div class="journal-grid" *ngIf="!loading && journals.length > 0">
     <div class="journal-card" *ngFor="let j of journals">
@@ -433,6 +443,12 @@ import { ApiService } from '../../services/api.service';
       display: flex; align-items: center; justify-content: center; gap: .75rem;
       padding: .75rem 0;
     }
+    .pagination--top {
+      justify-content: space-between;
+      padding: .4rem 0 .6rem;
+      margin-bottom: .1rem;
+    }
+    .pg-nav { display: flex; align-items: center; gap: .5rem; }
     .pg-btn {
       width: 34px; height: 34px; border: 1px solid #e2e8f0; border-radius: 8px;
       background: #fff; font-size: 1.1rem; cursor: pointer; color: #475569;
