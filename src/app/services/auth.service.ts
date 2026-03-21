@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { environment } from '../../environments/environment.prod';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -14,8 +14,8 @@ export class AuthService {
   constructor(private http: HttpClient) {}
 
   login(username: string, password: string): Observable<any> {
-    // const authUrl = environment.apiUrl.replace('/api', '') + '/api/auth/login/';
-    const authUrl = environment.apiUrl + '/auth/login/';
+    const authUrl = environment.apiUrl.replace('/api', '') + '/api/auth/login/';
+    // const authUrl = environment.apiUrl + '/auth/login/';
     return this.http.post(authUrl, { username, password }).pipe(
       tap((response: any) => {
         localStorage.setItem(this.tokenKey, response.token);
@@ -26,8 +26,8 @@ export class AuthService {
   }
 
   logout(): Observable<any> {
-    // const authUrl = environment.apiUrl.replace('/api', '') + '/api/auth/logout/';
-    const authUrl = environment.apiUrl  + '/auth/logout/';
+    const authUrl = environment.apiUrl.replace('/api', '') + '/api/auth/logout/';
+    // const authUrl = environment.apiUrl  + '/auth/logout/';
 
     return this.http.post(authUrl, {}).pipe(tap(() => this.clearAuth()));
   }

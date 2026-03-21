@@ -69,6 +69,7 @@ import * as XLSX from 'xlsx';
                 <button (click)="snapPage = snapPage + 1" [disabled]="snapPage >= snapTotalPages">›</button>
               </div>
             </div>
+            <div class="snap-hist-wrap">
             <table class="snap-hist-table">
               <thead>
                 <tr>
@@ -105,6 +106,7 @@ import * as XLSX from 'xlsx';
                 </tr>
               </tbody>
             </table>
+            </div>
             <div class="snap-list-nav snap-list-nav--bottom">
               <button (click)="snapPage = snapPage - 1" [disabled]="snapPage <= 1">‹ Sebelumnya</button>
               <span>Halaman {{ snapPage }} dari {{ snapTotalPages }}</span>
@@ -133,12 +135,14 @@ import * as XLSX from 'xlsx';
               </div>
             </div>
             <div class="snap-search-row">
-              <input type="text" [(ngModel)]="snapFilter" placeholder="Filter nama PT..." class="snap-search-input" (ngModelChange)="snapResPage=1">
-              <label class="snap-toggle-label">
-                <input type="checkbox" [(ngModel)]="showNonAktif" (ngModelChange)="snapResPage=1">
-                Tampilkan PT non-aktif
-              </label>
-              <span class="snap-search-count">{{ filteredSnap.length }} PT ditampilkan</span>
+              <input type="text" [(ngModel)]="snapFilter" placeholder="Filter nama PT..." class="snap-search-input snap-search-input--full" (ngModelChange)="snapResPage=1">
+              <div class="snap-search-sub">
+                <label class="snap-toggle-label">
+                  <input type="checkbox" [(ngModel)]="showNonAktif" (ngModelChange)="snapResPage=1">
+                  Tampilkan PT non-aktif
+                </label>
+                <span class="snap-search-count">{{ filteredSnap.length }} PT ditampilkan</span>
+              </div>
             </div>
             <!-- Navigasi atas -->
             <div class="snap-res-nav">
@@ -1206,6 +1210,11 @@ import * as XLSX from 'xlsx';
     .pl-f-nm{flex:2 1 130px;max-width:180px}
     .pl-f-sm{flex:1 1 100px;max-width:130px}
     .pl-f-sem{flex:1 1 140px;max-width:170px}
+    @media (max-width: 640px) {
+      .rpd-filters--inline { flex-direction:column; overflow-x:visible; }
+      .rpd-filters--inline input, .rpd-filters--inline select { max-width:none; width:100%; flex:none; }
+      .rpd-filters--inline .rpd-reset { width:100%; text-align:center; }
+    }
     .th-no{width:2.5rem;text-align:right;white-space:nowrap}
     .rpd-reset{padding:.4rem .9rem;border:1px solid #fca5a5;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:.8rem;cursor:pointer}
     .rpd-loading-bar{height:3px;background:#e8eaf6;border-radius:2px;overflow:hidden;margin:.5rem 0}
@@ -1340,7 +1349,8 @@ import * as XLSX from 'xlsx';
     .snap-list-nav button:hover:not(:disabled) { background: #dbeafe; }
     .snap-list-nav--bottom { justify-content: center; margin-top: .4rem; }
     .snap-list-nav--bottom button { padding: .3rem .9rem; }
-    .snap-hist-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin-bottom: 0; }
+    .snap-hist-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #e0e7ff; }
+    .snap-hist-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin-bottom: 0; min-width: 480px; }
     .snap-hist-table th { background: #f0f4ff; padding: .45rem .75rem; text-align: left; font-weight: 600; color: #1e40af; border-bottom: 2px solid #c7d2fe; white-space: nowrap; font-size: .78rem; }
     .snap-hist-table td { padding: .45rem .75rem; border-bottom: 1px solid #e8eaf6; color: #1e293b; vertical-align: middle; }
     .snap-hist-table tr:last-child td { border-bottom: none; }
@@ -1363,6 +1373,11 @@ import * as XLSX from 'xlsx';
     .snap-show-btn:hover { background: #c7d2fe; }
     .snap-show-btn--active { background: #3730a3; color: #fff; border-color: #3730a3; }
     .snap-show-btn--active:hover { background: #312e81; }
+    @media (max-width: 600px) {
+      .snap-hist-table th, .snap-hist-table td { padding: .35rem .5rem; font-size: .75rem; }
+      .snap-hist-ket { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .snap-show-btn { padding: 2px 7px; font-size: .7rem; }
+    }
 
     /* Snapshot result table */
     .snap-result { margin-top: .75rem; position: relative; background: #fff; border: 1px solid #e8eaf6; border-left: 4px solid #1d4ed8; border-radius: 12px; padding: .75rem .9rem 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
@@ -1393,12 +1408,19 @@ import * as XLSX from 'xlsx';
     .snap-result-actions { display: flex; gap: .35rem; }
     .snap-res-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
     .snap-res-info { font-size: .75rem; color: #64748b; }
-    .snap-search-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .snap-search-row { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .5rem; }
     .snap-search-input { flex: 1; max-width: 280px; padding: .4rem .75rem; border: 1px solid #93c5fd; border-radius: 8px; font-size: .85rem; background: #eff6ff; outline: none; }
+    .snap-search-input--full { max-width: 100%; width: 100%; flex: none; }
+    .snap-search-sub { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
     .snap-search-input:focus { border-color: #1d4ed8; }
-    .dosen-filter-row { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-bottom:.5rem; }
-    .dosen-filter-input { flex:1; min-width:160px; max-width:260px; }
-    .dosen-filter-reset { padding:.35rem .8rem; border:1px solid #fca5a5; border-radius:8px; background:#fff0f0; color:#dc2626; font-size:.78rem; cursor:pointer; white-space:nowrap; }
+    .dosen-filter-row { display:flex; flex-wrap:nowrap; align-items:center; gap:.5rem; margin-bottom:.5rem; }
+    .dosen-filter-input { flex:1; min-width:0; max-width:260px; }
+    .dosen-filter-reset { padding:.35rem .8rem; border:1px solid #fca5a5; border-radius:8px; background:#fff0f0; color:#dc2626; font-size:.78rem; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+    @media (max-width: 640px) {
+      .dosen-filter-row { flex-direction:column; align-items:stretch; }
+      .dosen-filter-input { max-width:none; width:100%; }
+      .dosen-filter-reset { width:100%; text-align:center; }
+    }
     .dosen-filter-reset:hover { background:#fee2e2; }
     .snap-search-count { font-size: .78rem; color: #94a3b8; }
     .snap-table-wrap { overflow-x: auto; border-radius: 10px; }

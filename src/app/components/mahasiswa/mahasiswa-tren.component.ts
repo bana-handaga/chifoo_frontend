@@ -1,5 +1,6 @@
-import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { forkJoin } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 
@@ -7,7 +8,7 @@ Chart.register(...registerables);
 
 interface PTOption   { id: number; nama: string; singkatan: string; }
 interface ProdiOption{ id: number; nama: string; jenjang: string; jenjang_display: string; pt_nama: string; }
-interface TrenDataset{ label: string; data: number[]; }
+interface TrenDataset{ label: string; data: (number | null)[]; }
 interface TrenResponse{ labels: string[]; datasets: TrenDataset[]; }
 
 const COLORS = [
@@ -34,6 +35,11 @@ const COLORS = [
     <button class="page-tab" [class.active]="pageTab==='estimasi'" (click)="switchPageTab('estimasi')">
       <svg viewBox="0 0 24 24" fill="currentColor" class="page-tab-icon"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg>
       Estimasi Baru / Lulus
+    </button>
+    <button class="page-tab page-tab--ringkasan" [class.active]="pageTab==='ringkasan'" (click)="switchPageTab('ringkasan')"
+      [title]="!canRingkasan ? 'Pilih tepat 1 PT atau 1 prodi untuk melihat ringkasan' : ''">
+      <svg viewBox="0 0 24 24" fill="currentColor" class="page-tab-icon"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+      Ringkasan
     </button>
   </div>
 
@@ -163,8 +169,27 @@ const COLORS = [
         <button class="metric-btn" [class.active]="metric==='lulus'" (click)="setMetric('lulus')">
           <span class="metric-dot metric-dot--lulus"></span> Mahasiswa Lulus
         </button>
+        <button class="metric-btn metric-btn--kombinasi" [class.active]="metric==='kombinasi'"
+          [disabled]="!canKombinasi" [title]="!canKombinasi ? 'Pilih tepat 1 PT atau 1 prodi' : ''"
+          (click)="setMetric('kombinasi')">
+          <span class="metric-dot metric-dot--baru"></span><span class="metric-dot metric-dot--lulus"></span> Baru &amp; Lulus
+        </button>
       </div>
       <span class="estimasi-note">*estimasi statistik berdasarkan data aktif &amp; masa studi</span>
+    </div>
+
+    <!-- Toggle profesi -->
+    <div class="profesi-row">
+      <label class="profesi-toggle" [class.active]="includeProfesi" (click)="toggleProfesi()"
+        title="Profesi (PPG/Ners) = sertifikasi lanjutan, bukan mahasiswa baru masuk PT">
+        <span class="profesi-toggle-track">
+          <span class="profesi-toggle-thumb"></span>
+        </span>
+        <span class="profesi-toggle-label">Ikutkan jenjang <strong>Profesi</strong> (PPG, Ners, Apoteker)</span>
+      </label>
+      <span class="profesi-warn" *ngIf="includeProfesi">
+        ⚠ Profesi diikutkan — estimasi lebih tinggi karena PPG/Ners bukan mahasiswa baru PT
+      </span>
     </div>
 
     <!-- Tabs PT/Prodi -->
@@ -268,6 +293,126 @@ const COLORS = [
   </div>
   </ng-container>
 
+  <!-- Ringkasan tab -->
+  <ng-container *ngIf="pageTab==='ringkasan'">
+  <div class="filter-card" style="box-shadow: -4px 0 0 0 #10b981, 0 1px 6px rgba(0,0,0,0.07)">
+
+    <div class="ringkasan-legend">
+      <span class="rleg-item"><span class="rleg-dot" style="background:#0891b2"></span>Mahasiswa Aktif</span>
+      <span class="rleg-item"><span class="rleg-dot" style="background:#22c55e"></span>Estimasi Baru</span>
+      <span class="rleg-item"><span class="rleg-dot" style="background:#6366f1"></span>Estimasi Lulus</span>
+      <span class="estimasi-note">*estimasi berdasarkan data aktif &amp; masa studi</span>
+    </div>
+
+    <!-- Toggle profesi -->
+    <div class="profesi-row">
+      <label class="profesi-toggle" [class.active]="includeProfesi" (click)="toggleProfesi()"
+        title="Profesi (PPG/Ners) = sertifikasi lanjutan, bukan mahasiswa baru masuk PT">
+        <span class="profesi-toggle-track">
+          <span class="profesi-toggle-thumb"></span>
+        </span>
+        <span class="profesi-toggle-label">Ikutkan jenjang <strong>Profesi</strong> (PPG, Ners, Apoteker)</span>
+      </label>
+      <span class="profesi-warn" *ngIf="includeProfesi">
+        ⚠ Profesi diikutkan — estimasi lebih tinggi karena PPG/Ners bukan mahasiswa baru PT
+      </span>
+    </div>
+
+    <!-- Tabs PT/Prodi -->
+    <div class="tabs">
+      <button class="tab-btn" [class.active]="activeTab==='pt'" (click)="switchTab('pt')">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+        Perguruan Tinggi
+        <span class="tab-badge" *ngIf="selectedPts.length">{{selectedPts.length}}</span>
+      </button>
+      <button class="tab-btn" [class.active]="activeTab==='prodi'" (click)="switchTab('prodi')">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 14H8v-2h8v2zm0-4H8v-2h8v2zm0-4H8V6h8v2z"/></svg>
+        Program Studi
+        <span class="tab-badge tab-badge--green" *ngIf="selectedProdis.length">{{selectedProdis.length}}</span>
+      </button>
+    </div>
+
+    <!-- PT filter -->
+    <div class="filter-col" *ngIf="activeTab==='pt'">
+      <div class="filter-col-head">
+        <span class="filter-col-label">Pilih Perguruan Tinggi (maks. 1)</span>
+        <button class="clear-btn" *ngIf="selectedPts.length" (click)="selectedPts=[]">Hapus</button>
+      </div>
+      <input class="search-input" [(ngModel)]="ptSearch" (ngModelChange)="onPtSearch()"
+        (focus)="ptPanelOpen=true" (blur)="closePtPanel()"
+        placeholder="Ketik nama atau singkatan PT..." autocomplete="off"/>
+      <div class="sel-panel" *ngIf="ptPanelOpen" (mousedown)="$event.preventDefault()">
+        <div class="sel-empty" *ngIf="ptSearching">Mencari...</div>
+        <div class="sel-empty" *ngIf="!ptSearching && !ptFiltered.length && ptSearch">Tidak ditemukan</div>
+        <div class="sel-empty" *ngIf="!ptSearching && !ptFiltered.length && !ptSearch">Ketik untuk mencari PT</div>
+        <table class="sel-table" *ngIf="ptFiltered.length">
+          <tbody>
+            <tr *ngFor="let pt of ptFiltered" (mousedown)="togglePt(pt)" [class.selected]="isPtSelected(pt)">
+              <td class="sel-check"><span class="chk" [class.chk--on]="isPtSelected(pt)">{{isPtSelected(pt)?'✓':''}}</span></td>
+              <td class="sel-singkat">{{pt.singkatan}}</td>
+              <td class="sel-nama">{{pt.nama}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="chips" *ngIf="selectedPts.length">
+        <span class="chip chip--blue" *ngFor="let pt of selectedPts">
+          {{pt.singkatan}}<button class="chip-remove" (click)="togglePt(pt)">×</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- Prodi filter -->
+    <div class="filter-col" *ngIf="activeTab==='prodi'">
+      <div class="filter-col-head">
+        <span class="filter-col-label">Pilih Program Studi (maks. 1)</span>
+        <button class="clear-btn" *ngIf="selectedProdis.length" (click)="selectedProdis=[]">Hapus</button>
+      </div>
+      <input class="search-input" [(ngModel)]="prodiSearch" (ngModelChange)="onProdiSearch()"
+        (focus)="prodiPanelOpen=true" (blur)="closeProdiPanel()"
+        placeholder="Ketik nama program studi..." autocomplete="off"/>
+      <div class="sel-panel" *ngIf="prodiPanelOpen" (mousedown)="$event.preventDefault()">
+        <div class="sel-empty" *ngIf="prodiSearching">Mencari...</div>
+        <div class="sel-empty" *ngIf="!prodiSearching && !prodiFiltered.length && prodiSearch">Tidak ditemukan</div>
+        <div class="sel-empty" *ngIf="!prodiSearching && !prodiFiltered.length && !prodiSearch">Ketik untuk mencari prodi</div>
+        <table class="sel-table" *ngIf="!prodiSearching && prodiFiltered.length">
+          <tbody>
+            <tr *ngFor="let p of prodiFiltered" (mousedown)="toggleProdi(p)" [class.selected]="isProdiSelected(p)">
+              <td class="sel-check"><span class="chk" [class.chk--on]="isProdiSelected(p)">{{isProdiSelected(p)?'✓':''}}</span></td>
+              <td class="sel-jenjang">{{p.jenjang_display||p.jenjang}}</td>
+              <td class="sel-nama">{{p.nama}}<span class="sel-pt-label">{{p.pt_nama}}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="chips" *ngIf="selectedProdis.length">
+        <span class="chip chip--green" *ngFor="let p of selectedProdis">
+          {{p.jenjang}} {{p.nama}}<button class="chip-remove" (click)="toggleProdi(p)">×</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="mode-row">
+      <div *ngIf="!canRingkasan" class="ringkasan-warn">Pilih tepat 1 PT atau 1 prodi untuk menampilkan ringkasan.</div>
+      <button class="load-btn" style="background:#10b981; margin-left:auto" (click)="loadData()"
+        [disabled]="loading || !canRingkasan">
+        {{loading ? 'Memuat...' : 'Tampilkan'}}
+      </button>
+    </div>
+  </div>
+
+  <div class="chart-card" style="box-shadow: -4px 0 0 0 #10b981, 0 1px 6px rgba(0,0,0,0.07)">
+    <div class="chart-state" *ngIf="!hasData && !loading && !error">
+      Pilih 1 PT atau 1 prodi lalu klik <strong>Tampilkan</strong>.
+    </div>
+    <div class="chart-state" *ngIf="loading">Memuat data...</div>
+    <div class="chart-state chart-state--error" *ngIf="error">{{error}}</div>
+    <div class="chart-wrap" [style.display]="hasData && !loading ? 'block' : 'none'">
+      <canvas #chartCanvas></canvas>
+    </div>
+  </div>
+  </ng-container>
+
 </div>
   `,
   styles: [`
@@ -305,6 +450,9 @@ const COLORS = [
       transition: all 0.15s;
     }
     .metric-btn.active { border-color: currentColor; background: #fff7ed; color: #f97316; }
+    .metric-btn--kombinasi:not(:disabled) { gap: 3px; }
+    .metric-btn--kombinasi.active { background: #fff7ed; color: #f97316; }
+    .metric-btn:disabled { opacity: .45; cursor: not-allowed; }
     .metric-btn:hover:not(.active) { background: #f8fafc; }
     .metric-dot {
       width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
@@ -424,14 +572,45 @@ const COLORS = [
     .chart-wrap { position: relative; }
     .chart-state { text-align: center; padding: 48px 16px; font-size: 14px; color: #94a3b8; }
     .chart-state--error { color: #ef4444; }
+
+    /* Toggle profesi */
+    .profesi-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .profesi-toggle {
+      display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+    }
+    .profesi-toggle-track {
+      position: relative; width: 36px; height: 20px; border-radius: 10px;
+      background: #d1d5db; transition: background 0.2s; flex-shrink: 0;
+    }
+    .profesi-toggle.active .profesi-toggle-track { background: #f97316; }
+    .profesi-toggle-thumb {
+      position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: left 0.2s;
+    }
+    .profesi-toggle.active .profesi-toggle-thumb { left: 18px; }
+    .profesi-toggle-label { font-size: 13px; color: #374151; }
+    .profesi-warn { font-size: 12px; color: #ea580c; font-weight: 600; background: #fff7ed; padding: 4px 10px; border-radius: 6px; border: 1px solid #fed7aa; }
+
+    /* Ringkasan tab */
+    .page-tab--ringkasan.active { color: #10b981; border-bottom-color: #10b981; background: #f0fdf4; }
+    .ringkasan-legend {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      background: #f8fafc; border-radius: 8px; padding: 10px 14px;
+    }
+    .rleg-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; }
+    .rleg-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .ringkasan-warn { font-size: 13px; color: #f59e0b; font-weight: 600; }
   `]
 })
 export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   @ViewChild('chartCanvas') chartCanvas!: ElementRef<HTMLCanvasElement>;
 
-  pageTab: 'aktif' | 'estimasi' = 'aktif';
-  metric:  'baru' | 'lulus' = 'baru';
+  pageTab: 'aktif' | 'estimasi' | 'ringkasan' = 'aktif';
+  metric:  'baru' | 'lulus' | 'kombinasi' = 'baru';
   activeTab: 'pt' | 'prodi' = 'pt';
+  includeProfesi = false;
 
   // PT filter
   ptSearch    = '';
@@ -457,12 +636,12 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   private ptTimer: any;
   private prodiTimer: any;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
   ngAfterViewInit() {}
   ngOnDestroy()    { if (this.chart) this.chart.destroy(); }
 
   // ─── Page Tab ───────────────────────────────────────────
-  switchPageTab(tab: 'aktif' | 'estimasi') {
+  switchPageTab(tab: 'aktif' | 'estimasi' | 'ringkasan') {
     if (this.pageTab === tab) return;
     this.pageTab = tab;
     this.clearChart();
@@ -502,6 +681,7 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   togglePt(pt: PTOption) {
     if (this.isPtSelected(pt)) this.selectedPts = this.selectedPts.filter(p => p.id !== pt.id);
     else                       this.selectedPts.push(pt);
+    if (!this.canKombinasi && this.metric === 'kombinasi') { this.metric = 'baru'; this.clearChart(); }
   }
 
   closePtPanel() {
@@ -536,6 +716,7 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   toggleProdi(p: ProdiOption) {
     if (this.isProdiSelected(p)) this.selectedProdis = this.selectedProdis.filter(s => s.id !== p.id);
     else                         this.selectedProdis.push(p);
+    if (!this.canKombinasi && this.metric === 'kombinasi') { this.metric = 'baru'; this.clearChart(); }
   }
 
   closeProdiPanel() {
@@ -560,8 +741,9 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
     this.hasData = false;
 
     let params = new HttpParams()
-      .set('mode',      this.mode)
-      .set('filter_by', this.activeTab);
+      .set('mode',            this.mode)
+      .set('filter_by',       this.activeTab)
+      .set('include_profesi', String(this.includeProfesi));
 
     if (this.activeTab === 'pt') {
       this.selectedPts.forEach(p => params = params.append('pt_id', String(p.id)));
@@ -570,30 +752,83 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
     }
 
     const isEstimasi = this.pageTab === 'estimasi';
-    if (isEstimasi) params = params.set('metric', this.metric);
-
     const endpoint = isEstimasi ? 'estimasi_mahasiswa' : 'tren_mahasiswa';
+    const url = `${environment.apiUrl}/perguruan-tinggi/${endpoint}/`;
 
-    this.http.get<TrenResponse>(`${environment.apiUrl}/perguruan-tinggi/${endpoint}/`, { params }).subscribe({
-      next: res => {
-        this.loading = false;
-        if (!res.labels?.length) { this.error = 'Tidak ada data untuk pilihan ini.'; return; }
-        this.hasData = true;
-        setTimeout(() => this.renderChart(res), 50);
-      },
-      error: err => {
-        this.loading = false;
-        this.error = 'Gagal memuat data: ' + (err.error?.detail || err.message || 'error');
-      }
-    });
+    const onSuccess = (res: TrenResponse) => {
+      this.loading = false;
+      if (!res.labels?.length) { this.error = 'Tidak ada data untuk pilihan ini.'; return; }
+      this.hasData = true;
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        try { this.renderChart(res); }
+        catch(e) { this.hasData = false; this.error = 'Gagal render chart: ' + (e as Error).message; }
+      }, 0);
+    };
+    const onError = (err: any) => {
+      this.loading = false;
+      this.error = 'Gagal memuat data: ' + (err.error?.detail || err.message || 'error');
+    };
+
+    if (this.pageTab === 'ringkasan') {
+      const url2 = `${environment.apiUrl}/perguruan-tinggi/ringkasan_mahasiswa/`;
+      this.http.get<TrenResponse>(url2, { params }).subscribe({ next: onSuccess, error: onError });
+    } else if (isEstimasi && this.metric === 'kombinasi') {
+      const pBaru  = params.set('metric', 'baru');
+      const pLulus = params.set('metric', 'lulus');
+      forkJoin([
+        this.http.get<TrenResponse>(url, { params: pBaru }),
+        this.http.get<TrenResponse>(url, { params: pLulus }),
+      ]).subscribe({
+        next: ([baruRes, lulusRes]) => {
+          const baruDs  = baruRes.datasets[0];
+          const lulusDs = lulusRes.datasets[0];
+          const baruData  = baruDs.data;
+          const lulusData = lulusDs.data.map((v: number | null) => (v == null || v === 0) ? null : v);
+          const merged: TrenResponse = {
+            labels: baruRes.labels,
+            datasets: [
+              { label: (baruDs.label  || 'Estimasi') + ' — Baru',  data: baruData  },
+              { label: (lulusDs.label || 'Estimasi') + ' — Lulus', data: lulusData },
+            ],
+          };
+          onSuccess(merged);
+        },
+        error: onError,
+      });
+    } else {
+      if (isEstimasi) params = params.set('metric', this.metric);
+      this.http.get<TrenResponse>(url, { params }).subscribe({ next: onSuccess, error: onError });
+    }
   }
 
   get chartAccent() { return this.activeTab === 'pt' ? '#6366f1' : '#0891b2'; }
 
-  get metricAccent() { return this.metric === 'baru' ? '#22c55e' : '#6366f1'; }
+  get metricAccent() {
+    if (this.metric === 'baru')       return '#22c55e';
+    if (this.metric === 'kombinasi')  return '#f97316';
+    return '#6366f1';
+  }
 
-  setMetric(m: 'baru' | 'lulus') {
+  setMetric(m: 'baru' | 'lulus' | 'kombinasi') {
     if (this.metric !== m) { this.metric = m; this.clearChart(); }
+  }
+
+  toggleProfesi() {
+    this.includeProfesi = !this.includeProfesi;
+    this.clearChart();
+  }
+
+  get canKombinasi(): boolean {
+    if (this.activeTab === 'pt')    return this.selectedPts.length <= 1;
+    if (this.activeTab === 'prodi') return this.selectedProdis.length <= 1;
+    return true;
+  }
+
+  get canRingkasan(): boolean {
+    if (this.activeTab === 'pt')    return this.selectedPts.length === 1;
+    if (this.activeTab === 'prodi') return this.selectedProdis.length === 1;
+    return false;
   }
 
   private renderChart(res: TrenResponse) {
@@ -601,11 +836,19 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
 
     const isGabung = res.datasets.length === 1;
     const isEstimasi = this.pageTab === 'estimasi';
+    const isRingkasan = this.pageTab === 'ringkasan';
+    const isKombinasi = isEstimasi && this.metric === 'kombinasi';
+    const KOMBINASI_COLORS  = ['#22c55e', '#6366f1'];
+    const RINGKASAN_COLORS  = ['#0891b2', '#22c55e', '#6366f1'];
     const datasets = res.datasets.map((ds, i) => {
-      const color = isGabung ? (isEstimasi ? this.metricAccent : this.chartAccent) : COLORS[i % COLORS.length];
-      // untuk estimasi lulus, nilai 0 di awal berarti data belum tersedia → null
-      const data = (isEstimasi && this.metric === 'lulus')
-        ? ds.data.map((v: number) => v === 0 ? null : v)
+      const color = isRingkasan ? RINGKASAN_COLORS[i] :
+                    isKombinasi ? KOMBINASI_COLORS[i] :
+                    isGabung   ? (isEstimasi ? this.metricAccent : this.chartAccent) :
+                    COLORS[i % COLORS.length];
+      // untuk estimasi lulus (standalone), nilai 0 di awal berarti belum tersedia → null
+      // ringkasan: backend sudah mengirim null, tidak perlu transform
+      const data = (!isRingkasan && isEstimasi && this.metric === 'lulus')
+        ? ds.data.map((v) => (v == null || v === 0) ? null : v)
         : ds.data;
       return {
         label: ds.label,
@@ -615,7 +858,7 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
         tension: 0.35,
         pointRadius: 3,
         pointHoverRadius: 5,
-        fill: isGabung,
+        fill: isGabung && !isRingkasan,
         spanGaps: false,
       };
     });
@@ -628,7 +871,7 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
-            display: datasets.length > 1,
+            display: datasets.length > 1 || isRingkasan,
             position: 'bottom',
             labels: { boxWidth: 14, font: { size: 12 }, padding: 16 }
           },
@@ -641,6 +884,8 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
         scales: {
           x: { grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 45 } },
           y: {
+            beginAtZero: false,
+            grace: '10%',
             ticks: {
               font: { size: 11 },
               callback: (v: any) => Number(v).toLocaleString('id')
