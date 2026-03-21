@@ -152,7 +152,7 @@ import { ApiService } from '../../services/api.service';
 
   <!-- ═══════════════ CARD VIEW ═══════════════ -->
   <div class="journal-grid" *ngIf="!loading && journals.length > 0 && viewMode==='card'">
-    <div class="journal-card" *ngFor="let j of journals">
+    <div class="journal-card" [class]="'journal-card journal-card--' + j.akreditasi.toLowerCase()" *ngFor="let j of journals">
       <!-- Logo + Grade -->
       <div class="jc-logo-wrap">
         <img *ngIf="j.logo_base64" [src]="j.logo_base64" class="jc-logo" [alt]="j.nama" (error)="onLogoError($event)"/>
@@ -471,6 +471,13 @@ import { ApiService } from '../../services/api.service';
       min-width: 0; overflow: hidden;
     }
     .journal-card:hover { box-shadow: 0 4px 14px rgba(8,145,178,.12); border-color: #a5f3fc; }
+    /* Warna card tipis sesuai akreditasi */
+    .journal-card--s1 { background: #f5f3ff; border-color: #ddd6fe; }
+    .journal-card--s2 { background: #eff6ff; border-color: #bfdbfe; }
+    .journal-card--s3 { background: #ecfeff; border-color: #a5f3fc; }
+    .journal-card--s4 { background: #f0fdf4; border-color: #bbf7d0; }
+    .journal-card--s5 { background: #fff7ed; border-color: #fed7aa; }
+    .journal-card--s6 { background: #fef2f2; border-color: #fecaca; }
 
     /* Logo */
     .jc-logo-wrap { flex-shrink: 0; position: relative; }
@@ -582,7 +589,7 @@ export class SintaJurnalComponent implements OnInit {
   ptOptions: any[] = [];
   loading = true;
   exporting = false;
-  private _viewMode: 'card' | 'list' = 'card';
+  private _viewMode: 'card' | 'list' = 'list';
   get viewMode(): 'card' | 'list' { return this._viewMode; }
   set viewMode(v: 'card' | 'list') {
     this._viewMode = v;
@@ -603,7 +610,7 @@ export class SintaJurnalComponent implements OnInit {
 
   // Pagination
   currentPage = 1;
-  pageSize = 20;
+  pageSize = 5;
   totalCount = 0;
 
   private searchTimeout: any;
