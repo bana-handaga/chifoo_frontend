@@ -212,4 +212,22 @@ export class ApiService {
     Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== null && params[k] !== '') p = p.set(k, params[k]); });
     return this.http.get<any>(`${this.baseUrl}/prodi-daftar/`, { params: p });
   }
+
+  getSintaJurnalList(params: any): Observable<any> {
+    let p = new HttpParams();
+    Object.keys(params).forEach(k => {
+      if (params[k] !== undefined && params[k] !== null && params[k] !== '') p = p.set(k, params[k]);
+    });
+    return this.http.get<any>(`${this.baseUrl}/sinta-jurnal/`, { params: p });
+  }
+
+  getSintaJurnalStats(ptId?: number): Observable<any> {
+    let p = new HttpParams();
+    if (ptId) p = p.set('perguruan_tinggi', ptId.toString());
+    return this.http.get<any>(`${this.baseUrl}/sinta-jurnal/stats/`, { params: p });
+  }
+
+  getSintaJurnalDetail(id: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/sinta-jurnal/${id}/`);
+  }
 }

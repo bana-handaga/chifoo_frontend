@@ -63,7 +63,7 @@ import { Component } from '@angular/core';
           </div>
           <div class="pt-card__body">
             <div class="pt-card__name">Mahasiswa</div>
-            <div class="pt-card__desc">Tren mahasiswa aktif per semester seluruh perguruan tinggi</div>
+            <div class="pt-card__desc">Tren mahasiswa aktif per semester seluruh perguruan tinggi. Dilengkapi dengan data estimasi mahasiswa baru dan mahasiswa lulus</div>
           </div>
           <svg class="pt-card__arrow" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/>

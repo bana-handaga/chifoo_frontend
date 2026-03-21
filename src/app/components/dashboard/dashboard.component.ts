@@ -265,6 +265,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   ptList: any[] = [];
   selectedPtIds: number[] = [];
   private trenChartInst: Chart | null = null;
+  private activePeriodeIdx = -1;
+  private lastTrenData: any = null;
 
   constructor(private api: ApiService, private zone: NgZone) {}
 
@@ -274,7 +276,14 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       error: () => {}
     });
     this.api.getPeriodeAktif().subscribe({
-      next: d => { this.periodeAktif = d; this.loading = false; },
+      next: d => {
+        this.periodeAktif = d;
+        this.loading = false;
+        // Jika tren sudah dirender sebelum periodeAktif tiba, update highlight-nya
+        if (this.lastTrenData) {
+          this.zone.runOutsideAngular(() => this.renderTren(this.lastTrenData));
+        }
+      },
       error: () => this.loading = false
     });
     this.api.getPerguruanTinggiList({ page_size: 200, ordering: 'nama' }).subscribe({
@@ -311,6 +320,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.api.getTrenMahasiswa(this.trenMode, this.selectedPtIds).subscribe({
       next: (d: any) => {
         this.trenLoading = false;
+        this.lastTrenData = d;
         this.zone.runOutsideAngular(() => this.renderTren(d));
       },
       error: (err: any) => {
@@ -329,29 +339,109 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     const lineColors = [
       '#1a237e','#137333','#e65100','#6a1b9a','#0277bd','#558b2f','#bf360c'
     ];
-    const datasets = data.datasets.map((ds: any, i: number) => ({
-      label: ds.label,
-      data: ds.data,
-      borderColor: lineColors[i % lineColors.length],
-      backgroundColor: lineColors[i % lineColors.length] + '22',
-      fill: data.datasets.length === 1,
-      tension: 0.35,
-      pointRadius: 4,
-      pointHoverRadius: 6,
-      borderWidth: 2,
-    }));
+
+    // Konstruksi label chart dari tahun+semester periode aktif
+    // Format chart: "{tahun_akademik} {Semester}" misal "2024/2025 Ganjil"
+    let activeLabel = '';
+    if (this.periodeAktif?.tahun && this.periodeAktif?.semester) {
+      const p = this.periodeAktif;
+      const tahunAkademik = p.semester === 'genap'
+        ? `${p.tahun - 1}/${p.tahun}`
+        : `${p.tahun}/${p.tahun + 1}`;
+      activeLabel = `${tahunAkademik} ${p.semester.charAt(0).toUpperCase() + p.semester.slice(1)}`;
+    }
+    this.activePeriodeIdx = activeLabel ? (data.labels as string[]).indexOf(activeLabel) : -1;
+    const ai = this.activePeriodeIdx;
+    const n = (data.labels as string[]).length;
+
+    const buildDatasets = (rawDatasets: any[]) => rawDatasets.map((ds: any, i: number) => {
+      const color = lineColors[i % lineColors.length];
+      return {
+        label: ds.label,
+        data: ds.data,
+        borderColor: color,
+        backgroundColor: color + '22',
+        fill: rawDatasets.length === 1,
+        tension: 0.35,
+        pointRadius:          Array.from({ length: n }, (_, j) => j === ai ? 9 : 4),
+        pointHoverRadius:     Array.from({ length: n }, (_, j) => j === ai ? 11 : 6),
+        pointBackgroundColor: Array.from({ length: n }, (_, j) => j === ai ? '#fff' : color),
+        pointBorderColor:     Array.from({ length: n }, (_, j) => j === ai ? '#f59e0b' : color),
+        pointBorderWidth:     Array.from({ length: n }, (_, j) => j === ai ? 3 : 1),
+        borderWidth: 2,
+      };
+    });
 
     // Update existing chart instead of destroy+recreate to avoid canvas context issues
     if (this.trenChartInst) {
       this.trenChartInst.data.labels = data.labels;
-      this.trenChartInst.data.datasets = datasets;
+      this.trenChartInst.data.datasets = buildDatasets(data.datasets);
       this.trenChartInst.update('none');
       return;
     }
 
+    // Plugin: garis vertikal dashed + badge "Periode Aktif" di titik aktif
+    const self = this;
+    const activePeriodeBadgePlugin = {
+      id: 'activePeriodeBadge',
+      afterDraw(chart: any) {
+        const idx = self.activePeriodeIdx;
+        if (idx < 0) return;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta?.data?.[idx]) return;
+        const pt = meta.data[idx];
+        const ctx: CanvasRenderingContext2D = chart.ctx;
+        const yAxis = chart.scales['y'];
+
+        ctx.save();
+
+        // Garis vertikal dashed amber
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(pt.x, yAxis.top);
+        ctx.lineTo(pt.x, yAxis.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Badge "Periode Aktif"
+        const text = 'Periode Aktif';
+        ctx.font = 'bold 10px sans-serif';
+        const tw = ctx.measureText(text).width;
+        const pad = 5;
+        const bw = tw + pad * 2;
+        const bh = 17;
+        const bx = Math.min(Math.max(pt.x - bw / 2, chart.chartArea.left), chart.chartArea.right - bw);
+        const by = yAxis.top + 2;
+        const r = 3;
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(bx + r, by);
+        ctx.lineTo(bx + bw - r, by);
+        ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+        ctx.lineTo(bx + bw, by + bh - r);
+        ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+        ctx.lineTo(bx + r, by + bh);
+        ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+        ctx.lineTo(bx, by + r);
+        ctx.quadraticCurveTo(bx, by, bx + r, by);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, bx + bw / 2, by + bh / 2);
+
+        ctx.restore();
+      }
+    };
+
     this.trenChartInst = new Chart(this.trenChartRef.nativeElement.getContext('2d')!, {
       type: 'line',
-      data: { labels: data.labels, datasets },
+      data: { labels: data.labels, datasets: buildDatasets(data.datasets) },
       options: {
         responsive: true, maintainAspectRatio: false, animation: false,
         plugins: {
@@ -369,7 +459,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             ticks: { font: { size: 11 }, callback: (v: any) => Number(v).toLocaleString('id-ID') }
           }
         }
-      }
+      },
+      plugins: [activePeriodeBadgePlugin]
     });
   }
 

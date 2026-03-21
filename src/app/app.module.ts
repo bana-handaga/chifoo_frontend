@@ -27,6 +27,7 @@ import {
   SintaArtikelComponent, SintaPenelitianComponent, SintaPengabdianComponent,
   SintaIprComponent, SintaBukuComponent,
 } from './components/sinta/pages';
+import { SintaJurnalComponent, IssnPipe } from './components/sinta/sinta-jurnal.component';
 
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
@@ -58,6 +59,7 @@ const routes: Routes = [
       { path: 'sinta/pengabdian', component: SintaPengabdianComponent },
       { path: 'sinta/ipr',        component: SintaIprComponent },
       { path: 'sinta/buku',       component: SintaBukuComponent },
+      { path: 'sinta/jurnal',     component: SintaJurnalComponent },
     ]
   },
   { path: '**', redirectTo: '' }
@@ -80,6 +82,8 @@ const routes: Routes = [
     SintaAfiliasiComponent, SintaDepartemenComponent, SintaAuthorComponent,
     SintaArtikelComponent, SintaPenelitianComponent, SintaPengabdianComponent,
     SintaIprComponent, SintaBukuComponent,
+    SintaJurnalComponent,
+    IssnPipe,
     MahasiswaTrenComponent,
   ],
   imports: [

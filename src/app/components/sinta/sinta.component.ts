@@ -146,6 +146,35 @@ import { Router } from '@angular/router';
     </div>
   </div>
 
+  <!-- KELOMPOK III -->
+  <div class="sinta-group">
+    <div class="sinta-group__label">
+      <span class="sinta-group__num">III</span>
+      <div>
+        <div class="sinta-group__title">Media Ilmiah</div>
+        <div class="sinta-group__desc">Jurnal ilmiah yang diterbitkan oleh fakultas atau unit di lingkungan PTMA</div>
+      </div>
+    </div>
+    <div class="sinta-cards">
+
+      <div class="sinta-card sinta-card--media" (click)="go('jurnal')">
+        <div class="sinta-card__icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zm-7-1h2v-4h4V9h-4V7h-2v2H9v2h4z"/></svg>
+        </div>
+        <div class="sinta-card__body">
+          <div class="sinta-card__title">Jurnal Ilmiah</div>
+          <div class="sinta-card__desc">
+            Daftar jurnal ilmiah yang diterbitkan oleh fakultas / unit PTMA dan terindeks di SINTA —
+            lengkap dengan peringkat, subjek, dan tautan ke portal jurnal.
+          </div>
+          <span class="sinta-badge sinta-badge--ready">● Tersedia</span>
+        </div>
+        <div class="sinta-card__arrow">›</div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Info note -->
   <div class="sinta-note">
     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="flex-shrink:0;margin-top:1px">
@@ -234,6 +263,7 @@ import { Router } from '@angular/router';
     }
     .sinta-card--inst .sinta-card__icon { color: #2563eb; }
     .sinta-card--output .sinta-card__icon { color: #ea580c; }
+    .sinta-card--media .sinta-card__icon { color: #0891b2; background: #e0f2fe; }
 
     .sinta-card__icon {
       width: 38px; height: 38px; flex-shrink: 0;
@@ -275,6 +305,10 @@ import { Router } from '@angular/router';
     .sinta-badge--ready {
       background: #dcfce7; color: #166534;
       border: 1px solid #86efac;
+    }
+    .sinta-badge--journal {
+      background: #e0f2fe; color: #0369a1;
+      border: 1px solid #bae6fd;
     }
 
     /* ── Info note ── */
