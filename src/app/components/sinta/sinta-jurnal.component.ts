@@ -210,15 +210,38 @@ import { ApiService } from '../../services/api.service';
         <tr>
           <th class="jt-no">#</th>
           <th class="jt-logo"></th>
-          <th class="jt-nama">Nama Jurnal</th>
+          <th class="jt-nama">
+            <button class="jt-sort" (click)="toggleSort('nama')" [class.jt-sort--active]="sortField()==='nama'">
+              Nama Jurnal <span class="jt-sort__arr">{{ sortField()==='nama' ? (sortDir()==='asc' ? '↑' : '↓') : '↕' }}</span>
+            </button>
+          </th>
           <th class="jt-pt">Perguruan Tinggi</th>
-          <th class="jt-grade">Akred.</th>
-          <th class="jt-issn">P-ISSN</th>
-          <th class="jt-issn">E-ISSN</th>
-          <th class="jt-num">Impact</th>
-          <th class="jt-num">H5</th>
-          <th class="jt-num">Sit.5yr</th>
-          <th class="jt-num">Sitasi</th>
+          <th class="jt-grade">
+            <button class="jt-sort" (click)="toggleSort('akreditasi')" [class.jt-sort--active]="sortField()==='akreditasi'">
+              Akred. <span class="jt-sort__arr">{{ sortField()==='akreditasi' ? (sortDir()==='asc' ? '↑' : '↓') : '↕' }}</span>
+            </button>
+          </th>
+          <th class="jt-issn">ISSN</th>
+          <th class="jt-num">
+            <button class="jt-sort jt-sort--right" (click)="toggleSort('impact')" [class.jt-sort--active]="sortField()==='impact'">
+              Impact <span class="jt-sort__arr">{{ sortField()==='impact' ? (sortDir()==='asc' ? '↑' : '↓') : '↕' }}</span>
+            </button>
+          </th>
+          <th class="jt-num">
+            <button class="jt-sort jt-sort--right" (click)="toggleSort('h5_index')" [class.jt-sort--active]="sortField()==='h5_index'">
+              H5 <span class="jt-sort__arr">{{ sortField()==='h5_index' ? (sortDir()==='asc' ? '↑' : '↓') : '↕' }}</span>
+            </button>
+          </th>
+          <th class="jt-num">
+            <button class="jt-sort jt-sort--right" (click)="toggleSort('sitasi_5yr')" [class.jt-sort--active]="sortField()==='sitasi_5yr'">
+              Sit.5yr <span class="jt-sort__arr">{{ sortField()==='sitasi_5yr' ? (sortDir()==='asc' ? '↑' : '↓') : '↕' }}</span>
+            </button>
+          </th>
+          <th class="jt-num">
+            <button class="jt-sort jt-sort--right" (click)="toggleSort('sitasi_total')" [class.jt-sort--active]="sortField()==='sitasi_total'">
+              Sitasi <span class="jt-sort__arr">{{ sortField()==='sitasi_total' ? (sortDir()==='asc' ? '↑' : '↓') : '↕' }}</span>
+            </button>
+          </th>
           <th class="jt-idx">Indeks</th>
           <th class="jt-link">Tautan</th>
         </tr>
@@ -240,8 +263,10 @@ import { ApiService } from '../../services/api.service';
           <td class="jt-grade">
             <span class="jc-grade jc-grade--inline" [class]="'jc-grade--' + j.akreditasi.toLowerCase()">{{ j.akreditasi }}</span>
           </td>
-          <td class="jt-issn">{{ j.p_issn | issn }}</td>
-          <td class="jt-issn">{{ j.e_issn | issn }}</td>
+          <td class="jt-issn">
+            <div *ngIf="j.p_issn" class="jt-issn__row"><span class="jt-issn__lbl">P</span>{{ j.p_issn | issn }}</div>
+            <div *ngIf="j.e_issn" class="jt-issn__row"><span class="jt-issn__lbl">E</span>{{ j.e_issn | issn }}</div>
+          </td>
           <td class="jt-num">{{ j.impact | number:'1.2-2' }}</td>
           <td class="jt-num">{{ j.h5_index }}</td>
           <td class="jt-num">{{ j.sitasi_5yr | number }}</td>
@@ -509,7 +534,7 @@ import { ApiService } from '../../services/api.service';
     }
     .jt td { padding: .55rem .75rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     .jt tbody tr:last-child td { border-bottom: none; }
-    .jt tbody tr:hover td { background: #f8fafc; }
+    .jt tbody tr:hover td { background: #e0f2fe; }
     .jt-no  { width: 36px; color: #94a3b8; font-size: .72rem; text-align: right; }
     .jt-logo { width: 44px; }
     .jt-img  { width: 32px; height: 32px; object-fit: cover; border-radius: 5px; border: 1px solid #e2e8f0; display: block; }
@@ -520,9 +545,22 @@ import { ApiService } from '../../services/api.service';
     .jt-pt  { white-space: nowrap; color: #0891b2; font-weight: 600; font-size: .75rem; }
     .jt-grade { text-align: center; }
     .jt-issn { white-space: nowrap; color: #64748b; font-size: .72rem; }
+    .jt-issn__row { display: flex; align-items: center; gap: 3px; line-height: 1.6; }
+    .jt-issn__lbl { font-size: .63rem; font-weight: 700; color: #94a3b8; min-width: 10px; }
     .jt-num  { text-align: right; white-space: nowrap; font-weight: 600; color: #334155; }
     .jt-idx  { white-space: nowrap; }
     .jt-link { white-space: nowrap; }
+    /* Sort button in header */
+    .jt-sort {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: none; border: none; padding: 2px 4px; border-radius: 5px;
+      font-size: .72rem; font-weight: 700; color: #64748b;
+      cursor: pointer; white-space: nowrap; transition: background .12s, color .12s;
+    }
+    .jt-sort:hover { background: #e2e8f0; color: #1e293b; }
+    .jt-sort--active { color: #0891b2; }
+    .jt-sort--right { justify-content: flex-end; width: 100%; }
+    .jt-sort__arr { font-size: .7rem; opacity: .7; }
     .jt-a {
       display: inline-flex; align-items: center; justify-content: center;
       width: 22px; height: 22px; border-radius: 5px;
@@ -544,7 +582,14 @@ export class SintaJurnalComponent implements OnInit {
   ptOptions: any[] = [];
   loading = true;
   exporting = false;
-  viewMode: 'card' | 'list' = 'card';
+  private _viewMode: 'card' | 'list' = 'card';
+  get viewMode(): 'card' | 'list' { return this._viewMode; }
+  set viewMode(v: 'card' | 'list') {
+    this._viewMode = v;
+    this.pageSize = v === 'list' ? 5 : 20;
+    this.currentPage = 1;
+    this.loadJournals();
+  }
 
   // Filters
   search = '';
@@ -572,6 +617,20 @@ export class SintaJurnalComponent implements OnInit {
   ngOnInit(): void {
     this.loadStats();
     this.loadPtOptions();
+    this.loadJournals();
+  }
+
+  // ── Sort helpers ──────────────────────────────────────
+  sortField(): string { return this.orderBy.startsWith('-') ? this.orderBy.slice(1) : this.orderBy; }
+  sortDir(): 'asc' | 'desc' { return this.orderBy.startsWith('-') ? 'desc' : 'asc'; }
+
+  toggleSort(field: string): void {
+    if (this.sortField() === field) {
+      this.orderBy = this.sortDir() === 'desc' ? field : '-' + field;
+    } else {
+      this.orderBy = '-' + field;
+    }
+    this.currentPage = 1;
     this.loadJournals();
   }
 
