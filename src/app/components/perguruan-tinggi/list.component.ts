@@ -297,7 +297,7 @@ Chart.register(...registerables);
 
     /* ── Stat grid — same as Dosen ─── */
     .stat-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr);
+      display: grid; grid-template-columns: 1fr;
       gap: .75rem; margin-bottom: 1.25rem;
     }
     @media (min-width: 600px)  { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -421,7 +421,7 @@ Chart.register(...registerables);
     .pt-results {
       border-top: 1px solid #dcfce7; padding: 10px 14px 14px; position: relative;
     }
-    .pt-results .table-wrapper { background: rgba(34,197,94,.03); border-radius: 8px; overflow: hidden; }
+    .pt-results .table-wrapper { background: rgba(34,197,94,.03); border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .pt-results .loading-overlay { border-radius: 8px; }
     .table-toolbar { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
     .table-info { font-size: 12px; color: #888; }

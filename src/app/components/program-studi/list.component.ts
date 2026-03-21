@@ -62,6 +62,26 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
             <option value="s2">S2</option><option value="s3">S3</option>
           </select>
         </div>
+        <div class="psf">
+          <label>Akreditasi</label>
+          <select [(ngModel)]="psForm.akreditasi" (change)="applyPsFilter()">
+            <option value="">— Semua —</option>
+            <option value="unggul">Unggul</option>
+            <option value="baik_sekali">Baik Sekali</option>
+            <option value="baik">Baik</option>
+            <option value="c">C</option>
+            <option value="belum">Belum Terakreditasi</option>
+          </select>
+        </div>
+        <div class="psf">
+          <label>Kedaluarsa Akreditasi</label>
+          <select [(ngModel)]="psForm.kedaluarsa" (change)="applyPsFilter()">
+            <option value="">— Semua —</option>
+            <option value="2m">&lt; 2 Bulan</option>
+            <option value="3m">&lt; 3 Bulan</option>
+            <option value="1y">&lt; 1 Tahun</option>
+          </select>
+        </div>
         <div class="psf psf--action">
           <button class="ps-btn-search" (click)="runPs()" [disabled]="psSearching">
             {{ psSearching ? 'Mencari...' : 'Cari' }}
@@ -97,9 +117,11 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
                 <th (click)="setPsSort('nama_prodi')" class="ps-sortable">Nama Prodi <span class="ps-si">{{ psSortIcon('nama_prodi') }}</span></th>
                 <th (click)="setPsSort('jenjang')" class="ps-sortable">Jenjang <span class="ps-si">{{ psSortIcon('jenjang') }}</span></th>
                 <th (click)="setPsSort('akreditasi')" class="ps-sortable">Akreditasi <span class="ps-si">{{ psSortIcon('akreditasi') }}</span></th>
+                <th (click)="setPsSort('no_sk')" class="ps-sortable">No SK <span class="ps-si">{{ psSortIcon('no_sk') }}</span></th>
+                <th (click)="setPsSort('tgl_exp')" class="ps-sortable">Kedaluarsa <span class="ps-si">{{ psSortIcon('tgl_exp') }}</span></th>
                 <th (click)="setPsSort('nama_pt')" class="ps-sortable">Perguruan Tinggi <span class="ps-si">{{ psSortIcon('nama_pt') }}</span></th>
-                <th class="num-col" (click)="setPsSort('mahasiswa_aktif')" class="ps-sortable num-col">Mhs. Aktif <span class="ps-si">{{ psSortIcon('mahasiswa_aktif') }}</span></th>
-                <th class="num-col" (click)="setPsSort('dosen_tetap')" class="ps-sortable num-col">Dosen Tetap <span class="ps-si">{{ psSortIcon('dosen_tetap') }}</span></th>
+                <th (click)="setPsSort('mahasiswa_aktif')" class="ps-sortable num-col">Mhs. Aktif <span class="ps-si">{{ psSortIcon('mahasiswa_aktif') }}</span></th>
+                <th (click)="setPsSort('dosen_tetap')" class="ps-sortable num-col">Dosen Tetap <span class="ps-si">{{ psSortIcon('dosen_tetap') }}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -110,6 +132,12 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
                 </td>
                 <td><span class="badge-jenjang jenjang-{{ r.jenjang?.toLowerCase() }}">{{ r.jenjang }}</span></td>
                 <td><span class="akr-badge" [ngClass]="akrClass(r.akreditasi)">{{ r.akreditasi_display || r.akreditasi || '—' }}</span></td>
+                <td class="ps-sk-no">{{ r.no_sk || '—' }}</td>
+                <td class="ps-exp-date">
+                  <span [ngClass]="expClass(r.tgl_exp) ? 'exp-badge ' + expClass(r.tgl_exp) : ''">
+                    {{ r.tgl_exp ? (r.tgl_exp | date:'dd/MM/yyyy') : '—' }}
+                  </span>
+                </td>
                 <td>
                   <div class="ps-pt-nama">{{ r.nama_pt }}</div>
                   <div class="ps-pt-kode">{{ r.kode_pt }}</div>
@@ -117,8 +145,8 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
                 <td class="num-col">{{ r.mahasiswa_aktif ? (r.mahasiswa_aktif | number) : '—' }}</td>
                 <td class="num-col">{{ r.dosen_tetap ? (r.dosen_tetap | number) : '—' }}</td>
               </tr>
-              <tr *ngIf="!psResults.length">
-                <td colspan="6" class="empty-row">Tidak ada hasil ditemukan</td>
+              <tr *ngIf="!psPaginated.length">
+                <td colspan="8" class="empty-row">Tidak ada hasil ditemukan</td>
               </tr>
             </tbody>
           </table>
@@ -379,7 +407,7 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
 
     /* Stat grid — same as Dosen */
     .stat-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr);
+      display: grid; grid-template-columns: 1fr;
       gap: .75rem; margin-bottom: 1.25rem;
     }
     @media (min-width: 600px)  { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -442,7 +470,7 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       display: grid; grid-template-columns: 1fr; gap: .75rem; margin-bottom: 1rem;
     }
     @media (min-width: 600px) { .ps-fields { grid-template-columns: 1fr 1fr; } }
-    @media (min-width: 900px) { .ps-fields { grid-template-columns: 1fr 1fr auto; } }
+    @media (min-width: 900px) { .ps-fields { grid-template-columns: 1fr 1fr 1fr 1fr auto; } }
     .psf { display: flex; flex-direction: column; gap: .3rem; }
     .psf label { font-size: .78rem; font-weight: 600; color: #78350f; }
     .psf input, .psf select {
@@ -512,6 +540,13 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     .ps-prodi-kode { font-size: .72rem; color: #92400e; font-family: monospace; margin-top: 1px; }
     .ps-pt-nama { font-size: .82rem; color: #1e293b; }
     .ps-pt-kode { font-size: .72rem; color: #64748b; font-family: monospace; margin-top: 1px; }
+    .ps-sk-no { font-size: .72rem; color: #475569; font-family: monospace; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ps-exp-date { white-space: nowrap; font-size: .8rem; }
+    .exp-badge   { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.72rem; font-weight:700; letter-spacing:.2px; }
+    .exp-red     { background:#dc2626; color:#fff; }
+    .exp-yellow  { background:#d97706; color:#fff; }
+    .exp-green   { background:#16a34a; color:#fff; }
+    .exp-expired { background:#94a3b8; color:#fff; text-decoration:line-through; }
 
     /* Charts row — same as Dosen */
     .charts-row { display: grid; gap: .75rem; margin-bottom: .75rem; }
@@ -809,7 +844,8 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   psOpen       = false;
   psSearching  = false;
   psDone       = false;
-  psForm       = { nama: '', jenjang: '' };
+  psForm       = { nama: '', jenjang: '', akreditasi: '', kedaluarsa: '' };
+  psRawResults: any[] = [];
   psResults: any[] = [];
   psPaginated: any[] = [];
   psTotal      = 0;
@@ -822,19 +858,45 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   togglePs() { this.psOpen = !this.psOpen; }
 
   runPs(page = 1) {
-    if (!this.psForm.nama.trim() && !this.psForm.jenjang) return;
     this.psSearching = true;
     this.psPage = page;
     this.api.getProgramStudiPtList(this.psForm.nama.trim(), this.psForm.jenjang).subscribe({
       next: (res: any[]) => {
-        this.psResults    = res;
-        this.psTotal      = res.length;
+        this.psRawResults = res;
         this.psSearching  = false;
         this.psDone       = true;
-        this.applyPsSort();
+        this.applyPsFilter();
       },
       error: () => { this.psSearching = false; }
     });
+  }
+
+  applyPsFilter() {
+    const akr = this.psForm.akreditasi;
+    const kdl = this.psForm.kedaluarsa;
+    const now = Date.now();
+    const limitMs: Record<string, number> = { '2m': 60, '3m': 90, '1y': 365 };
+    this.psResults = this.psRawResults.filter(r => {
+      if (akr && (r.akreditasi || 'belum').toLowerCase() !== akr) return false;
+      if (kdl) {
+        if (!r.tgl_exp) return false;
+        const diff = (new Date(r.tgl_exp).getTime() - now) / 86400000;
+        if (diff < 0 || diff >= limitMs[kdl]) return false;
+      }
+      return true;
+    });
+    this.psPage = 1;
+    this.applyPsSort();
+  }
+
+  expClass(tgl: string | null): string {
+    if (!tgl) return '';
+    const diff = (new Date(tgl).getTime() - Date.now()) / 86400000;
+    if (diff < 0) return 'exp-expired';
+    if (diff < 60)  return 'exp-red';
+    if (diff < 90)  return 'exp-yellow';
+    if (diff < 365) return 'exp-green';
+    return '';
   }
 
   goPs(p: number) {
@@ -843,8 +905,9 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   }
 
   resetPs() {
-    this.psForm      = { nama: '', jenjang: '' };
+    this.psForm      = { nama: '', jenjang: '', akreditasi: '', kedaluarsa: '' };
     this.psDone      = false;
+    this.psRawResults = [];
     this.psResults   = [];
     this.psPaginated = [];
     this.psTotal     = 0;
@@ -877,6 +940,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
       if (typeof av === 'number') return dir * (av - bv);
       return dir * String(av).localeCompare(String(bv), 'id');
     });
+    this.psTotal      = sorted.length;
     this.psTotalPages = Math.max(1, Math.ceil(sorted.length / this.psPageSize));
     const off = (this.psPage - 1) * this.psPageSize;
     this.psPaginated = sorted.slice(off, off + this.psPageSize);
@@ -886,9 +950,10 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
 
   exportPs(fmt: 'csv' | 'xlsx' | 'pdf') {
     const rows = this.psResults;
-    const headers = ['Nama Prodi', 'Jenjang', 'Akreditasi', 'Perguruan Tinggi', 'Kode PT', 'Mhs. Aktif', 'Dosen Tetap'];
+    const headers = ['Nama Prodi', 'Jenjang', 'Akreditasi', 'No SK', 'Kedaluarsa', 'Perguruan Tinggi', 'Kode PT', 'Mhs. Aktif', 'Dosen Tetap'];
     const data = rows.map(r => [
-      r.nama_prodi, r.jenjang, r.akreditasi || '—',
+      r.nama_prodi, r.jenjang, r.akreditasi_display || r.akreditasi || '—',
+      r.no_sk || '—', r.tgl_exp || '—',
       r.nama_pt, r.kode_pt,
       r.mahasiswa_aktif ?? 0, r.dosen_tetap ?? 0,
     ]);

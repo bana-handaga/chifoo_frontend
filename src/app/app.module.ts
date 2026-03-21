@@ -19,6 +19,8 @@ import { LayoutComponent } from './components/layout/layout.component';
 import { StatistikComponent } from './components/statistik/statistik.component';
 import { ProgramStudiListComponent } from './components/program-studi/list.component';
 import { DosenListComponent } from './components/dosen/list.component';
+import { PendidikanTinggiComponent } from './components/pendidikan-tinggi/pendidikan-tinggi.component';
+import { MahasiswaTrenComponent } from './components/mahasiswa/mahasiswa-tren.component';
 import { SintaComponent } from './components/sinta/sinta.component';
 import {
   SintaAfiliasiComponent, SintaDepartemenComponent, SintaAuthorComponent,
@@ -44,6 +46,8 @@ const routes: Routes = [
       { path: 'program-studi', component: ProgramStudiListComponent },
       { path: 'dosen', component: DosenListComponent },
       { path: 'laporan', component: LaporanComponent, canActivate: [AuthGuard] },
+      { path: 'pendidikan-tinggi', component: PendidikanTinggiComponent },
+      { path: 'mahasiswa', component: MahasiswaTrenComponent },
       { path: 'statistik', component: StatistikComponent },
       { path: 'sinta', component: SintaComponent },
       { path: 'sinta/afiliasi',   component: SintaAfiliasiComponent },
@@ -67,6 +71,7 @@ const routes: Routes = [
     PerguruanTinggiDetailComponent,
     ProgramStudiListComponent,
     DosenListComponent,
+    PendidikanTinggiComponent,
     LaporanComponent,
     LoginComponent,
     LayoutComponent,
@@ -75,6 +80,7 @@ const routes: Routes = [
     SintaAfiliasiComponent, SintaDepartemenComponent, SintaAuthorComponent,
     SintaArtikelComponent, SintaPenelitianComponent, SintaPengabdianComponent,
     SintaIprComponent, SintaBukuComponent,
+    MahasiswaTrenComponent,
   ],
   imports: [
     BrowserModule,

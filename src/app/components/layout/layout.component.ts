@@ -22,6 +22,14 @@ import { AuthService } from '../../services/auth.service';
           </svg>
           <span class="nav-label">Dashboard</span>
         </a>
+        <a routerLink="/pendidikan-tinggi" routerLinkActive="active"
+           [routerLinkActiveOptions]="{exact:false}">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+          </svg>
+          <span class="nav-label">Pendidikan Tinggi</span>
+        </a>
+        <!-- HIDDEN: uncomment to restore individual menu items
         <a routerLink="/perguruan-tinggi" routerLinkActive="active">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
@@ -46,6 +54,7 @@ import { AuthService } from '../../services/auth.service';
           </svg>
           <span class="nav-label">Laporan</span>
         </a>
+        -->
         <a routerLink="/sinta" routerLinkActive="active">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19.5 3.09L15 7.59V4h-2v7h7V9h-3.59l4.5-4.5-1.41-1.41zM4 13v2h3.59l-4.5 4.5 1.41 1.41L9 16.41V20h2v-7H4z"/>
@@ -91,6 +100,13 @@ import { AuthService } from '../../services/auth.service';
         </svg>
         <span class="tab-label">Dashboard</span>
       </a>
+      <a routerLink="/pendidikan-tinggi" routerLinkActive="active">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+        </svg>
+        <span class="tab-label">Dikti</span>
+      </a>
+      <!-- HIDDEN: uncomment to restore individual tab items
       <a routerLink="/perguruan-tinggi" routerLinkActive="active">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
@@ -115,6 +131,7 @@ import { AuthService } from '../../services/auth.service';
         </svg>
         <span class="tab-label">Laporan</span>
       </a>
+      -->
       <a routerLink="/sinta" routerLinkActive="active">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19.5 3.09L15 7.59V4h-2v7h7V9h-3.59l4.5-4.5-1.41-1.41zM4 13v2h3.59l-4.5 4.5 1.41 1.41L9 16.41V20h2v-7H4z"/>
