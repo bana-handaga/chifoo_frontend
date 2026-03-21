@@ -330,7 +330,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       '#1a237e','#137333','#e65100','#6a1b9a','#0277bd','#558b2f','#bf360c'
     ];
     const datasets = data.datasets.map((ds: any, i: number) => ({
-      label: ds.nama,
+      label: ds.label,
       data: ds.data,
       borderColor: lineColors[i % lineColors.length],
       backgroundColor: lineColors[i % lineColors.length] + '22',
