@@ -71,17 +71,6 @@ const PH_STYLES = [`
 })
 export class SintaAfiliasiComponent {}
 
-@Component({
-  selector: 'app-sinta-departemen',
-  template: placeholderTemplate(
-    '📋', 'Departemen (Program Studi)',
-    'Kinerja riset per departemen / program studi berdasarkan kontribusi dosen pada SINTA.',
-    '#7c3aed'
-  ),
-  styles: PH_STYLES
-})
-export class SintaDepartemenComponent {}
-
 // ─── KELOMPOK II ──────────────────────────────────────────────────────────────
 
 @Component({

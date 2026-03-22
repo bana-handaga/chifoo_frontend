@@ -51,7 +51,6 @@ import { Router } from '@angular/router';
         <div class="sinta-card__body">
           <div class="sinta-card__title">Departemen</div>
           <div class="sinta-card__desc">Kinerja riset per departemen / program studi berdasarkan kontribusi dosen pada SINTA.</div>
-          <span class="sinta-badge sinta-badge--soon">Segera Hadir</span>
         </div>
         <div class="sinta-card__arrow">›</div>
       </div>

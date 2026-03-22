@@ -23,10 +23,10 @@ import { PendidikanTinggiComponent } from './components/pendidikan-tinggi/pendid
 import { MahasiswaTrenComponent } from './components/mahasiswa/mahasiswa-tren.component';
 import { SintaComponent } from './components/sinta/sinta.component';
 import {
-  SintaDepartemenComponent,
   SintaArtikelComponent, SintaPenelitianComponent, SintaPengabdianComponent,
   SintaIprComponent, SintaBukuComponent,
 } from './components/sinta/pages';
+import { SintaDepartemenComponent } from './components/sinta/sinta-departemen.component';
 import { SintaClusterComponent }   from './components/sinta/sinta-cluster.component';
 import { SintaAfiliasiComponent }  from './components/sinta/sinta-afiliasi.component';
 import { SintaJurnalComponent, IssnPipe } from './components/sinta/sinta-jurnal.component';
