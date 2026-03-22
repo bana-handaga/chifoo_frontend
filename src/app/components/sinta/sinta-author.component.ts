@@ -217,13 +217,23 @@ function initialsAvatar(name: string): string {
     <button class="au-reset-btn" (click)="resetFilter()">Reset Filter</button>
   </div>
 
-  <!-- ── Count Info ── -->
-  <div class="au-count-row" *ngIf="!loading && authors.length > 0">
+  <!-- ── View Bar: count + toggle grid/table ── -->
+  <div class="au-viewbar" *ngIf="!loading && authors.length > 0">
     <span class="au-count">{{ totalCount | number }} author ditemukan</span>
+    <div class="au-view-toggle">
+      <button class="au-view-btn" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="Tampilan kartu">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+        <span>Kartu</span>
+      </button>
+      <button class="au-view-btn" [class.active]="viewMode === 'table'" (click)="viewMode = 'table'" title="Tampilan tabel">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        <span>Tabel</span>
+      </button>
+    </div>
   </div>
 
   <!-- ── Author Cards Grid ── -->
-  <div class="au-grid" *ngIf="!loading && authors.length > 0">
+  <div class="au-grid" *ngIf="!loading && authors.length > 0 && viewMode === 'grid'">
     <div
       class="au-card"
       *ngFor="let a of authors"
@@ -290,6 +300,68 @@ function initialsAvatar(name: string): string {
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ── Author Table ── -->
+  <div class="au-table-wrap" *ngIf="!loading && authors.length > 0 && viewMode === 'table'">
+    <table class="au-table">
+      <thead>
+        <tr>
+          <th class="au-th au-th--no">#</th>
+          <th class="au-th au-th--sort" (click)="setTableSort('nama')">
+            Nama <span class="au-sort-icon">{{ sortIcon('nama') }}</span>
+          </th>
+          <th class="au-th">PT</th>
+          <th class="au-th">Departemen</th>
+          <th class="au-th au-th--sort au-th--num" (click)="setTableSort('sinta_score_overall')">
+            Skor SINTA <span class="au-sort-icon">{{ sortIcon('sinta_score_overall') }}</span>
+          </th>
+          <th class="au-th au-th--sort au-th--num" (click)="setTableSort('sinta_score_3year')">
+            3 Thn <span class="au-sort-icon">{{ sortIcon('sinta_score_3year') }}</span>
+          </th>
+          <th class="au-th au-th--sort au-th--num" (click)="setTableSort('scopus_artikel')">
+            Scopus Art. <span class="au-sort-icon">{{ sortIcon('scopus_artikel') }}</span>
+          </th>
+          <th class="au-th au-th--sort au-th--num" (click)="setTableSort('scopus_sitasi')">
+            Sitasi <span class="au-sort-icon">{{ sortIcon('scopus_sitasi') }}</span>
+          </th>
+          <th class="au-th au-th--sort au-th--num" (click)="setTableSort('scopus_h_index')">
+            H-Index <span class="au-sort-icon">{{ sortIcon('scopus_h_index') }}</span>
+          </th>
+          <th class="au-th"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of authors; let i = index" class="au-tr" (click)="openDetail(a)">
+          <td class="au-td au-td--no">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+          <td class="au-td au-td--nama">
+            <div class="au-td-author">
+              <img
+                class="au-td-foto"
+                [src]="a.foto_url || getInitialsAvatar(a.nama)"
+                [alt]="a.nama"
+                (error)="onImgError($event, a.nama)"
+                loading="lazy"
+              />
+              <span>{{ a.nama }}</span>
+            </div>
+          </td>
+          <td class="au-td au-td--pt">{{ a.pt_singkatan }}</td>
+          <td class="au-td au-td--dept">
+            <span *ngIf="a.dept_nama">{{ a.dept_nama }}<span *ngIf="a.dept_jenjang" class="au-td-jenjang"> ({{ a.dept_jenjang }})</span></span>
+            <span *ngIf="!a.dept_nama" class="au-td-muted">—</span>
+          </td>
+          <td class="au-td au-td--num"><b>{{ a.sinta_score_overall | number }}</b></td>
+          <td class="au-td au-td--num">{{ a.sinta_score_3year | number }}</td>
+          <td class="au-td au-td--num">{{ a.scopus_artikel | number }}</td>
+          <td class="au-td au-td--num">{{ a.scopus_sitasi | number }}</td>
+          <td class="au-td au-td--num">{{ a.scopus_h_index }}</td>
+          <td class="au-td au-td--action">
+            <span class="au-table-link">Detail →</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- ── Pagination ── -->
@@ -753,17 +825,98 @@ function initialsAvatar(name: string): string {
     }
     @keyframes au-spin { to { transform: rotate(360deg); } }
 
-    /* ── Count row ── */
-    .au-count-row {
+    /* ── View Bar ── */
+    .au-viewbar {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       margin-bottom: 12px;
+      min-height: 34px;
     }
     .au-count {
       font-size: 13px;
       color: var(--au-muted);
       font-weight: 500;
     }
+    .au-view-toggle {
+      display: flex;
+      gap: 3px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .au-view-btn {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .28rem .6rem;
+      border: none;
+      border-radius: 5px;
+      background: transparent;
+      color: #64748b;
+      font-size: .77rem;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .au-view-btn:hover { background: #e2e8f0; color: #334155; }
+    .au-view-btn.active { background: #fff; color: #1e40af; box-shadow: 0 1px 3px rgba(0,0,0,.08); font-weight: 600; }
+
+    /* ── Table ── */
+    .au-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin-bottom: 24px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    .au-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .84rem;
+      white-space: nowrap;
+    }
+    .au-th {
+      padding: .6rem .85rem;
+      background: #f8fafc;
+      color: #475569;
+      font-size: .71rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      text-align: left;
+      border-bottom: 1.5px solid #e2e8f0;
+      user-select: none;
+    }
+    .au-th--no { width: 40px; text-align: center; color: #94a3b8; }
+    .au-th--num { text-align: right; }
+    .au-th--sort { cursor: pointer; transition: background .15s, color .15s; }
+    .au-th--sort:hover { background: #eff6ff; color: #1e40af; }
+    .au-sort-icon { font-size: .74rem; color: #94a3b8; margin-left: .2rem; display: inline-block; width: .8em; }
+    .au-tr {
+      cursor: pointer;
+      transition: background .12s;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .au-tr:last-child { border-bottom: none; }
+    .au-tr:hover { background: #f0f7ff; }
+    .au-tr:hover .au-table-link { color: #1e40af; }
+    .au-td {
+      padding: .55rem .85rem;
+      color: #334155;
+      vertical-align: middle;
+    }
+    .au-td--no { text-align: center; color: #94a3b8; font-size: .78rem; width: 40px; }
+    .au-td--nama { min-width: 180px; font-weight: 600; color: #1e293b; white-space: normal; max-width: 240px; }
+    .au-td--pt { font-size: .78rem; font-weight: 600; color: #64748b; min-width: 70px; }
+    .au-td--dept { font-size: .78rem; color: #64748b; min-width: 140px; white-space: normal; max-width: 200px; }
+    .au-td--num { text-align: right; font-variant-numeric: tabular-nums; }
+    .au-td--action { width: 72px; text-align: right; }
+    .au-td-author { display: flex; align-items: center; gap: .5rem; }
+    .au-td-foto { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .au-td-jenjang { color: #94a3b8; }
+    .au-td-muted { color: #cbd5e1; }
+    .au-table-link { font-size: .75rem; color: #3b82f6; }
 
     /* ── Grid ── */
     .au-grid {
@@ -1320,6 +1473,11 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   selectedAuthor: AuthorList | null = null;
   activeTab: 'scopus' | 'gscholar' | 'wos' = 'scopus';
 
+  // View toggle + table sort
+  viewMode: 'grid' | 'table' = 'grid';
+  tableSortField = 'sinta_score_overall';
+  tableSortDir: 'asc' | 'desc' = 'desc';
+
   constructor(private http: HttpClient) {}
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -1408,6 +1566,13 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   }
 
   onFilterChange(): void {
+    if (this.ordering.startsWith('-')) {
+      this.tableSortField = this.ordering.slice(1);
+      this.tableSortDir = 'desc';
+    } else {
+      this.tableSortField = this.ordering;
+      this.tableSortDir = 'asc';
+    }
     this.currentPage = 1;
     this.loadAuthors();
   }
@@ -1418,12 +1583,31 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   }
 
   resetFilter(): void {
-    this.searchQuery = '';
-    this.filterPt    = '';
-    this.ordering    = '-sinta_score_overall';
-    this.pageSize    = 20;
+    this.searchQuery    = '';
+    this.filterPt       = '';
+    this.ordering       = '-sinta_score_overall';
+    this.tableSortField = 'sinta_score_overall';
+    this.tableSortDir   = 'desc';
+    this.pageSize       = 20;
+    this.currentPage    = 1;
+    this.loadAuthors();
+  }
+
+  setTableSort(field: string): void {
+    if (this.tableSortField === field) {
+      this.tableSortDir = this.tableSortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      this.tableSortField = field;
+      this.tableSortDir = 'desc';
+    }
+    this.ordering = (this.tableSortDir === 'desc' ? '-' : '') + this.tableSortField;
     this.currentPage = 1;
     this.loadAuthors();
+  }
+
+  sortIcon(field: string): string {
+    if (this.tableSortField !== field) return '↕';
+    return this.tableSortDir === 'desc' ? '↓' : '↑';
   }
 
   goPage(page: number): void {
