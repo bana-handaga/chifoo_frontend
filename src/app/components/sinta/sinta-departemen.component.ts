@@ -214,6 +214,23 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
     </div>
   </div>
 
+  <!-- ── View Bar: count + toggle grid/table ── -->
+  <div class="dp-viewbar">
+    <span class="dp-viewbar__count" *ngIf="!loading && totalCount">
+      {{ totalCount | number }} departemen<span *ngIf="hasActiveFilter()" class="dp-viewbar__filtered"> (difilter)</span>
+    </span>
+    <div class="dp-view-toggle">
+      <button class="dp-view-btn" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="Tampilan kartu">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+        <span>Kartu</span>
+      </button>
+      <button class="dp-view-btn" [class.active]="viewMode === 'table'" (click)="viewMode = 'table'" title="Tampilan tabel">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        <span>Tabel</span>
+      </button>
+    </div>
+  </div>
+
   <!-- ── Loading / Empty ── -->
   <div *ngIf="loading" class="dp-loading">
     <div class="dp-spinner"></div>
@@ -228,7 +245,7 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
   </div>
 
   <!-- ── Dept Cards Grid ── -->
-  <div class="dp-grid" *ngIf="!loading && depts.length">
+  <div class="dp-grid" *ngIf="!loading && depts.length && viewMode === 'grid'">
     <div
       class="dp-card"
       *ngFor="let d of depts"
@@ -273,6 +290,64 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
 
       <div class="dp-card__link">Lihat Detail →</div>
     </div>
+  </div>
+
+  <!-- ── Dept Table ── -->
+  <div class="dp-table-wrap" *ngIf="!loading && depts.length && viewMode === 'table'">
+    <table class="dp-table">
+      <thead>
+        <tr>
+          <th class="dp-th dp-th--no">#</th>
+          <th class="dp-th">Jenjang</th>
+          <th class="dp-th dp-th--sort" (click)="setTableSort('nama')">
+            Nama Departemen <span class="dp-sort-icon">{{ sortIcon('nama') }}</span>
+          </th>
+          <th class="dp-th dp-th--sort" (click)="setTableSort('afiliasi__nama_sinta')">
+            PT <span class="dp-sort-icon">{{ sortIcon('afiliasi__nama_sinta') }}</span>
+          </th>
+          <th class="dp-th dp-th--sort dp-th--num" (click)="setTableSort('sinta_score_overall')">
+            Skor SINTA <span class="dp-sort-icon">{{ sortIcon('sinta_score_overall') }}</span>
+          </th>
+          <th class="dp-th dp-th--sort dp-th--num" (click)="setTableSort('sinta_score_3year')">
+            3 Thn <span class="dp-sort-icon">{{ sortIcon('sinta_score_3year') }}</span>
+          </th>
+          <th class="dp-th dp-th--sort dp-th--num" (click)="setTableSort('sinta_score_productivity')">
+            Produktivitas <span class="dp-sort-icon">{{ sortIcon('sinta_score_productivity') }}</span>
+          </th>
+          <th class="dp-th dp-th--sort dp-th--num" (click)="setTableSort('jumlah_authors')">
+            Author <span class="dp-sort-icon">{{ sortIcon('jumlah_authors') }}</span>
+          </th>
+          <th class="dp-th dp-th--sort dp-th--num" (click)="setTableSort('scopus_artikel')">
+            Scopus Art. <span class="dp-sort-icon">{{ sortIcon('scopus_artikel') }}</span>
+          </th>
+          <th class="dp-th dp-th--sort dp-th--num" (click)="setTableSort('scopus_sitasi')">
+            Sitasi <span class="dp-sort-icon">{{ sortIcon('scopus_sitasi') }}</span>
+          </th>
+          <th class="dp-th"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let d of depts; let i = index" class="dp-tr" (click)="openDetail(d)">
+          <td class="dp-td dp-td--no">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+          <td class="dp-td">
+            <span class="dp-card__jenjang dp-jenjang--{{ jenjangClass(d.jenjang) }}">{{ d.jenjang || '—' }}</span>
+          </td>
+          <td class="dp-td dp-td--nama">{{ d.nama }}</td>
+          <td class="dp-td dp-td--pt">
+            <span class="dp-td-pt-singkatan">{{ d.pt_singkatan }}</span>
+          </td>
+          <td class="dp-td dp-td--num"><b>{{ d.sinta_score_overall | number }}</b></td>
+          <td class="dp-td dp-td--num">{{ d.sinta_score_3year | number }}</td>
+          <td class="dp-td dp-td--num">{{ d.sinta_score_productivity | number }}</td>
+          <td class="dp-td dp-td--num">{{ d.jumlah_authors | number }}</td>
+          <td class="dp-td dp-td--num">{{ d.scopus_artikel | number }}</td>
+          <td class="dp-td dp-td--num">{{ d.scopus_sitasi | number }}</td>
+          <td class="dp-td dp-td--action">
+            <span class="dp-table-link">Detail →</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- ── Pagination ── -->
@@ -1002,6 +1077,104 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
 }
 .dp-sinta-link:hover { background: #1e3a5f; }
 
+/* ── View Bar ── */
+.dp-viewbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+  min-height: 34px;
+}
+.dp-viewbar__count {
+  font-size: .83rem;
+  color: #64748b;
+}
+.dp-viewbar__filtered { color: #94a3b8; }
+.dp-view-toggle {
+  display: flex;
+  gap: 3px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 3px;
+}
+.dp-view-btn {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .3rem .65rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  font-size: .78rem;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.dp-view-btn:hover { background: #e2e8f0; color: #334155; }
+.dp-view-btn.active { background: #fff; color: #1e40af; box-shadow: 0 1px 3px rgba(0,0,0,.08); font-weight: 600; }
+
+/* ── Table ── */
+.dp-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 1.2rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.dp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .84rem;
+  white-space: nowrap;
+}
+.dp-th {
+  padding: .65rem .85rem;
+  background: #f8fafc;
+  color: #475569;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  text-align: left;
+  border-bottom: 1.5px solid #e2e8f0;
+  user-select: none;
+}
+.dp-th--no { width: 40px; text-align: center; color: #94a3b8; }
+.dp-th--num { text-align: right; }
+.dp-th--sort {
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.dp-th--sort:hover { background: #eff6ff; color: #1e40af; }
+.dp-sort-icon {
+  font-size: .75rem;
+  color: #94a3b8;
+  margin-left: .25rem;
+  display: inline-block;
+  width: .8em;
+}
+.dp-tr {
+  cursor: pointer;
+  transition: background .12s;
+  border-bottom: 1px solid #f1f5f9;
+}
+.dp-tr:last-child { border-bottom: none; }
+.dp-tr:hover { background: #f0f7ff; }
+.dp-tr:hover .dp-table-link { color: #1e40af; }
+.dp-td {
+  padding: .6rem .85rem;
+  color: #334155;
+  vertical-align: middle;
+}
+.dp-td--no { text-align: center; color: #94a3b8; font-size: .78rem; width: 40px; }
+.dp-td--nama { font-weight: 600; color: #1e293b; min-width: 180px; white-space: normal; }
+.dp-td--pt { min-width: 80px; }
+.dp-td--num { text-align: right; font-variant-numeric: tabular-nums; }
+.dp-td--action { width: 80px; text-align: right; }
+.dp-td-pt-singkatan { font-size: .78rem; font-weight: 600; color: #64748b; }
+.dp-table-link { font-size: .75rem; color: #3b82f6; }
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
   .dp-hero { flex-direction: column; gap: .75rem; padding: 1.2rem; }
@@ -1035,6 +1208,10 @@ export class SintaDepartemenComponent implements OnInit, OnDestroy {
   selected: DeptList | null = null;
   detail: DeptDetail | null = null;
   detailLoading = false;
+
+  viewMode: 'grid' | 'table' = 'grid';
+  tableSortField = 'sinta_score_overall';
+  tableSortDir: 'asc' | 'desc' = 'desc';
 
   private searchDelay = new Subject<void>();
   private destroy$    = new Subject<void>();
@@ -1125,19 +1302,49 @@ export class SintaDepartemenComponent implements OnInit, OnDestroy {
   // ── Filters ───────────────────────────────────────────────────────────────
 
   onSearchChange(): void { this.searchDelay.next(); }
-  onFilterChange(): void { this.currentPage = 1; this.loadDepts(); }
+  onFilterChange(): void {
+    // Sync table sort state from dropdown ordering
+    if (this.ordering.startsWith('-')) {
+      this.tableSortField = this.ordering.slice(1);
+      this.tableSortDir = 'desc';
+    } else {
+      this.tableSortField = this.ordering;
+      this.tableSortDir = 'asc';
+    }
+    this.currentPage = 1;
+    this.loadDepts();
+  }
   clearSearch(): void { this.searchQuery = ''; this.onFilterChange(); }
   hasActiveFilter(): boolean {
     return !!(this.searchQuery || this.filterPt || this.filterJenjang
               || this.ordering !== '-sinta_score_overall');
   }
   resetFilters(): void {
-    this.searchQuery   = '';
-    this.filterPt      = '';
-    this.filterJenjang = '';
-    this.ordering      = '-sinta_score_overall';
-    this.currentPage   = 1;
+    this.searchQuery    = '';
+    this.filterPt       = '';
+    this.filterJenjang  = '';
+    this.ordering       = '-sinta_score_overall';
+    this.tableSortField = 'sinta_score_overall';
+    this.tableSortDir   = 'desc';
+    this.currentPage    = 1;
     this.loadDepts();
+  }
+
+  setTableSort(field: string): void {
+    if (this.tableSortField === field) {
+      this.tableSortDir = this.tableSortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      this.tableSortField = field;
+      this.tableSortDir = 'desc';
+    }
+    this.ordering = (this.tableSortDir === 'desc' ? '-' : '') + this.tableSortField;
+    this.currentPage = 1;
+    this.loadDepts();
+  }
+
+  sortIcon(field: string): string {
+    if (this.tableSortField !== field) return '↕';
+    return this.tableSortDir === 'desc' ? '↓' : '↑';
   }
 
   // ── Pagination ────────────────────────────────────────────────────────────
