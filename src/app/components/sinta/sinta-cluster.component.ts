@@ -224,7 +224,7 @@ const CLUSTER_INFO = [
 </div>
 `,
   styles: [`
-    .sc-wrap { padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+    .sc-wrap { padding: 1.25rem 1.25rem 2rem; max-width: 1400px; margin: 0 auto; }
 
     /* Back */
     .sc-back {

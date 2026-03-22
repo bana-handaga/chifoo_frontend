@@ -30,7 +30,7 @@ function placeholderTemplate(icon: string, title: string, desc: string, color: s
 }
 
 const PH_STYLES = [`
-  .ph-wrap { padding: 1.25rem; max-width: 1100px; margin: 0 auto; }
+  .ph-wrap { padding: 1.25rem 1.25rem 2rem; max-width: 1400px; margin: 0 auto; }
   .ph-back {
     display: inline-flex; align-items: center; gap: .4rem;
     font-size: .83rem; color: #64748b; cursor: pointer;

@@ -27,6 +27,7 @@ interface SintaAfiliasi {
   lokasi_sinta:      string;
   sinta_profile_url: string;
   logo_base64:       string;
+  pt_logo:           string;
   jumlah_authors:    number;
   jumlah_departments:number;
   jumlah_journals:   number;
@@ -221,10 +222,13 @@ const INDEX_TABS = [
 
       <!-- Logo -->
       <div class="sa-logo-wrap">
-        <img *ngIf="pt.logo_base64" [src]="pt.logo_base64" [alt]="pt.pt_singkatan"
-             class="sa-logo" loading="lazy" />
-        <div *ngIf="!pt.logo_base64" class="sa-logo-ph">
-          {{ (pt.pt_singkatan || pt.singkatan_sinta || '?').substring(0,3) }}
+        <img *ngIf="pt.logo_base64 || pt.pt_logo"
+             [src]="pt.logo_base64 || pt.pt_logo"
+             [alt]="pt.pt_singkatan" class="sa-logo" loading="lazy" />
+        <div *ngIf="!pt.logo_base64 && !pt.pt_logo" class="sa-logo-ph">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+            <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+          </svg>
         </div>
       </div>
 
@@ -305,10 +309,13 @@ const INDEX_TABS = [
     <!-- Header modal -->
     <div class="sa-modal__header" [style.background]="clusterColor(selectedPt.cluster?.cluster_name || '')">
       <div class="sa-modal__logo-wrap">
-        <img *ngIf="selectedPt.logo_base64" [src]="selectedPt.logo_base64"
+        <img *ngIf="selectedPt.logo_base64 || selectedPt.pt_logo"
+             [src]="selectedPt.logo_base64 || selectedPt.pt_logo"
              class="sa-modal__logo" [alt]="selectedPt.pt_singkatan" />
-        <div *ngIf="!selectedPt.logo_base64" class="sa-modal__logo-ph">
-          {{ (selectedPt.pt_singkatan || '?').substring(0,3) }}
+        <div *ngIf="!selectedPt.logo_base64 && !selectedPt.pt_logo" class="sa-modal__logo-ph">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="36" height="36">
+            <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+          </svg>
         </div>
       </div>
       <div class="sa-modal__hinfo">
@@ -440,7 +447,7 @@ const INDEX_TABS = [
 </div><!-- /overlay -->
 `,
   styles: [`
-    .sa-wrap { padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+    .sa-wrap { padding: 1.25rem 1.25rem 2rem; max-width: 1400px; margin: 0 auto; }
 
     /* Back */
     .sa-back {
@@ -582,8 +589,8 @@ const INDEX_TABS = [
     }
     .sa-logo { width: 100%; height: 100%; object-fit: contain; }
     .sa-logo-ph {
-      font-size: .75rem; font-weight: 800; color: #94a3b8;
-      text-align: center; padding: .25rem;
+      display: flex; align-items: center; justify-content: center;
+      color: #cbd5e1; width: 100%; height: 100%;
     }
 
     /* Info */
@@ -652,7 +659,7 @@ const INDEX_TABS = [
       box-shadow: 0 2px 8px rgba(0,0,0,.15);
     }
     .sa-modal__logo    { width: 100%; height: 100%; object-fit: contain; }
-    .sa-modal__logo-ph { font-size: .8rem; font-weight: 800; color: #64748b; }
+    .sa-modal__logo-ph { display:flex; align-items:center; justify-content:center; width:100%; height:100%; color:#cbd5e1; }
     .sa-modal__hinfo   { flex: 1; color: #fff; }
     .sa-modal__pt-name { font-size: 1.15rem; font-weight: 800; line-height: 1.3; }
     .sa-modal__pt-sub  { font-size: .82rem; opacity: .85; margin-top: 3px; }

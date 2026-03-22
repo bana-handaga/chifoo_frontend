@@ -40,7 +40,6 @@ import { Router } from '@angular/router';
         <div class="sinta-card__body">
           <div class="sinta-card__title">Afiliasi Perguruan Tinggi</div>
           <div class="sinta-card__desc">Profil dan peringkat institusi PTMA di SINTA berdasarkan skor agregat publikasi dosen.</div>
-          <span class="sinta-badge sinta-badge--soon">Segera Hadir</span>
         </div>
         <div class="sinta-card__arrow">›</div>
       </div>
@@ -200,7 +199,7 @@ import { Router } from '@angular/router';
 </div>
   `,
   styles: [`
-    .page-wrap { padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+    .page-wrap { padding: 1.25rem 1.25rem 2rem; max-width: 1400px; margin: 0 auto; }
 
     /* ── Header ── */
     .sinta-header {
