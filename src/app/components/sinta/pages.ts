@@ -82,17 +82,6 @@ export class SintaAfiliasiComponent {}
 })
 export class SintaDepartemenComponent {}
 
-@Component({
-  selector: 'app-sinta-author',
-  template: placeholderTemplate(
-    '👤', 'Author / Penulis',
-    'Profil dan skor SINTA dosen PTMA sebagai penulis — terhubung ke data ProfilDosen.',
-    '#0891b2'
-  ),
-  styles: PH_STYLES
-})
-export class SintaAuthorComponent {}
-
 // ─── KELOMPOK II ──────────────────────────────────────────────────────────────
 
 @Component({
