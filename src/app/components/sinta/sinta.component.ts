@@ -63,7 +63,6 @@ import { Router } from '@angular/router';
         <div class="sinta-card__body">
           <div class="sinta-card__title">Author / Penulis</div>
           <div class="sinta-card__desc">Profil dan skor SINTA dosen PTMA sebagai penulis — terhubung ke data ProfilDosen.</div>
-          <span class="sinta-badge sinta-badge--soon">Segera Hadir</span>
         </div>
         <div class="sinta-card__arrow">›</div>
       </div>
