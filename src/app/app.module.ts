@@ -23,10 +23,12 @@ import { PendidikanTinggiComponent } from './components/pendidikan-tinggi/pendid
 import { MahasiswaTrenComponent } from './components/mahasiswa/mahasiswa-tren.component';
 import { SintaComponent } from './components/sinta/sinta.component';
 import {
-  SintaAfiliasiComponent, SintaDepartemenComponent, SintaAuthorComponent,
+  SintaDepartemenComponent, SintaAuthorComponent,
   SintaArtikelComponent, SintaPenelitianComponent, SintaPengabdianComponent,
   SintaIprComponent, SintaBukuComponent,
 } from './components/sinta/pages';
+import { SintaClusterComponent }   from './components/sinta/sinta-cluster.component';
+import { SintaAfiliasiComponent }  from './components/sinta/sinta-afiliasi.component';
 import { SintaJurnalComponent, IssnPipe } from './components/sinta/sinta-jurnal.component';
 
 import { AuthService } from './services/auth.service';
@@ -60,6 +62,7 @@ const routes: Routes = [
       { path: 'sinta/ipr',        component: SintaIprComponent },
       { path: 'sinta/buku',       component: SintaBukuComponent },
       { path: 'sinta/jurnal',     component: SintaJurnalComponent },
+      { path: 'sinta/cluster',    component: SintaClusterComponent },
     ]
   },
   { path: '**', redirectTo: '' }
@@ -79,10 +82,12 @@ const routes: Routes = [
     LayoutComponent,
     StatistikComponent,
     SintaComponent,
-    SintaAfiliasiComponent, SintaDepartemenComponent, SintaAuthorComponent,
+    SintaAfiliasiComponent,
+    SintaDepartemenComponent, SintaAuthorComponent,
     SintaArtikelComponent, SintaPenelitianComponent, SintaPengabdianComponent,
     SintaIprComponent, SintaBukuComponent,
     SintaJurnalComponent,
+    SintaClusterComponent,
     IssnPipe,
     MahasiswaTrenComponent,
   ],

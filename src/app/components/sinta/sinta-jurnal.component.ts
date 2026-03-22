@@ -171,7 +171,7 @@ import { ApiService } from '../../services/api.service';
   <!-- ═══════════════ CARD VIEW ═══════════════ -->
   <div class="journal-grid" *ngIf="!loading && journals.length > 0 && viewMode==='card'">
     <div class="journal-card" [class]="'journal-card journal-card--' + j.akreditasi.toLowerCase()" *ngFor="let j of journals" (click)="openDetail(j)">
-      <!-- Logo + Grade -->
+      <!-- Logo -->
       <div class="jc-logo-wrap">
         <img *ngIf="j.logo_base64" [src]="j.logo_base64" class="jc-logo" [alt]="j.nama" (error)="onLogoError($event)"/>
         <div class="jc-logo jc-logo--placeholder" *ngIf="!j.logo_base64">
@@ -179,7 +179,6 @@ import { ApiService } from '../../services/api.service';
             <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
           </svg>
         </div>
-        <span class="jc-grade" [class]="'jc-grade--' + j.akreditasi.toLowerCase()">{{ j.akreditasi }}</span>
       </div>
       <!-- Body -->
       <div class="jc-body">
@@ -206,6 +205,7 @@ import { ApiService } from '../../services/api.service';
           <span class="jc-badge jc-badge--garuda" *ngIf="j.is_garuda">Garuda</span>
         </div>
         <div class="jc-links" (click)="$event.stopPropagation()">
+
           <a *ngIf="j.url_website && j.url_website !== '#!'" [href]="j.url_website" target="_blank" class="jc-link jc-link--web" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
             Web
@@ -219,6 +219,11 @@ import { ApiService } from '../../services/api.service';
             Garuda
           </a>
         </div>
+      </div>
+      <!-- FAB Akreditasi -->
+      <div class="jc-grade-fab" [class]="'jc-grade-fab--' + j.akreditasi.toLowerCase()">
+        <span class="jc-grade-fab__val">{{ j.akreditasi }}</span>
+        <span class="jc-grade-fab__lbl">Akred.</span>
       </div>
     </div>
   </div>
@@ -342,7 +347,6 @@ import { ApiService } from '../../services/api.service';
               </svg>
             </div>
           </div>
-          <span class="modal-grade-badge" [class]="'jc-grade--' + selectedJournal.akreditasi.toLowerCase()">{{ selectedJournal.akreditasi }}</span>
           <div class="modal-index-badges">
             <span class="jc-badge jc-badge--scopus" *ngIf="selectedJournal.is_scopus">Scopus</span>
             <span class="jc-badge jc-badge--garuda" *ngIf="selectedJournal.is_garuda">Garuda</span>
@@ -362,6 +366,11 @@ import { ApiService } from '../../services/api.service';
             <span *ngIf="selectedJournal.e_issn" class="modal-issn-item"><em>E-ISSN</em> {{ selectedJournal.e_issn | issn }}</span>
           </div>
           <div class="modal-sinta-id" *ngIf="selectedJournal.sinta_id">SINTA ID: {{ selectedJournal.sinta_id }}</div>
+        </div>
+        <!-- FAB Akreditasi -->
+        <div class="modal-grade-fab" [class]="'modal-grade-fab--' + selectedJournal.akreditasi.toLowerCase()">
+          <span class="modal-grade-fab__val">{{ selectedJournal.akreditasi }}</span>
+          <span class="modal-grade-fab__lbl">Akreditasi</span>
         </div>
       </div>
 
@@ -594,9 +603,24 @@ import { ApiService } from '../../services/api.service';
       background: #fff; border: 1px solid #e2e8f0;
       border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
       transition: box-shadow .15s, border-color .15s;
-      min-width: 0; overflow: hidden;
+      min-width: 0; overflow: hidden; align-items: flex-start;
     }
     .journal-card:hover { box-shadow: 0 4px 14px rgba(8,145,178,.12); border-color: #a5f3fc; cursor: pointer; }
+    /* FAB Akreditasi card */
+    .jc-grade-fab {
+      flex-shrink: 0; align-self: center;
+      width: 72px; height: 72px; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    }
+    .jc-grade-fab__val { font-size: 1.6rem; font-weight: 900; line-height: 1; }
+    .jc-grade-fab__lbl { font-size: .55rem; font-weight: 700; opacity: .85; margin-top: 1px; letter-spacing: .05em; text-transform: uppercase; }
+    .jc-grade-fab--s1 { background: linear-gradient(135deg,#7c3aed,#5b21b6); color:#fff; }
+    .jc-grade-fab--s2 { background: linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; }
+    .jc-grade-fab--s3 { background: linear-gradient(135deg,#0891b2,#0e7490); color:#fff; }
+    .jc-grade-fab--s4 { background: linear-gradient(135deg,#059669,#047857); color:#fff; }
+    .jc-grade-fab--s5 { background: linear-gradient(135deg,#d97706,#b45309); color:#fff; }
+    .jc-grade-fab--s6 { background: linear-gradient(135deg,#dc2626,#b91c1c); color:#fff; }
     /* Warna card tipis sesuai akreditasi */
     .journal-card--s1 { background: #f5f3ff; border-color: #ddd6fe; }
     .journal-card--s2 { background: #eff6ff; border-color: #bfdbfe; }
@@ -778,8 +802,24 @@ import { ApiService } from '../../services/api.service';
       width: auto; height: auto; object-fit: contain;
     }
     .modal-logo-ph { color: #cbd5e1; }
-    .modal-grade-badge { font-size: .88rem; font-weight: 800; padding: 3px 14px; border-radius: 8px; }
     .modal-index-badges { display: flex; gap: .3rem; justify-content: center; flex-wrap: wrap; }
+    /* FAB Akreditasi */
+    .modal-grade-fab {
+      flex-shrink: 0; align-self: center;
+      width: 88px; height: 88px; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,.22);
+      transition: transform .15s;
+    }
+    .modal-grade-fab:hover { transform: scale(1.06); }
+    .modal-grade-fab__val { font-size: 2rem; font-weight: 900; line-height: 1; }
+    .modal-grade-fab__lbl { font-size: .62rem; font-weight: 600; opacity: .85; margin-top: 2px; letter-spacing: .04em; text-transform: uppercase; }
+    .modal-grade-fab--s1 { background: linear-gradient(135deg,#7c3aed,#5b21b6); color:#fff; }
+    .modal-grade-fab--s2 { background: linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; }
+    .modal-grade-fab--s3 { background: linear-gradient(135deg,#0891b2,#0e7490); color:#fff; }
+    .modal-grade-fab--s4 { background: linear-gradient(135deg,#059669,#047857); color:#fff; }
+    .modal-grade-fab--s5 { background: linear-gradient(135deg,#d97706,#b45309); color:#fff; }
+    .modal-grade-fab--s6 { background: linear-gradient(135deg,#dc2626,#b91c1c); color:#fff; }
     .modal-info-col { flex: 1; min-width: 0; padding-top: .2rem; }
     .modal-jname { font-size: 1.05rem; font-weight: 800; color: #0f172a; line-height: 1.35; margin: 0 0 .5rem; }
     .modal-pt-row { display: flex; align-items: baseline; gap: .4rem; margin-bottom: .2rem; flex-wrap: wrap; }
