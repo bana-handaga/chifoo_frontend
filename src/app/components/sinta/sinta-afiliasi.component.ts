@@ -4,7 +4,8 @@ import { Subject, forkJoin } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
-const API = environment.apiUrl;
+const API      = environment.apiUrl;
+const MEDIA    = (environment as any).mediaUrl ?? '';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ClusterMin {
@@ -222,10 +223,9 @@ const INDEX_TABS = [
 
       <!-- Logo -->
       <div class="sa-logo-wrap">
-        <img *ngIf="pt.logo_base64 || pt.pt_logo"
-             [src]="pt.logo_base64 || pt.pt_logo"
+        <img *ngIf="logoSrc(pt)" [src]="logoSrc(pt)"
              [alt]="pt.pt_singkatan" class="sa-logo" loading="lazy" />
-        <div *ngIf="!pt.logo_base64 && !pt.pt_logo" class="sa-logo-ph">
+        <div *ngIf="!logoSrc(pt)" class="sa-logo-ph">
           <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
             <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
           </svg>
@@ -309,10 +309,9 @@ const INDEX_TABS = [
     <!-- Header modal -->
     <div class="sa-modal__header" [style.background]="clusterColor(selectedPt.cluster?.cluster_name || '')">
       <div class="sa-modal__logo-wrap">
-        <img *ngIf="selectedPt.logo_base64 || selectedPt.pt_logo"
-             [src]="selectedPt.logo_base64 || selectedPt.pt_logo"
+        <img *ngIf="logoSrc(selectedPt)" [src]="logoSrc(selectedPt)"
              class="sa-modal__logo" [alt]="selectedPt.pt_singkatan" />
-        <div *ngIf="!selectedPt.logo_base64 && !selectedPt.pt_logo" class="sa-modal__logo-ph">
+        <div *ngIf="!logoSrc(selectedPt)" class="sa-modal__logo-ph">
           <svg viewBox="0 0 24 24" fill="currentColor" width="36" height="36">
             <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
           </svg>
@@ -867,6 +866,12 @@ export class SintaAfiliasiComponent implements OnInit, OnDestroy {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+  logoSrc(pt: SintaAfiliasi): string {
+    if (pt.logo_base64) return pt.logo_base64;
+    if (pt.pt_logo)     return MEDIA + pt.pt_logo;
+    return '';
+  }
+
   clusterColor(name: string) { return CLUSTER_META[name]?.color ?? '#94a3b8'; }
   clusterBg(name: string)    { return CLUSTER_META[name]?.bg    ?? '#f8fafc'; }
   clusterLabel(name: string) { return CLUSTER_META[name]?.label ?? name; }
