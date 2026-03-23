@@ -573,25 +573,30 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
   `,
   styles: [`
     .sa-wrap {
-      max-width: 1100px;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: 20px 16px 60px;
+      padding: 1.25rem 1.25rem 2rem;
       font-family: inherit;
     }
     .sa-back {
       display: inline-flex; align-items: center; gap: 4px;
-      color: #6b7280; font-size: 13px; cursor: pointer; margin-bottom: 16px;
+      color: #6b7280; font-size: 13px; cursor: pointer; margin-bottom: 1rem;
       &:hover { color: #1d4ed8; }
     }
 
     /* Header */
     .sa-header {
-      display: flex; align-items: center; gap: 16px;
-      margin-bottom: 24px;
+      display: flex; align-items: flex-start; gap: 1rem;
+      margin-bottom: 2rem;
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      border-radius: 14px;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(29,78,216,.3);
     }
-    .sa-header__icon { font-size: 36px; }
-    .sa-header__title { font-size: 22px; font-weight: 700; color: #111827; margin: 0 0 4px; }
-    .sa-header__sub { font-size: 13px; color: #6b7280; margin: 0; }
+    .sa-header__icon { font-size: 2.25rem; flex-shrink: 0; opacity: .9; margin-top: 2px; }
+    .sa-header__title { font-size: 1.5rem; font-weight: 800; color: #fff; margin: 0 0 .35rem; }
+    .sa-header__sub { font-size: .875rem; color: rgba(255,255,255,.9); margin: 0; line-height: 1.55; }
 
     /* Loading */
     .sa-stats-loading {
@@ -637,32 +642,34 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
 
     /* Cards */
     .sa-cards {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
-      margin-bottom: 24px;
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: .75rem;
+      margin-bottom: 1.75rem;
     }
     @media (max-width: 900px) { .sa-cards { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 600px) { .sa-cards { grid-template-columns: repeat(2, 1fr); } }
     .sa-card {
-      border-radius: 10px; padding: 14px 16px;
+      border-radius: 12px; padding: 1rem 1.1rem;
       border-left: 4px solid transparent;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
     }
     .sa-card--blue   { background: #eff6ff; border-color: #3b82f6; }
     .sa-card--green  { background: #f0fdf4; border-color: #22c55e; }
     .sa-card--purple { background: #faf5ff; border-color: #a855f7; }
     .sa-card--orange { background: #fff7ed; border-color: #f97316; }
     .sa-card--teal   { background: #f0fdfa; border-color: #14b8a6; }
-    .sa-card__val  { font-size: 22px; font-weight: 700; color: #111827; }
-    .sa-card__lbl  { font-size: 12px; font-weight: 600; color: #374151; margin: 2px 0; }
-    .sa-card__note { font-size: 11px; color: #9ca3af; }
+    .sa-card__val  { font-size: 1.375rem; font-weight: 700; color: #111827; }
+    .sa-card__lbl  { font-size: .75rem; font-weight: 600; color: #374151; margin: 2px 0; }
+    .sa-card__note { font-size: .6875rem; color: #9ca3af; }
 
     /* Accordion */
     .sa-accordion {
-      border: 1px solid #e5e7eb; border-radius: 10px;
-      margin-bottom: 16px; overflow: hidden; background: #fff;
+      border: 1px solid #e5e7eb; border-radius: 12px;
+      margin-bottom: 1rem; overflow: hidden; background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
     }
     .sa-accordion__header {
-      width: 100%; display: flex; align-items: center; gap: 10px;
-      padding: 14px 18px; background: #f9fafb; border: none; cursor: pointer;
+      width: 100%; display: flex; align-items: center; gap: .625rem;
+      padding: .875rem 1.125rem; background: #f9fafb; border: none; cursor: pointer;
       border-bottom: 1px solid transparent; transition: background .15s;
       &:hover { background: #f3f4f6; }
     }
@@ -671,11 +678,11 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
     }
     .sa-accordion__icon { color: #6b7280; flex-shrink: 0; }
     .sa-accordion__title {
-      flex: 1; text-align: left; font-size: 14px; font-weight: 700;
-      color: #111827; display: flex; align-items: center; gap: 8px;
+      flex: 1; text-align: left; font-size: .9rem; font-weight: 700;
+      color: #1e293b; display: flex; align-items: center; gap: .5rem;
     }
     .sa-accordion__badge {
-      font-size: 11px; font-weight: 600; background: #dbeafe;
+      font-size: .688rem; font-weight: 600; background: #dbeafe;
       color: #1d4ed8; padding: 2px 8px; border-radius: 20px;
     }
     .sa-accordion__chevron {
@@ -683,22 +690,22 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
     }
     .sa-accordion--open .sa-accordion__chevron { transform: rotate(180deg); }
     .sa-accordion__body {
-      display: none; padding: 16px;
+      display: none; padding: 1rem;
     }
     .sa-accordion--open .sa-accordion__body { display: block; }
 
     /* Section */
     .sa-section {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
-      padding: 20px; margin-bottom: 16px;
+      padding: 1.25rem; margin-bottom: 1rem;
     }
     .sa-accordion__body .sa-section:last-child { margin-bottom: 0; }
     .sa-section__head {
-      display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+      display: flex; align-items: baseline; gap: .625rem; margin-bottom: .875rem;
     }
-    .sa-section__title { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 14px; }
+    .sa-section__title { font-size: .9375rem; font-weight: 700; color: #1e293b; margin: 0 0 .875rem; }
     .sa-section__head .sa-section__title { margin: 0; }
-    .sa-section__note { font-size: 12px; color: #9ca3af; }
+    .sa-section__note { font-size: .75rem; color: #9ca3af; }
 
     /* Tren tabs */
     .sa-tren-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
