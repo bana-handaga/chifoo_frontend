@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Subject } from 'rxjs';
-import { takeUntil, finalize } from 'rxjs/operators';
+import { takeUntil, finalize, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 
@@ -47,11 +47,23 @@ interface StatsResponse {
   top_author: TopAuthor[];
 }
 
+interface PenulisPtma { author_id: number; nama: string; sinta_id: string; pt_singkatan: string; urutan_penulis: number; total_penulis: number; }
+interface AuthorProfile {
+  id: number; sinta_id: string; nama: string; foto_url: string; url_profil: string;
+  pt_singkatan: string; dept_nama: string; dept_jenjang: string;
+  bidang_keilmuan: string[];
+  sinta_score_overall: number; sinta_score_3year: number;
+  scopus_artikel: number; scopus_sitasi: number; scopus_h_index: number;
+  scopus_q1: number; scopus_q2: number; scopus_q3: number; scopus_q4: number; scopus_noq: number;
+  gscholar_artikel: number; gscholar_sitasi: number; gscholar_h_index: number;
+  wos_artikel: number; wos_sitasi: number; wos_h_index: number;
+}
 interface Artikel {
   id: number; eid: string; judul: string;
   tahun: number | null; sitasi: number; kuartil: string;
   jurnal_nama: string; jurnal_url: string; scopus_url: string;
   urutan_penulis: number | null; total_penulis: number | null; nama_singkat: string | null;
+  penulis_ptma: PenulisPtma[];
 }
 
 interface ArtikelResponse { count: number; page: number; page_size: number; results: Artikel[]; }
@@ -304,6 +316,26 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
           <button class="sa-btn-search" (click)="loadArtikels(true)">Cari</button>
         </div>
 
+        <!-- Filter Author -->
+        <div class="sa-author-filter">
+          <div class="sa-author-input-wrap">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" class="sa-author-icon"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            <input class="sa-author-search" type="text" placeholder="Filter by author…"
+                   [value]="filterAuthorNama || ''"
+                   [readonly]="!!filterAuthorId"
+                   (input)="!filterAuthorId && authorSearchInput$.next($any($event.target).value)"
+                   (keydown.escape)="clearAuthorFilter()">
+            <span class="sa-author-clear" *ngIf="filterAuthorId" (click)="clearAuthorFilter()">✕</span>
+            <span class="sa-author-loading" *ngIf="authorSuggestLoading">…</span>
+          </div>
+          <div class="sa-author-dropdown" *ngIf="authorSuggest.length > 0">
+            <div class="sa-author-option" *ngFor="let a of authorSuggest" (click)="selectAuthor(a)">
+              <span class="sa-author-opt-nama">{{ a.nama }}</span>
+              <span class="sa-author-opt-pt">{{ a.pt_singkatan }}</span>
+            </div>
+          </div>
+        </div>
+
         <div class="sa-list-loading" *ngIf="listLoading"><div class="sa-spinner"></div> Memuat…</div>
         <div class="sa-list-empty" *ngIf="!listLoading && artikels.length === 0">Tidak ada artikel ditemukan.</div>
 
@@ -327,6 +359,12 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
               </span>
               <span class="sa-meta-chip" *ngIf="a.eid">EID: {{ a.eid }}</span>
             </div>
+            <div class="sa-artikel-penulis" *ngIf="a.penulis_ptma?.length">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+              <ng-container *ngFor="let p of a.penulis_ptma; let last = last">
+                <span class="sa-penulis-link" (click)="openAuthorPopup(p.author_id)">{{ p.nama }}<span class="sa-penulis-pt" *ngIf="p.pt_singkatan"> ({{ p.pt_singkatan }})</span></span><ng-container *ngIf="!last">, </ng-container>
+              </ng-container>
+            </div>
           </div>
         </div>
 
@@ -347,12 +385,12 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
       </span>
       <span class="sa-accordion__title">Analisis Aktivitas Riset PTMA</span>
       <span class="sa-accordion__badge">ML · TF-IDF · LDA</span>
-      <!-- Tombol regenerasi — hanya untuk admin -->
+      <!-- Tombol regenerasi — bebas untuk semua user -->
       <button class="sa-riset-regen-btn"
-              *ngIf="isAdminUser && acc3Open"
+              *ngIf="acc3Open"
               [disabled]="risetRegenerating"
               (click)="$event.stopPropagation(); regenerateRiset()"
-              [title]="risetRegenerating ? 'Sedang memproses…' : 'Jalankan analisis ulang (admin)'">
+              [title]="risetRegenerating ? 'Sedang memproses…' : 'Perbarui Analisis'">
         <svg *ngIf="!risetRegenerating" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
           <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
         </svg>
@@ -381,7 +419,7 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
         <div>
           <strong>Analisis belum tersedia</strong>
-          <span>Hubungi administrator untuk menjalankan analisis riset.</span>
+          <span>Klik <em>Perbarui Analisis</em> di atas untuk memulai (~10 detik).</span>
         </div>
       </div>
 
@@ -510,7 +548,7 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
                 {{ t.deskripsi }}
               </div>
               <div class="sa-topic-card__desc sa-topic-card__desc--empty" *ngIf="!t.deskripsi">
-                <em>Deskripsi sedang dibuat…</em>
+                <em>Deskripsi belum tersedia. Admin dapat memperbarui analisis untuk menghasilkan deskripsi.</em>
               </div>
               <!-- Kata kunci -->
               <div class="sa-topic-card__keywords">
@@ -569,6 +607,78 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
     </div>
   </div><!-- /accordion 3 -->
 
+</div>
+
+<!-- ── Author Popup ── -->
+<div class="ap-overlay" *ngIf="authorPopup || authorPopupLoading" (click)="closeAuthorPopup()">
+  <div class="ap-popup" (click)="$event.stopPropagation()">
+
+    <!-- Loading -->
+    <div class="ap-loading" *ngIf="authorPopupLoading && !authorPopup">
+      <div class="sa-spinner"></div>
+    </div>
+
+    <ng-container *ngIf="authorPopup as p">
+      <!-- Header -->
+      <button class="ap-close" (click)="closeAuthorPopup()">✕</button>
+      <div class="ap-header">
+        <img class="ap-foto" [src]="p.foto_url || 'assets/avatar.png'" (error)="$any($event.target).src='assets/avatar.png'" alt="">
+        <div class="ap-header-info">
+          <div class="ap-nama">{{ p.nama }}</div>
+          <div class="ap-dept">{{ p.dept_jenjang }} {{ p.dept_nama }}</div>
+          <div class="ap-pt">{{ p.pt_singkatan }}</div>
+          <div class="ap-tags">
+            <span class="ap-tag" *ngFor="let b of p.bidang_keilmuan">{{ b }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SINTA Score -->
+      <div class="ap-section">
+        <div class="ap-score-row">
+          <div class="ap-score-box ap-score-box--blue">
+            <div class="ap-score-val">{{ p.sinta_score_overall | number }}</div>
+            <div class="ap-score-lbl">SINTA Score</div>
+          </div>
+          <div class="ap-score-box ap-score-box--sky">
+            <div class="ap-score-val">{{ p.sinta_score_3year | number }}</div>
+            <div class="ap-score-lbl">3 Tahun</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats tabel -->
+      <div class="ap-section">
+        <table class="ap-table">
+          <thead><tr><th>Sumber</th><th>Artikel</th><th>Sitasi</th><th>H-index</th></tr></thead>
+          <tbody>
+            <tr><td><span class="ap-src ap-src--scopus">Scopus</span></td><td>{{ p.scopus_artikel | number }}</td><td>{{ p.scopus_sitasi | number }}</td><td>{{ p.scopus_h_index }}</td></tr>
+            <tr><td><span class="ap-src ap-src--gs">G.Scholar</span></td><td>{{ p.gscholar_artikel | number }}</td><td>{{ p.gscholar_sitasi | number }}</td><td>{{ p.gscholar_h_index }}</td></tr>
+            <tr><td><span class="ap-src ap-src--wos">WoS</span></td><td>{{ p.wos_artikel | number }}</td><td>{{ p.wos_sitasi | number }}</td><td>{{ p.wos_h_index }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Distribusi kuartil -->
+      <div class="ap-section">
+        <div class="ap-kuartil-lbl">Distribusi Kuartil Scopus</div>
+        <div class="ap-kuartil-row">
+          <div class="ap-q-item" *ngIf="p.scopus_q1 > 0"><span class="sa-qbadge sa-qbadge--q1">Q1</span><span class="ap-q-val">{{ p.scopus_q1 }}</span></div>
+          <div class="ap-q-item" *ngIf="p.scopus_q2 > 0"><span class="sa-qbadge sa-qbadge--q2">Q2</span><span class="ap-q-val">{{ p.scopus_q2 }}</span></div>
+          <div class="ap-q-item" *ngIf="p.scopus_q3 > 0"><span class="sa-qbadge sa-qbadge--q3">Q3</span><span class="ap-q-val">{{ p.scopus_q3 }}</span></div>
+          <div class="ap-q-item" *ngIf="p.scopus_q4 > 0"><span class="sa-qbadge sa-qbadge--q4">Q4</span><span class="ap-q-val">{{ p.scopus_q4 }}</span></div>
+          <div class="ap-q-item" *ngIf="p.scopus_noq > 0"><span class="sa-qbadge sa-qbadge--noq">NoQ</span><span class="ap-q-val">{{ p.scopus_noq }}</span></div>
+        </div>
+      </div>
+
+      <!-- Link -->
+      <div class="ap-footer">
+        <a [href]="p.url_profil" target="_blank" rel="noopener" class="ap-link">
+          Profil SINTA lengkap ↗
+        </a>
+      </div>
+    </ng-container>
+  </div>
 </div>
   `,
   styles: [`
@@ -844,6 +954,101 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
       background: #eff6ff; color: #1d4ed8;
       display: inline-flex; align-items: center; gap: 3px;
     }
+    .sa-artikel-penulis {
+      font-size: 11px; color: #6b7280; display: flex; align-items: center;
+      gap: 4px; margin-top: 3px; flex-wrap: wrap;
+    }
+    /* ── Author filter ── */
+    .sa-author-filter { position: relative; margin-top: 8px; max-width: 320px; }
+    .sa-author-input-wrap {
+      display: flex; align-items: center; gap: 6px;
+      border: 1px solid #d1d5db; border-radius: 8px;
+      padding: 0 10px; background: #fff; height: 34px;
+    }
+    .sa-author-input-wrap:focus-within { border-color: #2563eb; box-shadow: 0 0 0 2px #dbeafe; }
+    .sa-author-icon { color: #9ca3af; flex-shrink: 0; }
+    .sa-author-search {
+      flex: 1; border: none; outline: none; font-size: 12px; color: #111827;
+      background: transparent; min-width: 0;
+    }
+    .sa-author-search[readonly] { color: #2563eb; font-weight: 500; }
+    .sa-author-clear {
+      cursor: pointer; color: #9ca3af; font-size: 12px; line-height: 1;
+      flex-shrink: 0;
+    }
+    .sa-author-clear:hover { color: #ef4444; }
+    .sa-author-loading { font-size: 11px; color: #9ca3af; }
+    .sa-author-dropdown {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 100;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.1); max-height: 240px; overflow-y: auto;
+    }
+    .sa-author-option {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; cursor: pointer; gap: 8px;
+    }
+    .sa-author-option:hover { background: #f0f9ff; }
+    .sa-author-opt-nama { font-size: 12px; font-weight: 500; color: #111827; }
+    .sa-author-opt-pt   { font-size: 11px; color: #6b7280; white-space: nowrap; }
+
+    .sa-penulis-link {
+      cursor: pointer; color: #2563eb; font-weight: 500;
+      text-decoration: underline dotted; transition: color .15s;
+    }
+    .sa-penulis-link:hover { color: #1d4ed8; text-decoration: underline; }
+    .sa-penulis-pt { font-weight: 400; color: #9ca3af; }
+
+    /* ── Author Popup ── */
+    .ap-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 1000; display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .ap-popup {
+      background: #fff; border-radius: 14px; width: 100%; max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25); padding: 20px;
+      position: relative; max-height: 90vh; overflow-y: auto;
+    }
+    .ap-close {
+      position: absolute; top: 12px; right: 14px; border: none; background: none;
+      font-size: 16px; color: #9ca3af; cursor: pointer; line-height: 1;
+    }
+    .ap-close:hover { color: #111; }
+    .ap-loading { display: flex; justify-content: center; padding: 32px; }
+    .ap-header { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+    .ap-foto {
+      width: 60px; height: 60px; border-radius: 50%; object-fit: cover;
+      border: 2px solid #e5e7eb; flex-shrink: 0;
+    }
+    .ap-nama { font-size: 14px; font-weight: 700; color: #111827; line-height: 1.3; }
+    .ap-dept { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .ap-pt   { font-size: 12px; font-weight: 600; color: #2563eb; margin-top: 2px; }
+    .ap-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .ap-tag  { font-size: 10px; background: #f0fdf4; color: #15803d; border-radius: 4px; padding: 2px 6px; }
+    .ap-section { border-top: 1px solid #f3f4f6; padding-top: 10px; margin-bottom: 10px; }
+    .ap-score-row { display: flex; gap: 8px; }
+    .ap-score-box {
+      flex: 1; border-radius: 8px; padding: 8px 12px; text-align: center;
+    }
+    .ap-score-box--blue { background: #eff6ff; }
+    .ap-score-box--sky  { background: #f0f9ff; }
+    .ap-score-val { font-size: 18px; font-weight: 700; color: #1e40af; }
+    .ap-score-lbl { font-size: 10px; color: #6b7280; margin-top: 1px; }
+    .ap-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ap-table th { text-align: left; color: #9ca3af; font-weight: 500; padding: 3px 6px; border-bottom: 1px solid #f3f4f6; }
+    .ap-table td { padding: 4px 6px; color: #111827; }
+    .ap-table tr:nth-child(even) td { background: #f9fafb; }
+    .ap-src { font-size: 10px; padding: 2px 5px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+    .ap-src--scopus { background: #fef3c7; color: #92400e; }
+    .ap-src--gs     { background: #dbeafe; color: #1e40af; }
+    .ap-src--wos    { background: #ede9fe; color: #5b21b6; }
+    .ap-kuartil-lbl { font-size: 11px; color: #6b7280; margin-bottom: 6px; }
+    .ap-kuartil-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ap-q-item { display: flex; align-items: center; gap: 4px; }
+    .ap-q-val  { font-size: 12px; font-weight: 600; color: #374151; }
+    .ap-footer { border-top: 1px solid #f3f4f6; padding-top: 10px; text-align: center; }
+    .ap-link   { font-size: 12px; color: #2563eb; text-decoration: none; }
+    .ap-link:hover { text-decoration: underline; }
 
     /* Pagination */
     .sa-pagination {
@@ -1063,9 +1268,35 @@ export class SintaArtikelComponent implements OnInit, OnDestroy {
   filterTahunMax: number | null = null;
   filterOrdering = '-sitasi';
 
+  // Filter author
+  filterAuthorId: number | null = null;
+  filterAuthorNama = '';
+  authorSuggest: {id: number; nama: string; pt_singkatan: string}[] = [];
+  authorSearchInput$ = new Subject<string>();
+  authorSuggestLoading = false;
+
   isAdminUser = false;
 
+  // Author popup
+  authorPopup: AuthorProfile | null = null;
+  authorPopupLoading = false;
+
   constructor(private http: HttpClient, public auth: AuthService) {}
+
+  openAuthorPopup(authorId: number): void {
+    this.authorPopup = null;
+    this.authorPopupLoading = true;
+    this.http.get<AuthorProfile>(`${API}/sinta-author/${authorId}/`)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: p => { this.authorPopup = p; this.authorPopupLoading = false; },
+        error: ()  => { this.authorPopupLoading = false; },
+      });
+  }
+
+  closeAuthorPopup(): void { this.authorPopup = null; this.authorPopupLoading = false; }
+
+  totalScopusQ(p: AuthorProfile): number { return p.scopus_q1 + p.scopus_q2 + p.scopus_q3 + p.scopus_q4 + p.scopus_noq; }
 
   ngOnInit(): void {
     // Subscribe ke perubahan user (termasuk setelah refreshCurrentUser async)
@@ -1078,6 +1309,18 @@ export class SintaArtikelComponent implements OnInit, OnDestroy {
     });
     this.loadStats();
     this.loadArtikels(true);
+
+    // Autocomplete author
+    this.authorSearchInput$.pipe(
+      takeUntil(this.destroy$),
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(q => {
+        if (q.length < 2) { this.authorSuggest = []; return []; }
+        this.authorSuggestLoading = true;
+        return this.http.get<any>(`${API}/sinta-author/`, { params: { search: q, page_size: '8' } });
+      }),
+    ).subscribe({ next: r => { this.authorSuggest = r?.results ?? []; this.authorSuggestLoading = false; }, error: () => { this.authorSuggestLoading = false; } });
   }
 
   ngOnDestroy(): void {
@@ -1090,7 +1333,11 @@ export class SintaArtikelComponent implements OnInit, OnDestroy {
     this.risetLoading = true;
     this.risetNotReady = false;
     this.http.get<RisetAnalisis>(`${API}/sinta-scopus-artikel/riset-analisis/`)
-      .pipe(takeUntil(this.destroy$), finalize(() => { this.risetLoading = false; this.risetLoaded = true; }))
+      .pipe(takeUntil(this.destroy$), finalize(() => {
+        this.risetLoading = false;
+        this.risetLoaded = true;
+        this.risetRegenerating = false;
+      }))
       .subscribe({ next: d => {
         if (!(d as any).ready) { this.risetNotReady = true; return; }
         this.riset = d;
@@ -1100,18 +1347,18 @@ export class SintaArtikelComponent implements OnInit, OnDestroy {
   }
 
   regenerateRiset(): void {
-    if (!this.isAdminUser || this.risetRegenerating) return;
+    if (this.risetRegenerating) return;
     this.risetRegenerating = true;
     this.risetLoaded = false;
     this.riset = null;
     this.risetNotReady = false;
-    this.http.post<RisetAnalisis>(`${API}/sinta-scopus-artikel/riset-analisis/`, {})
-      .pipe(takeUntil(this.destroy$), finalize(() => { this.risetRegenerating = false; this.risetLoaded = true; }))
-      .subscribe({ next: d => {
-        this.riset = d;
-        const yrs = Object.keys(d.trending_by_year).sort();
-        this.risetYearSel = yrs[yrs.length - 2] || yrs[yrs.length - 1] || '2023';
-      }, error: () => {} });
+    // POST hanya hapus cache (cepat), lalu GET untuk generate + ambil hasil baru
+    this.http.post(`${API}/sinta-scopus-artikel/riset-analisis/`, {})
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => { this.loadRiset(); },
+        error: () => { this.risetRegenerating = false; this.risetLoaded = true; }
+      });
   }
 
   loadStats(): void {
@@ -1119,6 +1366,20 @@ export class SintaArtikelComponent implements OnInit, OnDestroy {
     this.http.get<StatsResponse>(`${API}/sinta-scopus-artikel/stats/`)
       .pipe(takeUntil(this.destroy$), finalize(() => this.statsLoading = false))
       .subscribe({ next: d => this.stats = d, error: () => {} });
+  }
+
+  selectAuthor(a: {id: number; nama: string; pt_singkatan: string}): void {
+    this.filterAuthorId  = a.id;
+    this.filterAuthorNama = `${a.nama} (${a.pt_singkatan})`;
+    this.authorSuggest   = [];
+    this.loadArtikels(true);
+  }
+
+  clearAuthorFilter(): void {
+    this.filterAuthorId   = null;
+    this.filterAuthorNama = '';
+    this.authorSuggest    = [];
+    this.loadArtikels(true);
   }
 
   loadArtikels(reset: boolean, page?: number): void {
@@ -1130,10 +1391,11 @@ export class SintaArtikelComponent implements OnInit, OnDestroy {
       .set('page', this.currentPage.toString())
       .set('page_size', this.pageSize.toString())
       .set('ordering', this.filterOrdering);
-    if (this.filterSearch)   params = params.set('search', this.filterSearch);
-    if (this.filterKuartil)  params = params.set('kuartil', this.filterKuartil);
-    if (this.filterTahunMin) params = params.set('tahun__gte', this.filterTahunMin.toString());
-    if (this.filterTahunMax) params = params.set('tahun__lte', this.filterTahunMax.toString());
+    if (this.filterSearch)    params = params.set('search', this.filterSearch);
+    if (this.filterKuartil)   params = params.set('kuartil', this.filterKuartil);
+    if (this.filterTahunMin)  params = params.set('tahun__gte', this.filterTahunMin.toString());
+    if (this.filterTahunMax)  params = params.set('tahun__lte', this.filterTahunMax.toString());
+    if (this.filterAuthorId)  params = params.set('artikel_authors__author', this.filterAuthorId.toString());
 
     this.http.get<ArtikelResponse>(`${API}/sinta-scopus-artikel/`, { params })
       .pipe(takeUntil(this.destroy$), finalize(() => this.listLoading = false))
