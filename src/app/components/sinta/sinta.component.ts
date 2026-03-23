@@ -87,7 +87,6 @@ import { Router } from '@angular/router';
         <div class="sinta-card__body">
           <div class="sinta-card__title">Artikel Ilmiah</div>
           <div class="sinta-card__desc">Publikasi jurnal nasional dan internasional dosen PTMA — terindeks Scopus, WoS, DOAJ, dan lainnya.</div>
-          <span class="sinta-badge sinta-badge--soon">Segera Hadir</span>
         </div>
         <div class="sinta-card__arrow">›</div>
       </div>

@@ -3,12 +3,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, finalize, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import * as XLSX from 'xlsx';
 
 const API = environment.apiUrl;
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
-interface TrendScopusItem { tahun: number; jumlah: number; }
+interface TrendScopusItem  { tahun: number; jumlah: number; }
+interface TrendGscholarItem { tahun: number; pub: number; cite: number; }
 
 interface TopAuthor {
   id: number;
@@ -67,6 +69,7 @@ interface DeptDetail extends DeptList {
   research_articles: number;
   research_others: number;
   trend_scopus: TrendScopusItem[];
+  trend_gscholar: TrendGscholarItem[];
   top_authors: TopAuthor[];
   bidang_distribution: { bidang: string; jumlah: number }[];
   author_stats: AuthorStats;
@@ -83,6 +86,19 @@ interface DeptStats {
 interface PtOption {
   kode: string;
   singkatan: string;
+}
+
+interface PtSummary {
+  sinta_kode: string;
+  nama_sinta: string;
+  singkatan_sinta: string;
+  scopus_dokumen: number;
+  scopus_sitasi: number;
+  gscholar_dokumen: number;
+  scopus_q1: number;
+  scopus_q2: number;
+  scopus_q3: number;
+  scopus_q4: number;
 }
 
 interface PagedResponse {
@@ -209,17 +225,27 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
         <option value="nama">Nama (A–Z)</option>
       </select>
 
+      <select class="dp-select dp-select--sm" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+        <option [value]="24">24 / hal</option>
+        <option [value]="50">50 / hal</option>
+        <option [value]="100">100 / hal</option>
+      </select>
+
       <button *ngIf="hasActiveFilter()" class="dp-btn-reset" (click)="resetFilters()">Reset</button>
 
     </div>
   </div>
 
-  <!-- ── View Bar: count + toggle grid/table ── -->
+  <!-- ── View Bar: count + toggle grid/table + PT summary toggle ── -->
   <div class="dp-viewbar">
     <span class="dp-viewbar__count" *ngIf="!loading && totalCount">
       {{ totalCount | number }} departemen<span *ngIf="hasActiveFilter()" class="dp-viewbar__filtered"> (difilter)</span>
     </span>
     <div class="dp-view-toggle">
+      <button class="dp-view-btn" [class.active]="showPtSummary" (click)="togglePtSummary()" title="Ringkasan per PT">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+        <span>Per PT</span>
+      </button>
       <button class="dp-view-btn" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="Tampilan kartu">
         <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
         <span>Kartu</span>
@@ -228,6 +254,69 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
         <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
         <span>Tabel</span>
       </button>
+    </div>
+  </div>
+
+  <!-- ── PT Summary Panel ── -->
+  <div class="dp-pt-summary" *ngIf="showPtSummary">
+    <div class="dp-pt-summary__header">
+      <div class="dp-pt-summary__title">Ringkasan per Perguruan Tinggi</div>
+      <div class="dp-pt-summary__sort-btns">
+        <button class="dp-pts-btn" [class.active]="ptSummarySort==='scopus_dokumen'" (click)="setPtSort('scopus_dokumen')">Scopus</button>
+        <button class="dp-pts-btn" [class.active]="ptSummarySort==='scopus_sitasi'" (click)="setPtSort('scopus_sitasi')">Sitasi</button>
+        <button class="dp-pts-btn" [class.active]="ptSummarySort==='gscholar_dokumen'" (click)="setPtSort('gscholar_dokumen')">GScholar</button>
+        <button class="dp-pts-btn" [class.active]="ptSummarySort==='q1q2'" (click)="setPtSort('q1q2')">Q1+Q2</button>
+      </div>
+    </div>
+    <div class="dp-pt-summary__body">
+      <div *ngIf="ptSummaryLoading" class="dp-loading" style="padding:1rem">
+        <div class="dp-spinner"></div><span>Memuat…</span>
+      </div>
+      <table class="dp-pts-table" *ngIf="!ptSummaryLoading && ptSummaryData.length">
+        <thead>
+          <tr>
+            <th class="dp-pts-th">#</th>
+            <th class="dp-pts-th dp-pts-th--name">PT</th>
+            <th class="dp-pts-th dp-pts-th--num dp-pts-th--sort" (click)="setPtSort('scopus_dokumen')">
+              Scopus Art. <span>{{ ptSortIcon('scopus_dokumen') }}</span>
+            </th>
+            <th class="dp-pts-th dp-pts-th--num dp-pts-th--sort" (click)="setPtSort('scopus_sitasi')">
+              Sitasi <span>{{ ptSortIcon('scopus_sitasi') }}</span>
+            </th>
+            <th class="dp-pts-th dp-pts-th--num dp-pts-th--sort" (click)="setPtSort('gscholar_dokumen')">
+              GScholar <span>{{ ptSortIcon('gscholar_dokumen') }}</span>
+            </th>
+            <th class="dp-pts-th dp-pts-th--num dp-pts-th--sort" (click)="setPtSort('q1q2')">
+              Q1+Q2 <span>{{ ptSortIcon('q1q2') }}</span>
+            </th>
+            <th class="dp-pts-th dp-pts-th--bar">Proporsi Scopus</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of sortedPtSummary(); let i = index"
+              class="dp-pts-tr"
+              [class.dp-pts-tr--active]="filterPt === p.sinta_kode"
+              (click)="filterByPt(p.sinta_kode)">
+            <td class="dp-pts-td dp-pts-td--no">{{ i + 1 }}</td>
+            <td class="dp-pts-td dp-pts-td--name">
+              <span class="dp-pts-singkatan">{{ p.singkatan_sinta }}</span>
+              <span class="dp-pts-nama">{{ p.nama_sinta }}</span>
+            </td>
+            <td class="dp-pts-td dp-pts-td--num"><b>{{ p.scopus_dokumen | number }}</b></td>
+            <td class="dp-pts-td dp-pts-td--num">{{ p.scopus_sitasi | number }}</td>
+            <td class="dp-pts-td dp-pts-td--num">{{ p.gscholar_dokumen | number }}</td>
+            <td class="dp-pts-td dp-pts-td--num">{{ (p.scopus_q1 + p.scopus_q2) | number }}</td>
+            <td class="dp-pts-td dp-pts-td--bar">
+              <div class="dp-pts-bar-wrap">
+                <div class="dp-pts-bar dp-pts-bar--q1" [style.width.%]="ptBarPct(p, 'q1')"></div>
+                <div class="dp-pts-bar dp-pts-bar--q2" [style.width.%]="ptBarPct(p, 'q2')"></div>
+                <div class="dp-pts-bar dp-pts-bar--q3" [style.width.%]="ptBarPct(p, 'q3')"></div>
+                <div class="dp-pts-bar dp-pts-bar--q4" [style.width.%]="ptBarPct(p, 'q4')"></div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -290,6 +379,30 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
 
       <div class="dp-card__link">Lihat Detail →</div>
     </div>
+  </div>
+
+  <!-- ── Export Bar ── -->
+  <div class="dp-export-bar" *ngIf="!loading && depts.length > 0">
+    <span class="dp-export-label">Export ({{ totalCount | number }} baris):</span>
+    <button class="dp-export-btn dp-export-btn--csv" (click)="exportCSV()" [disabled]="exporting">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 17.5v-7h1.5l1.5 3.5 1.5-3.5H14v7h-1.5v-4l-1 2.5h-1l-1-2.5v4H8z"/></svg>
+      {{ exporting ? 'Mengekspor…' : 'CSV' }}
+    </button>
+    <button class="dp-export-btn dp-export-btn--xlsx" (click)="exportXLSX()" [disabled]="exporting">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM9 17.5l1.5-2.5L9 12.5h1.7l.8 1.5.8-1.5H14l-1.5 2.5 1.5 2.5h-1.7l-.8-1.5-.8 1.5H9z"/></svg>
+      {{ exporting ? 'Mengekspor…' : 'XLSX' }}
+    </button>
+  </div>
+
+  <!-- ── Pagination TOP (table only) ── -->
+  <div class="dp-pagination dp-pagination--top" *ngIf="viewMode === 'table' && totalCount > pageSize">
+    <button class="dp-page-btn" [disabled]="currentPage === 1" (click)="goPage(currentPage - 1)">‹</button>
+    <ng-container *ngFor="let p of pageNumbers()">
+      <button *ngIf="p !== -1" class="dp-page-btn" [class.active]="p === currentPage" (click)="goPage(p)">{{ p }}</button>
+      <span *ngIf="p === -1" class="dp-page-ellipsis">…</span>
+    </ng-container>
+    <button class="dp-page-btn" [disabled]="currentPage >= totalPages()" (click)="goPage(currentPage + 1)">›</button>
+    <span class="dp-page-info">{{ (currentPage - 1) * pageSize + 1 }}–{{ min(currentPage * pageSize, totalCount) }} dari {{ totalCount | number }}</span>
   </div>
 
   <!-- ── Dept Table ── -->
@@ -528,6 +641,35 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
         </div>
       </div>
 
+      <!-- ── Tren GScholar ── -->
+      <div class="dp-section" *ngIf="detail.trend_gscholar && detail.trend_gscholar.length">
+        <div class="dp-section__title">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="margin-right:5px;vertical-align:middle;color:#7c3aed"><path d="M12 3L1 9l4 2.18V17h2v-4.82L9 13.4V17c0 1.1 1.34 2 3 2s3-.9 3-2v-3.6l3-1.22V17h2v-5.82L23 9 12 3z"/></svg>
+          Tren Google Scholar per Tahun (Agregat Departemen)
+        </div>
+        <div class="dp-gs-trend">
+          <div class="dp-gs-legend">
+            <span class="dp-gs-dot dp-gs-dot--pub"></span> Publikasi
+            <span class="dp-gs-dot dp-gs-dot--cite" style="margin-left:12px"></span> Sitasi
+          </div>
+          <div class="dp-gs-chart">
+            <ng-container *ngFor="let t of detail.trend_gscholar">
+              <div class="dp-gs-col" [title]="t.tahun + ' — pub: ' + t.pub + ', cite: ' + t.cite">
+                <div class="dp-gs-bars">
+                  <div class="dp-gs-bar dp-gs-bar--cite"
+                       [style.height.%]="gsBarHeight(t.cite, detail.trend_gscholar, 'cite')"
+                       *ngIf="t.cite > 0"></div>
+                  <div class="dp-gs-bar dp-gs-bar--pub"
+                       [style.height.%]="gsBarHeight(t.pub, detail.trend_gscholar, 'pub')"
+                       *ngIf="t.pub > 0"></div>
+                </div>
+                <div class="dp-gs-yr">{{ t.tahun }}</div>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Top Authors ── -->
       <div class="dp-section" *ngIf="detail.top_authors && detail.top_authors.length">
         <div class="dp-section__title">Author Terbaik</div>
@@ -712,7 +854,7 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
 }
 .dp-filter-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr 80px auto;
   gap: 10px;
   width: 100%;
 }
@@ -738,6 +880,100 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
   white-space: nowrap;
 }
 .dp-btn-reset:hover { background: #e2e8f0; }
+.dp-select--sm { max-width: 90px; }
+
+/* ── Export Bar ── */
+.dp-export-bar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .6rem;
+  flex-wrap: wrap;
+}
+.dp-export-label { font-size: .78rem; color: #64748b; }
+.dp-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .75rem;
+  border-radius: 7px;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity .15s;
+}
+.dp-export-btn:disabled { opacity: .5; cursor: default; }
+.dp-export-btn--csv  { background: #16a34a; color: #fff; }
+.dp-export-btn--xlsx { background: #1d4ed8; color: #fff; }
+.dp-export-btn--csv:hover:not(:disabled)  { background: #15803d; }
+.dp-export-btn--xlsx:hover:not(:disabled) { background: #1e40af; }
+
+/* ── PT Summary Panel ── */
+.dp-pt-summary {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.dp-pt-summary__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .75rem 1rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.dp-pt-summary__title { font-size: .85rem; font-weight: 700; color: #1e293b; }
+.dp-pt-summary__sort-btns { display: flex; gap: .35rem; }
+.dp-pts-btn {
+  padding: .25rem .6rem;
+  font-size: .75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+}
+.dp-pts-btn.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+.dp-pt-summary__body { overflow-x: auto; max-height: 380px; overflow-y: auto; }
+.dp-pts-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.dp-pts-th {
+  padding: .5rem .75rem;
+  text-align: left;
+  font-size: .72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.dp-pts-th--num { text-align: right; }
+.dp-pts-th--sort { cursor: pointer; }
+.dp-pts-th--sort:hover { color: #1d4ed8; }
+.dp-pts-tr { border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background .12s; }
+.dp-pts-tr:hover { background: #f0f7ff; }
+.dp-pts-tr--active { background: #eff6ff; }
+.dp-pts-td { padding: .45rem .75rem; color: #334155; vertical-align: middle; }
+.dp-pts-td--no { color: #94a3b8; font-size: .75rem; width: 30px; text-align: center; }
+.dp-pts-td--name { min-width: 140px; }
+.dp-pts-td--num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dp-pts-td--bar { min-width: 100px; padding-right: 1rem; }
+.dp-pts-singkatan { font-size: .78rem; font-weight: 700; color: #1e40af; display: block; }
+.dp-pts-nama { font-size: .7rem; color: #94a3b8; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.dp-pts-bar-wrap { display: flex; height: 10px; border-radius: 4px; overflow: hidden; background: #f1f5f9; }
+.dp-pts-bar { height: 100%; transition: width .3s; }
+.dp-pts-bar--q1 { background: #1d4ed8; }
+.dp-pts-bar--q2 { background: #0891b2; }
+.dp-pts-bar--q3 { background: #059669; }
+.dp-pts-bar--q4 { background: #d97706; }
 
 /* ── Loading / Empty ── */
 .dp-loading { display: flex; align-items: center; gap: .7rem; padding: 2rem; color: #64748b; justify-content: center; }
@@ -809,6 +1045,7 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
   flex-wrap: wrap;
   margin-top: 1rem;
 }
+.dp-pagination--top { margin-top: 0; margin-bottom: .6rem; }
 .dp-page-btn {
   min-width: 34px;
   height: 34px;
@@ -1061,6 +1298,20 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
 .dp-bidang-bar { height: 100%; background: linear-gradient(to right, #1d4ed8, #60a5fa); border-radius: 4px; transition: width .4s; }
 .dp-bidang-count { font-size: .78rem; font-weight: 600; color: #64748b; text-align: right; }
 
+/* ── GScholar Trend ── */
+.dp-gs-trend { margin-top: .4rem; }
+.dp-gs-legend { display: flex; align-items: center; gap: .3rem; font-size: .75rem; color: #64748b; margin-bottom: .6rem; }
+.dp-gs-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dp-gs-dot--pub { background: #7c3aed; }
+.dp-gs-dot--cite { background: #db2777; }
+.dp-gs-chart { display: flex; align-items: flex-end; gap: 4px; height: 110px; overflow-x: auto; padding-bottom: 2px; }
+.dp-gs-col { display: flex; flex-direction: column; align-items: center; min-width: 30px; }
+.dp-gs-bars { display: flex; gap: 2px; align-items: flex-end; height: 88px; }
+.dp-gs-bar { width: 9px; border-radius: 2px 2px 0 0; transition: height .3s; }
+.dp-gs-bar--pub { background: #7c3aed; }
+.dp-gs-bar--cite { background: #db2777; }
+.dp-gs-yr { font-size: 9px; color: #94a3b8; margin-top: 3px; transform: rotate(-45deg); transform-origin: center; white-space: nowrap; }
+
 /* ── SINTA Link ── */
 .dp-sinta-link {
   display: inline-flex;
@@ -1213,6 +1464,12 @@ export class SintaDepartemenComponent implements OnInit, OnDestroy {
   tableSortField = 'sinta_score_overall';
   tableSortDir: 'asc' | 'desc' = 'desc';
 
+  exporting       = false;
+  showPtSummary   = false;
+  ptSummaryData:  PtSummary[] = [];
+  ptSummaryLoading = false;
+  ptSummarySort   = 'scopus_dokumen';
+
   private searchDelay = new Subject<void>();
   private destroy$    = new Subject<void>();
 
@@ -1330,6 +1587,125 @@ export class SintaDepartemenComponent implements OnInit, OnDestroy {
     this.loadDepts();
   }
 
+  onPageSizeChange(): void {
+    this.currentPage = 1;
+    this.loadDepts();
+  }
+
+  togglePtSummary(): void {
+    this.showPtSummary = !this.showPtSummary;
+    if (this.showPtSummary && this.ptSummaryData.length === 0) {
+      this.loadPtSummary();
+    }
+  }
+
+  loadPtSummary(): void {
+    this.ptSummaryLoading = true;
+    this.http.get<any>(`${API}/sinta-afiliasi/?page_size=200&ordering=-scopus_dokumen`)
+      .pipe(takeUntil(this.destroy$), finalize(() => this.ptSummaryLoading = false))
+      .subscribe({
+        next: r => {
+          const list = r.results ?? r;
+          this.ptSummaryData = list.map((a: any) => ({
+            sinta_kode:      a.sinta_kode,
+            nama_sinta:      a.nama_sinta,
+            singkatan_sinta: a.singkatan_sinta || a.sinta_kode,
+            scopus_dokumen:  a.scopus_dokumen  || 0,
+            scopus_sitasi:   a.scopus_sitasi   || 0,
+            gscholar_dokumen:a.gscholar_dokumen|| 0,
+            scopus_q1:       a.scopus_q1       || 0,
+            scopus_q2:       a.scopus_q2       || 0,
+            scopus_q3:       a.scopus_q3       || 0,
+            scopus_q4:       a.scopus_q4       || 0,
+          }));
+        },
+        error: () => {}
+      });
+  }
+
+  setPtSort(field: string): void {
+    this.ptSummarySort = field;
+  }
+
+  ptSortIcon(field: string): string {
+    return this.ptSummarySort === field ? '↓' : '↕';
+  }
+
+  sortedPtSummary(): PtSummary[] {
+    const field = this.ptSummarySort;
+    return [...this.ptSummaryData].sort((a, b) => {
+      const va = field === 'q1q2' ? a.scopus_q1 + a.scopus_q2 : (a as any)[field] || 0;
+      const vb = field === 'q1q2' ? b.scopus_q1 + b.scopus_q2 : (b as any)[field] || 0;
+      return vb - va;
+    });
+  }
+
+  filterByPt(kode: string): void {
+    this.filterPt = this.filterPt === kode ? '' : kode;
+    this.currentPage = 1;
+    this.loadDepts();
+  }
+
+  ptBarPct(p: PtSummary, q: 'q1'|'q2'|'q3'|'q4'): number {
+    const total = (p.scopus_q1 + p.scopus_q2 + p.scopus_q3 + p.scopus_q4) || 1;
+    const maxTotal = Math.max(...this.ptSummaryData.map(x => x.scopus_q1 + x.scopus_q2 + x.scopus_q3 + x.scopus_q4), 1);
+    const rowTotal = p.scopus_q1 + p.scopus_q2 + p.scopus_q3 + p.scopus_q4;
+    return (p[`scopus_${q}` as keyof PtSummary] as number / rowTotal * (rowTotal / maxTotal) * 100) || 0;
+  }
+
+  // ── Export ────────────────────────────────────────────────────────────────
+
+  private buildExportParams(): HttpParams {
+    let p = new HttpParams().set('page_size', '10000').set('ordering', this.ordering);
+    if (this.searchQuery.trim()) p = p.set('search', this.searchQuery.trim());
+    if (this.filterPt)           p = p.set('afiliasi__sinta_kode', this.filterPt);
+    if (this.filterJenjang)      p = p.set('jenjang', this.filterJenjang);
+    return p;
+  }
+
+  private fetchAllForExport(cb: (rows: DeptList[]) => void): void {
+    this.exporting = true;
+    this.http.get<PagedResponse>(`${API}/sinta-departemen/`, { params: this.buildExportParams() })
+      .pipe(takeUntil(this.destroy$), finalize(() => this.exporting = false))
+      .subscribe({ next: r => cb(r.results), error: () => {} });
+  }
+
+  private toRows(data: DeptList[]): any[][] {
+    const header = ['#', 'PT', 'Nama Departemen', 'Jenjang', 'Kode Dept',
+                    'Skor SINTA', 'Skor 3 Thn', 'Produktivitas',
+                    'Jumlah Author', 'Scopus Artikel', 'Scopus Sitasi',
+                    'GScholar Artikel', 'GScholar Sitasi', 'WoS Artikel'];
+    const rows = data.map((d, i) => [
+      i + 1, d.pt_singkatan, d.nama, d.jenjang, d.kode_dept,
+      d.sinta_score_overall, d.sinta_score_3year, d.sinta_score_productivity,
+      d.jumlah_authors, d.scopus_artikel, d.scopus_sitasi,
+      d.gscholar_artikel, d.gscholar_sitasi, d.wos_artikel,
+    ]);
+    return [header, ...rows];
+  }
+
+  exportCSV(): void {
+    this.fetchAllForExport(data => {
+      const rows = this.toRows(data);
+      const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `departemen_sinta_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    });
+  }
+
+  exportXLSX(): void {
+    this.fetchAllForExport(data => {
+      const rows = this.toRows(data);
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [4, 12, 35, 8, 10, 12, 10, 14, 10, 12, 12, 14, 14, 10].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Departemen SINTA');
+      XLSX.writeFile(wb, `departemen_sinta_${new Date().toISOString().slice(0,10)}.xlsx`);
+    });
+  }
+
   setTableSort(field: string): void {
     if (this.tableSortField === field) {
       this.tableSortDir = this.tableSortDir === 'desc' ? 'asc' : 'desc';
@@ -1409,6 +1785,11 @@ export class SintaDepartemenComponent implements OnInit, OnDestroy {
   trendBarHeight(jumlah: number, trend: TrendScopusItem[]): number {
     const max = Math.max(...trend.map(t => t.jumlah), 1);
     return Math.max(2, (jumlah / max) * 100);
+  }
+
+  gsBarHeight(val: number, trend: TrendGscholarItem[], field: 'pub' | 'cite'): number {
+    const max = Math.max(...trend.map(t => field === 'pub' ? t.pub : t.cite), 1);
+    return Math.max(2, (val / max) * 100);
   }
 
   authorInitials(nama: string, idx: number): string {

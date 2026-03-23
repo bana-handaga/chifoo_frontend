@@ -416,9 +416,9 @@ const COLORS = [
 </div>
   `,
   styles: [`
-    .mhs-page { max-width: 960px; margin: 0 auto; padding: 8px 0; }
+    .mhs-page { max-width: 1400px; margin: 0 auto; padding: 24px 20px 40px; }
 
-    .mhs-header { margin-bottom: 16px; }
+    .mhs-header { margin-bottom: 20px; }
     .mhs-title  { font-size: 22px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
     .mhs-subtitle { font-size: 14px; color: #64748b; margin: 0; }
 

@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import * as XLSX from 'xlsx';
 
 const API = environment.apiUrl;
 
@@ -58,6 +59,28 @@ interface AuthorDetail extends AuthorList {
   research_others: number;
   scraped_at: string;
   trend: TrendItem[];
+}
+
+interface ScopusArtikel {
+  id: number;
+  eid: string;
+  judul: string;
+  tahun: number | null;
+  sitasi: number;
+  kuartil: string;
+  jurnal_nama: string;
+  jurnal_url: string;
+  scopus_url: string;
+  urutan_penulis: number | null;
+  total_penulis: number | null;
+  nama_singkat: string | null;
+}
+
+interface ScopusArtikelResponse {
+  count: number;
+  page: number;
+  page_size: number;
+  results: ScopusArtikel[];
 }
 
 interface AuthorStats {
@@ -170,9 +193,15 @@ function initialsAvatar(name: string): string {
     <div class="au-filter-row">
 
       <!-- Filter PT -->
-      <select class="au-select" [(ngModel)]="filterPt" (change)="onFilterChange()">
+      <select class="au-select" [(ngModel)]="filterPt" (change)="onPtChange()">
         <option value="">Semua PT</option>
         <option *ngFor="let p of ptOptions" [value]="p.kode">{{ p.singkatan }}</option>
+      </select>
+
+      <!-- Filter Departemen (aktif saat PT dipilih) -->
+      <select class="au-select" [(ngModel)]="filterDept" (change)="onFilterChange()" [disabled]="!filterPt">
+        <option value="">{{ filterPt ? 'Semua Departemen' : '— Pilih PT dulu —' }}</option>
+        <option *ngFor="let d of deptOptions" [value]="d.kode_dept">{{ d.nama }} ({{ d.jenjang }})</option>
       </select>
 
       <!-- Ordering -->
@@ -181,6 +210,8 @@ function initialsAvatar(name: string): string {
         <option value="-sinta_score_3year">Skor 3 Tahun (tertinggi)</option>
         <option value="-scopus_artikel">Artikel Scopus (terbanyak)</option>
         <option value="-scopus_h_index">H-Index Scopus (tertinggi)</option>
+        <option value="afiliasi__nama_sinta">PT (A–Z)</option>
+        <option value="departemen__nama">Departemen (A–Z)</option>
         <option value="nama">Nama A–Z</option>
       </select>
 
@@ -302,6 +333,38 @@ function initialsAvatar(name: string): string {
     </div>
   </div>
 
+  <!-- ── Pagination atas (table mode) ── -->
+  <div class="au-pagination au-pagination--top" *ngIf="!loading && totalPages > 1 && viewMode === 'table'">
+    <button class="au-pg-btn" [disabled]="currentPage === 1" (click)="goPage(currentPage - 1)">‹ Sebelumnya</button>
+    <div class="au-pg-pages">
+      <button
+        *ngFor="let p of visiblePages"
+        class="au-pg-num"
+        [class.au-pg-num--active]="p === currentPage"
+        [class.au-pg-num--ellipsis]="p === -1"
+        [disabled]="p === -1"
+        (click)="p !== -1 && goPage(p)"
+      >{{ p === -1 ? '…' : p }}</button>
+    </div>
+    <button class="au-pg-btn" [disabled]="currentPage === totalPages" (click)="goPage(currentPage + 1)">Selanjutnya ›</button>
+  </div>
+
+  <!-- ── Export Bar (table mode) ── -->
+  <div class="au-export-bar" *ngIf="!loading && authors.length > 0 && viewMode === 'table'">
+    <span class="au-export-label">Export:</span>
+    <button class="au-export-btn au-export-btn--csv" (click)="exportCSV()" [disabled]="exporting">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 17.5v-7h1.5l1.5 3.5 1.5-3.5H14v7h-1.5v-4l-1 2.5h-1l-1-2.5v4H8z"/></svg>
+      {{ exporting ? 'Mengekspor…' : 'CSV' }}
+    </button>
+    <button class="au-export-btn au-export-btn--xlsx" (click)="exportXLSX()" [disabled]="exporting">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM9 17.5l1.5-2.5L9 12.5h1.7l.8 1.5.8-1.5H14l-1.5 2.5 1.5 2.5h-1.7l-.8-1.5-.8 1.5H9z"/></svg>
+      {{ exporting ? 'Mengekspor…' : 'XLSX' }}
+    </button>
+    <span class="au-export-hint" *ngIf="totalCount > pageSize">
+      (semua {{ totalCount | number }} data dengan filter aktif)
+    </span>
+  </div>
+
   <!-- ── Author Table ── -->
   <div class="au-table-wrap" *ngIf="!loading && authors.length > 0 && viewMode === 'table'">
     <table class="au-table">
@@ -311,8 +374,12 @@ function initialsAvatar(name: string): string {
           <th class="au-th au-th--sort" (click)="setTableSort('nama')">
             Nama <span class="au-sort-icon">{{ sortIcon('nama') }}</span>
           </th>
-          <th class="au-th">PT</th>
-          <th class="au-th">Departemen</th>
+          <th class="au-th au-th--sort" (click)="setTableSort('afiliasi__nama_sinta')">
+            PT <span class="au-sort-icon">{{ sortIcon('afiliasi__nama_sinta') }}</span>
+          </th>
+          <th class="au-th au-th--sort" (click)="setTableSort('departemen__nama')">
+            Departemen <span class="au-sort-icon">{{ sortIcon('departemen__nama') }}</span>
+          </th>
           <th class="au-th au-th--sort au-th--num" (click)="setTableSort('sinta_score_overall')">
             Skor SINTA <span class="au-sort-icon">{{ sortIcon('sinta_score_overall') }}</span>
           </th>
@@ -579,6 +646,116 @@ function initialsAvatar(name: string): string {
             <ng-template #emptyTrend3><span class="au-trend-empty">–</span></ng-template>
           </div>
 
+          <!-- GScholar Publikasi -->
+          <div class="au-trend-panel" *ngIf="getTrend(detail.trend, 'gscholar_pub').length">
+            <div class="au-trend-panel__title au-trend-panel__title--gs">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="margin-right:4px;vertical-align:middle"><path d="M12 3L1 9l4 2.18V17h2v-4.82L9 13.4V17c0 1.1 1.34 2 3 2s3-.9 3-2v-3.6l3-1.22V17h2v-5.82L23 9 12 3zm6.93 6L12 12.72 5.07 9 12 5.28 18.93 9z"/></svg>
+              GScholar Publikasi
+            </div>
+            <div class="au-trend-bars">
+              <div class="au-tbar-row" *ngFor="let t of getTrend(detail.trend, 'gscholar_pub')">
+                <span class="au-tbar-yr">{{ t.tahun }}</span>
+                <div class="au-tbar-wrap">
+                  <div class="au-tbar au-tbar--gscholar"
+                       [style.width.%]="getTrendPct(detail.trend, 'gscholar_pub', t.jumlah)"
+                       [title]="t.jumlah + ' publikasi'">
+                  </div>
+                </div>
+                <span class="au-tbar-val">{{ t.jumlah }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- GScholar Sitasi -->
+          <div class="au-trend-panel" *ngIf="getTrend(detail.trend, 'gscholar_cite').length">
+            <div class="au-trend-panel__title au-trend-panel__title--gs">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="margin-right:4px;vertical-align:middle"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+              GScholar Sitasi
+            </div>
+            <div class="au-trend-bars">
+              <div class="au-tbar-row" *ngFor="let t of getTrend(detail.trend, 'gscholar_cite')">
+                <span class="au-tbar-yr">{{ t.tahun }}</span>
+                <div class="au-tbar-wrap">
+                  <div class="au-tbar au-tbar--gscholar-cite"
+                       [style.width.%]="getTrendPct(detail.trend, 'gscholar_cite', t.jumlah)"
+                       [title]="t.jumlah + ' sitasi'">
+                  </div>
+                </div>
+                <span class="au-tbar-val">{{ t.jumlah }}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Scopus Artikel List ── -->
+      <div class="au-scopus-section" *ngIf="detail.scopus_artikel > 0">
+        <div class="au-scopus-header">
+          <div class="au-scopus-title">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 17h8v2H8v-2zm0-4h8v2H8v-2zm0-4h5v2H8V9z"/></svg>
+            Daftar Artikel Scopus
+            <span class="au-scopus-count" *ngIf="scopusTotal > 0">({{ scopusTotal }} artikel)</span>
+          </div>
+          <div class="au-scopus-filter-row">
+            <select class="au-scopus-select" [(ngModel)]="scopusFilterQ" (change)="loadScopusArtikels(selectedAuthor!.id, true)">
+              <option value="">Semua Kuartil</option>
+              <option value="Q1">Q1</option>
+              <option value="Q2">Q2</option>
+              <option value="Q3">Q3</option>
+              <option value="Q4">Q4</option>
+            </select>
+            <select class="au-scopus-select" [(ngModel)]="scopusOrdering" (change)="loadScopusArtikels(selectedAuthor!.id, true)">
+              <option value="-sitasi">Sitasi ↓</option>
+              <option value="sitasi">Sitasi ↑</option>
+              <option value="-tahun">Tahun ↓</option>
+              <option value="tahun">Tahun ↑</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="au-scopus-loading" *ngIf="scopusLoading">
+          <div class="au-spinner-sm"></div> Memuat…
+        </div>
+
+        <div *ngIf="!scopusLoading && scopusArtikels.length === 0 && scopusLoaded" class="au-scopus-empty">
+          Belum ada data artikel Scopus.
+        </div>
+
+        <div class="au-scopus-list" *ngIf="!scopusLoading && scopusArtikels.length > 0">
+          <div class="au-scopus-item" *ngFor="let a of scopusArtikels">
+            <div class="au-scopus-item__top">
+              <span class="au-scopus-q au-scopus-q--{{ a.kuartil?.toLowerCase() || 'noq' }}">
+                {{ a.kuartil || 'NoQ' }}
+              </span>
+              <span class="au-scopus-year">{{ a.tahun }}</span>
+              <span class="au-scopus-cited" *ngIf="a.sitasi > 0">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M11.5 2C6.81 2 3 5.81 3 10.5S6.81 19 11.5 19h.5v3c4.86-2.34 8-7 8-11.5C20 5.81 16.19 2 11.5 2z"/></svg>
+                {{ a.sitasi }}
+              </span>
+              <span class="au-scopus-order" *ngIf="a.urutan_penulis">
+                Penulis ke-{{ a.urutan_penulis }}/{{ a.total_penulis }}
+              </span>
+            </div>
+            <div class="au-scopus-item__title">
+              <a *ngIf="a.scopus_url" [href]="a.scopus_url" target="_blank" rel="noopener">{{ a.judul }}</a>
+              <span *ngIf="!a.scopus_url">{{ a.judul }}</span>
+            </div>
+            <div class="au-scopus-item__journal" *ngIf="a.jurnal_nama">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 14H7v-2h10v2zm0-4H7v-2h10v2zm-3-4H7V6h7v2z"/></svg>
+              <a *ngIf="a.jurnal_url" [href]="a.jurnal_url" target="_blank" rel="noopener">{{ a.jurnal_nama }}</a>
+              <span *ngIf="!a.jurnal_url">{{ a.jurnal_nama }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination artikel -->
+        <div class="au-scopus-pagination" *ngIf="scopusTotal > scopusPageSize">
+          <button class="au-scopus-page-btn" [disabled]="scopusPage === 1"
+                  (click)="loadScopusArtikels(selectedAuthor!.id, false, scopusPage - 1)">‹</button>
+          <span class="au-scopus-page-info">{{ scopusPage }} / {{ scopusTotalPages() }}</span>
+          <button class="au-scopus-page-btn" [disabled]="scopusPage >= scopusTotalPages()"
+                  (click)="loadScopusArtikels(selectedAuthor!.id, false, scopusPage + 1)">›</button>
         </div>
       </div>
 
@@ -722,7 +899,7 @@ function initialsAvatar(name: string): string {
     }
     .au-filter-row {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr auto;
+      grid-template-columns: 1fr 1fr 1fr 1fr auto;
       gap: 10px;
       width: 100%;
     }
@@ -1102,6 +1279,52 @@ function initialsAvatar(name: string): string {
       flex-wrap: wrap;
       padding: 16px 0;
     }
+    .au-pagination--top {
+      padding: 8px 0 4px;
+    }
+
+    /* ── Export Bar ── */
+    .au-export-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0 8px;
+      flex-wrap: wrap;
+    }
+    .au-export-label {
+      font-size: 12px;
+      color: var(--au-muted);
+      font-weight: 600;
+    }
+    .au-export-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 13px;
+      border-radius: 6px;
+      border: 1px solid;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .au-export-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .au-export-btn--csv {
+      border-color: #059669;
+      color: #059669;
+      background: #f0fdf4;
+    }
+    .au-export-btn--csv:hover:not(:disabled) { background: #059669; color: #fff; }
+    .au-export-btn--xlsx {
+      border-color: #2563eb;
+      color: #2563eb;
+      background: #eff6ff;
+    }
+    .au-export-btn--xlsx:hover:not(:disabled) { background: #2563eb; color: #fff; }
+    .au-export-hint {
+      font-size: 11px;
+      color: var(--au-muted);
+    }
     .au-pg-btn {
       padding: 7px 16px;
       border: 1px solid var(--au-border);
@@ -1418,9 +1641,118 @@ function initialsAvatar(name: string): string {
       min-width: 4px;
       transition: width .3s;
     }
-    .au-tbar--scopus   { background: #2563eb; }
-    .au-tbar--research { background: #059669; }
-    .au-tbar--service  { background: #d97706; }
+    .au-tbar--scopus        { background: #2563eb; }
+    .au-tbar--research      { background: #059669; }
+    .au-tbar--service       { background: #d97706; }
+    .au-tbar--gscholar      { background: #7c3aed; }
+    .au-tbar--gscholar-cite { background: #db2777; }
+    .au-trend-panel__title--gs { color: #7c3aed; }
+
+    /* ── Scopus Artikel Section ── */
+    .au-scopus-section {
+      border-top: 1px solid #f1f5f9;
+      padding-top: 1rem;
+      margin-top: .5rem;
+    }
+    .au-scopus-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-bottom: .75rem;
+    }
+    .au-scopus-title {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .82rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .au-scopus-count { font-size: .75rem; color: #64748b; font-weight: 400; }
+    .au-scopus-filter-row { display: flex; gap: .4rem; }
+    .au-scopus-select {
+      padding: .3rem .55rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: .78rem;
+      background: #fff;
+      color: #334155;
+    }
+    .au-scopus-loading { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: #64748b; padding: .75rem 0; }
+    .au-spinner-sm { width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin .7s linear infinite; }
+    .au-scopus-empty { font-size: .8rem; color: #94a3b8; padding: .75rem 0; }
+    .au-scopus-list { display: flex; flex-direction: column; gap: .6rem; }
+    .au-scopus-item {
+      padding: .65rem .8rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      transition: border-color .15s;
+    }
+    .au-scopus-item:hover { border-color: #93c5fd; }
+    .au-scopus-item__top {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: .35rem;
+      flex-wrap: wrap;
+    }
+    .au-scopus-q {
+      font-size: .68rem;
+      font-weight: 700;
+      padding: .1rem .4rem;
+      border-radius: 4px;
+    }
+    .au-scopus-q--q1  { background: #dbeafe; color: #1d4ed8; }
+    .au-scopus-q--q2  { background: #cffafe; color: #0e7490; }
+    .au-scopus-q--q3  { background: #d1fae5; color: #065f46; }
+    .au-scopus-q--q4  { background: #fef9c3; color: #854d0e; }
+    .au-scopus-q--noq { background: #f1f5f9; color: #64748b; }
+    .au-scopus-year { font-size: .75rem; font-weight: 600; color: #475569; }
+    .au-scopus-cited {
+      display: inline-flex;
+      align-items: center;
+      gap: .2rem;
+      font-size: .72rem;
+      color: #0891b2;
+    }
+    .au-scopus-order { font-size: .7rem; color: #94a3b8; margin-left: auto; }
+    .au-scopus-item__title {
+      font-size: .83rem;
+      color: #1e293b;
+      line-height: 1.4;
+      margin-bottom: .25rem;
+    }
+    .au-scopus-item__title a { color: #1d4ed8; text-decoration: none; }
+    .au-scopus-item__title a:hover { text-decoration: underline; }
+    .au-scopus-item__journal {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .73rem;
+      color: #64748b;
+    }
+    .au-scopus-item__journal a { color: #64748b; text-decoration: none; }
+    .au-scopus-item__journal a:hover { text-decoration: underline; }
+    .au-scopus-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      margin-top: .75rem;
+    }
+    .au-scopus-page-btn {
+      padding: .25rem .6rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      font-size: .85rem;
+      cursor: pointer;
+    }
+    .au-scopus-page-btn:disabled { opacity: .4; cursor: default; }
+    .au-scopus-page-info { font-size: .78rem; color: #64748b; }
     .au-tbar-val {
       width: 20px;
       flex-shrink: 0;
@@ -1459,9 +1791,11 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   pageSize      = 20;
 
   // Filter / sort
-  searchQuery = '';
-  filterPt    = '';
-  ordering    = '-sinta_score_overall';
+  searchQuery  = '';
+  filterPt     = '';
+  filterDept   = '';
+  deptOptions: { id: number; kode_dept: string; nama: string; jenjang: string }[] = [];
+  ordering     = '-sinta_score_overall';
 
   private searchTimer: any = null;
   private destroy$ = new Subject<void>();
@@ -1475,6 +1809,17 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
 
   // View toggle + table sort
   viewMode: 'grid' | 'table' = 'grid';
+  exporting = false;
+
+  // Scopus artikel
+  scopusArtikels:  ScopusArtikel[] = [];
+  scopusTotal      = 0;
+  scopusPage       = 1;
+  scopusPageSize   = 10;
+  scopusLoading    = false;
+  scopusLoaded     = false;
+  scopusFilterQ    = '';
+  scopusOrdering   = '-sitasi';
   tableSortField = 'sinta_score_overall';
   tableSortDir: 'asc' | 'desc' = 'desc';
 
@@ -1519,6 +1864,9 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
     }
     if (this.filterPt) {
       params = params.set('afiliasi__sinta_kode', this.filterPt);
+    }
+    if (this.filterDept) {
+      params = params.set('departemen__kode_dept', this.filterDept);
     }
 
     this.http.get<PagedResponse>(`${API}/sinta-author/`, { params })
@@ -1565,6 +1913,28 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
     this.loadAuthors();
   }
 
+  onPtChange(): void {
+    this.filterDept = '';
+    this.deptOptions = [];
+    if (this.filterPt) {
+      this.http.get<{ count: number; results: any[] }>(
+        `${API}/sinta-departemen/?afiliasi__sinta_kode=${this.filterPt}&ordering=nama&page_size=200`
+      ).pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: res => {
+            this.deptOptions = res.results.map(d => ({
+              id: d.id,
+              kode_dept: d.kode_dept,
+              nama: d.nama,
+              jenjang: d.jenjang || ''
+            }));
+          },
+          error: err => console.error('Dept options error', err)
+        });
+    }
+    this.onFilterChange();
+  }
+
   onFilterChange(): void {
     if (this.ordering.startsWith('-')) {
       this.tableSortField = this.ordering.slice(1);
@@ -1585,6 +1955,8 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   resetFilter(): void {
     this.searchQuery    = '';
     this.filterPt       = '';
+    this.filterDept     = '';
+    this.deptOptions    = [];
     this.ordering       = '-sinta_score_overall';
     this.tableSortField = 'sinta_score_overall';
     this.tableSortDir   = 'desc';
@@ -1608,6 +1980,62 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   sortIcon(field: string): string {
     if (this.tableSortField !== field) return '↕';
     return this.tableSortDir === 'desc' ? '↓' : '↑';
+  }
+
+  // ── Export ─────────────────────────────────────────────────────────────────
+
+  private buildExportParams(): HttpParams {
+    let params = new HttpParams()
+      .set('page_size', '10000')
+      .set('ordering', this.ordering);
+    if (this.searchQuery.trim()) { params = params.set('search', this.searchQuery.trim()); }
+    if (this.filterPt)           { params = params.set('afiliasi__sinta_kode', this.filterPt); }
+    if (this.filterDept)         { params = params.set('departemen__kode_dept', this.filterDept); }
+    return params;
+  }
+
+  private fetchAllForExport(callback: (rows: AuthorList[]) => void): void {
+    this.exporting = true;
+    this.http.get<PagedResponse>(`${API}/sinta-author/`, { params: this.buildExportParams() })
+      .pipe(takeUntil(this.destroy$), finalize(() => this.exporting = false))
+      .subscribe({
+        next: res => callback(res.results),
+        error: err => { console.error('Export error', err); this.exporting = false; }
+      });
+  }
+
+  private toRows(data: AuthorList[]): any[][] {
+    const header = ['#', 'Nama', 'PT', 'Departemen', 'Jenjang', 'Skor SINTA', 'Skor 3 Thn',
+                    'Scopus Artikel', 'Scopus Sitasi', 'H-Index Scopus', 'H-Index GScholar'];
+    const rows = data.map((a, i) => [
+      i + 1, a.nama, a.pt_singkatan, a.dept_nama || '', a.dept_jenjang || '',
+      a.sinta_score_overall, a.sinta_score_3year,
+      a.scopus_artikel, a.scopus_sitasi, a.scopus_h_index, a.gscholar_h_index
+    ]);
+    return [header, ...rows];
+  }
+
+  exportCSV(): void {
+    this.fetchAllForExport(data => {
+      const rows = this.toRows(data);
+      const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `author-sinta-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    });
+  }
+
+  exportXLSX(): void {
+    this.fetchAllForExport(data => {
+      const rows = this.toRows(data);
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [4,30,12,25,8,12,10,12,12,10,10].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Author SINTA');
+      XLSX.writeFile(wb, `author-sinta-${new Date().toISOString().slice(0,10)}.xlsx`);
+    });
   }
 
   goPage(page: number): void {
@@ -1636,11 +2064,17 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   // ── Modal / Detail ─────────────────────────────────────────────────────────
 
   openDetail(author: AuthorList): void {
-    this.selectedAuthor = author;
-    this.detail         = null;
-    this.activeTab      = 'scopus';
-    this.modalOpen      = true;
-    this.detailLoading  = true;
+    this.selectedAuthor  = author;
+    this.detail          = null;
+    this.activeTab       = 'scopus';
+    this.modalOpen       = true;
+    this.detailLoading   = true;
+    this.scopusArtikels  = [];
+    this.scopusTotal     = 0;
+    this.scopusPage      = 1;
+    this.scopusLoaded    = false;
+    this.scopusFilterQ   = '';
+    this.scopusOrdering  = '-sitasi';
     document.body.style.overflow = 'hidden';
 
     this.http.get<AuthorDetail>(`${API}/sinta-author/${author.id}/`)
@@ -1649,13 +2083,39 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
         finalize(() => this.detailLoading = false)
       )
       .subscribe({
-        next:  d => this.detail = d,
+        next:  d => {
+          this.detail = d;
+          if (d.scopus_artikel > 0) this.loadScopusArtikels(author.id, true);
+        },
         error: err => {
           console.error('Author detail error', err);
           // Fallback: show list data as partial detail
           this.detail = author as unknown as AuthorDetail;
         }
       });
+  }
+
+  loadScopusArtikels(authorId: number, reset: boolean, page?: number): void {
+    if (reset) this.scopusPage = 1;
+    if (page) this.scopusPage = page;
+    this.scopusLoading = true;
+    let params = new HttpParams()
+      .set('author', authorId.toString())
+      .set('page', this.scopusPage.toString())
+      .set('page_size', this.scopusPageSize.toString())
+      .set('ordering', this.scopusOrdering);
+    if (this.scopusFilterQ) params = params.set('kuartil', this.scopusFilterQ);
+
+    this.http.get<ScopusArtikelResponse>(`${API}/sinta-scopus-artikel/`, { params })
+      .pipe(takeUntil(this.destroy$), finalize(() => { this.scopusLoading = false; this.scopusLoaded = true; }))
+      .subscribe({
+        next: r => { this.scopusArtikels = r.results; this.scopusTotal = r.count; },
+        error: () => { this.scopusArtikels = []; }
+      });
+  }
+
+  scopusTotalPages(): number {
+    return Math.ceil(this.scopusTotal / this.scopusPageSize);
   }
 
   closeModal(): void {

@@ -41,6 +41,25 @@ export class AuthService {
   getToken(): string | null { return localStorage.getItem(this.tokenKey); }
   isLoggedIn(): boolean { return !!this.getToken(); }
   getCurrentUser(): any { return this._currentUser.getValue(); }
+  isAdmin(): boolean {
+    const u = this.getCurrentUser();
+    if (!u) return false;
+    // Jika is_staff belum ada di cache lama, refresh dari server sekali
+    if (u.is_staff === undefined && this.getToken()) {
+      this.refreshCurrentUser();
+    }
+    return !!u.is_staff;
+  }
+
+  refreshCurrentUser(): void {
+    const meUrl = environment.apiUrl.replace('/api', '') + '/api/auth/me/';
+    this.http.get(meUrl).subscribe({
+      next: (user: any) => {
+        localStorage.setItem(this.userKey, JSON.stringify(user));
+        this._currentUser.next(user);
+      }
+    });
+  }
   private getSavedUser(): any {
     const u = localStorage.getItem(this.userKey);
     return u ? JSON.parse(u) : null;
