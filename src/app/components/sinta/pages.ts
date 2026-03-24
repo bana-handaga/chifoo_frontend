@@ -3,7 +3,6 @@
  * Masing-masing akan dikembangkan menjadi halaman penuh secara terpisah.
  */
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
 
 // ─── Base template helper ─────────────────────────────────────────────────────
 function placeholderTemplate(icon: string, title: string, desc: string, color: string): string {
@@ -84,27 +83,6 @@ export class SintaAfiliasiComponent {}
 })
 export class SintaArtikelComponent {}
 
-@Component({
-  selector: 'app-sinta-penelitian',
-  template: placeholderTemplate(
-    '🔬', 'Penelitian (Research)',
-    'Data hibah dan proyek penelitian dosen PTMA yang tercatat di SINTA / BIMA Kemdiktisaintek.',
-    '#059669'
-  ),
-  styles: PH_STYLES
-})
-export class SintaPenelitianComponent {}
-
-@Component({
-  selector: 'app-sinta-pengabdian',
-  template: placeholderTemplate(
-    '🤝', 'Pengabdian Masyarakat',
-    'Rekap kegiatan pengabdian kepada masyarakat (Community Services) dosen PTMA di SINTA.',
-    '#0284c7'
-  ),
-  styles: PH_STYLES
-})
-export class SintaPengabdianComponent {}
 
 @Component({
   selector: 'app-sinta-ipr',

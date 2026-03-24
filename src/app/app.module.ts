@@ -22,10 +22,11 @@ import { DosenListComponent } from './components/dosen/list.component';
 import { PendidikanTinggiComponent } from './components/pendidikan-tinggi/pendidikan-tinggi.component';
 import { MahasiswaTrenComponent } from './components/mahasiswa/mahasiswa-tren.component';
 import { SintaComponent } from './components/sinta/sinta.component';
+import { SintaPenelitianComponent } from './components/sinta/sinta-penelitian.component';
 import {
-  SintaPenelitianComponent, SintaPengabdianComponent,
   SintaIprComponent, SintaBukuComponent,
 } from './components/sinta/pages';
+import { SintaPengabdianComponent, TitleCaseIdPipe } from './components/sinta/sinta-pengabdian.component';
 import { SintaArtikelComponent } from './components/sinta/sinta-artikel.component';
 import { SintaDepartemenComponent } from './components/sinta/sinta-departemen.component';
 import { SintaClusterComponent }   from './components/sinta/sinta-cluster.component';
@@ -91,7 +92,7 @@ const routes: Routes = [
     SintaIprComponent, SintaBukuComponent,
     SintaJurnalComponent,
     SintaClusterComponent,
-    IssnPipe,
+    IssnPipe, TitleCaseIdPipe,
     MahasiswaTrenComponent,
   ],
   imports: [

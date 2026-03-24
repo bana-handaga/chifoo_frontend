@@ -98,7 +98,7 @@ import { Router } from '@angular/router';
         <div class="sinta-card__body">
           <div class="sinta-card__title">Penelitian</div>
           <div class="sinta-card__desc">Data hibah dan proyek penelitian dosen PTMA yang tercatat di SINTA / BIMA Kemdiktisaintek.</div>
-          <span class="sinta-badge sinta-badge--soon">Segera Hadir</span>
+          <span class="sinta-badge sinta-badge--live">● Tersedia</span>
         </div>
         <div class="sinta-card__arrow">›</div>
       </div>
@@ -110,7 +110,7 @@ import { Router } from '@angular/router';
         <div class="sinta-card__body">
           <div class="sinta-card__title">Pengabdian Masyarakat</div>
           <div class="sinta-card__desc">Rekap kegiatan pengabdian kepada masyarakat (Community Services) dosen PTMA di SINTA.</div>
-          <span class="sinta-badge sinta-badge--soon">Segera Hadir</span>
+          <span class="sinta-badge sinta-badge--ready">● Tersedia</span>
         </div>
         <div class="sinta-card__arrow">›</div>
       </div>
