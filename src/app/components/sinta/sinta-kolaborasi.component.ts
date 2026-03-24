@@ -108,12 +108,44 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
         <option value="600">600 peneliti teratas</option>
       </select>
     </div>
-    <div class="sk-filter-group">
+    <div class="sk-filter-group sk-filter-group--pt">
       <label class="sk-filter-lbl">Filter PT</label>
-      <select class="sk-select" [(ngModel)]="filterPt" (change)="applyPtFilter()">
-        <option value="">Semua PT</option>
-        <option *ngFor="let pt of ptList" [value]="pt">{{ pt }}</option>
-      </select>
+      <div class="sk-pt-wrap">
+        <!-- Trigger -->
+        <button class="sk-pt-trigger" (click)="ptDropdownOpen=!ptDropdownOpen"
+                [class.sk-pt-trigger--active]="selectedPts.size > 0">
+          <span *ngIf="selectedPts.size === 0">Semua PT</span>
+          <span *ngIf="selectedPts.size > 0">{{ selectedPts.size }} PT dipilih</span>
+          <span class="sk-pt-arrow">{{ ptDropdownOpen ? '▴' : '▾' }}</span>
+        </button>
+        <!-- Dropdown -->
+        <div class="sk-pt-dropdown" *ngIf="ptDropdownOpen">
+          <input class="sk-pt-search" [(ngModel)]="ptSearch" placeholder="🔍 Cari PT…"
+                 (click)="$event.stopPropagation()" autocomplete="off">
+          <div class="sk-pt-options">
+            <label class="sk-pt-option" *ngFor="let pt of filteredPtList"
+                   (click)="$event.preventDefault(); togglePt(pt)">
+              <span class="sk-pt-checkbox" [class.sk-pt-checkbox--on]="selectedPts.has(pt)">
+                <span *ngIf="selectedPts.has(pt)">✓</span>
+              </span>
+              <span class="sk-pt-name">{{ pt }}</span>
+            </label>
+            <div class="sk-pt-empty" *ngIf="!filteredPtList.length">Tidak ditemukan</div>
+          </div>
+          <div class="sk-pt-footer">
+            <button class="sk-pt-clear-btn" (click)="clearPts()">Hapus semua</button>
+            <button class="sk-pt-done-btn"  (click)="ptDropdownOpen=false">Selesai ✓</button>
+          </div>
+        </div>
+        <!-- Click-outside overlay -->
+        <div class="sk-pt-overlay" *ngIf="ptDropdownOpen" (click)="ptDropdownOpen=false"></div>
+      </div>
+      <!-- Selected chips -->
+      <div class="sk-pt-chips" *ngIf="selectedPts.size > 0">
+        <span class="sk-pt-chip" *ngFor="let pt of selectedPtsArray">
+          {{ pt }}<span class="sk-pt-chip-x" (click)="togglePt(pt)">×</span>
+        </span>
+      </div>
     </div>
     <!-- Recreate button — muncul saat filter berubah -->
     <div class="sk-filter-group sk-filter-group--btn">
@@ -173,13 +205,23 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
     <div class="sk-graph-card">
       <div class="sk-graph-head">
         <span class="sk-graph-title">
-          Peta Jaringan 3D — {{ visibleNodes.length | number }} peneliti,
+          {{ viewLabels[viewMode] }} — {{ visibleNodes.length | number }} peneliti,
           {{ visibleEdges.length | number }} tautan
         </span>
         <div class="sk-graph-controls">
-          <button class="sk-ctrl-btn" (click)="resetView()" title="Reset sudut pandang">↺ Reset</button>
-          <button class="sk-ctrl-btn" [class.sk-ctrl-btn--active]="autoRotate" (click)="toggleAutoRotate()" title="Rotasi otomatis">⟳ Auto</button>
-          <span class="sk-hint">🖱 seret untuk memutar</span>
+          <!-- Pilihan tampilan -->
+          <div class="sk-view-tabs">
+            <button class="sk-view-tab" [class.sk-view-tab--active]="viewMode==='3d'"   (click)="setViewMode('3d')"      title="Tampilan 3D interaktif">🌌 3D</button>
+            <button class="sk-view-tab" [class.sk-view-tab--active]="viewMode==='2d'"   (click)="setViewMode('2d')"      title="Peta 2D datar">🗺️ 2D</button>
+            <button class="sk-view-tab" [class.sk-view-tab--active]="viewMode==='cluster'" (click)="setViewMode('cluster')" title="Klaster komunitas">🏘️ Klaster</button>
+          </div>
+          <ng-container *ngIf="viewMode==='3d'">
+            <button class="sk-ctrl-btn" (click)="resetView()" title="Reset sudut pandang">↺ Reset</button>
+            <button class="sk-ctrl-btn" [class.sk-ctrl-btn--active]="autoRotate" (click)="toggleAutoRotate()">⟳ Auto</button>
+            <span class="sk-hint">🖱 seret untuk memutar</span>
+          </ng-container>
+          <span class="sk-hint" *ngIf="viewMode==='2d'">posisi spring layout</span>
+          <span class="sk-hint" *ngIf="viewMode==='cluster'">dikelompokkan per komunitas</span>
         </div>
       </div>
       <div class="sk-graph-legend">
@@ -188,15 +230,19 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
         </span>
       </div>
 
-      <div class="sk-graph-container" #graphContainer>
+      <div class="sk-graph-container"
+           [class.sk-graph-container--dark]="viewMode==='3d'"
+           [class.sk-graph-container--light]="viewMode==='2d'"
+           [class.sk-graph-container--cluster]="viewMode==='cluster'"
+           #graphContainer>
         <svg class="sk-svg" [attr.viewBox]="'0 0 ' + svgW + ' ' + svgH"
              [class.sk-svg--dragging]="isDragging"
-             (mousedown)="onDragStart($event)"
-             (mousemove)="onDragMove($event)"
+             (mousedown)="viewMode==='3d' && onDragStart($event)"
+             (mousemove)="onSvgMove($event)"
              (mouseup)="onDragEnd()"
              (mouseleave)="onDragEnd(); hoveredNode = null"
-             (touchstart)="onTouchStart($event)"
-             (touchmove)="onTouchMove($event)"
+             (touchstart)="viewMode==='3d' && onTouchStart($event)"
+             (touchmove)="viewMode==='3d' && onTouchMove($event)"
              (touchend)="onDragEnd()">
 
           <defs>
@@ -205,15 +251,27 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
             </filter>
           </defs>
 
-          <!-- Edges (render below nodes) -->
+          <!-- Cluster: lingkaran komunitas -->
+          <ng-container *ngIf="viewMode==='cluster'">
+            <circle *ngFor="let c of clusterCenters"
+                    [attr.cx]="c.cx" [attr.cy]="c.cy" [attr.r]="c.r + 6"
+                    [attr.fill]="c.color" fill-opacity="0.06"
+                    [attr.stroke]="c.color" stroke-opacity="0.25" stroke-width="1.5"/>
+            <text *ngFor="let c of clusterCenters"
+                  [attr.x]="c.cx" [attr.y]="c.cy - c.r - 10"
+                  text-anchor="middle" font-size="9" font-weight="700"
+                  [attr.fill]="c.color" opacity="0.8">{{ c.label }}</text>
+          </ng-container>
+
+          <!-- Edges -->
           <line *ngFor="let e of visibleEdges"
                 [attr.x1]="proj(e.source).x" [attr.y1]="proj(e.source).y"
                 [attr.x2]="proj(e.target).x" [attr.y2]="proj(e.target).y"
                 [attr.stroke-width]="edgeWidth(e.weight)"
                 [attr.stroke]="edgeColor(e)"
-                stroke-opacity="0.3"/>
+                [attr.stroke-opacity]="viewMode==='3d' ? 0.3 : 0.4"/>
 
-          <!-- Nodes depth-sorted (far nodes first) -->
+          <!-- Nodes -->
           <g *ngFor="let n of sortedVisibleNodes; trackBy: trackNode"
              [attr.transform]="'translate(' + proj(n.id).x + ',' + proj(n.id).y + ')'"
              class="sk-node"
@@ -221,14 +279,15 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
              (mouseenter)="!isDragging && (hoveredNode = n)">
             <circle
               [attr.r]="nodeRadius(n) * proj(n.id).scale"
-              [attr.fill]="filterPt && n.pt !== filterPt ? '#e2e8f0' : n.color"
-              [attr.opacity]="filterPt && n.pt !== filterPt ? 0.2 : Math.max(0.55, proj(n.id).scale)"
-              stroke="#fff"
+              [attr.fill]="selectedPts.size > 0 && !selectedPts.has(n.pt) ? '#e2e8f0' : n.color"
+              [attr.opacity]="selectedPts.size > 0 && !selectedPts.has(n.pt) ? 0.15 : Math.max(0.55, proj(n.id).scale)"
+              [attr.stroke]="viewMode==='3d' ? '#fff' : (hoveredNode?.id===n.id ? '#1e293b' : '#fff')"
               [attr.stroke-width]="hoveredNode?.id === n.id ? 2.5 : 1"/>
-            <text *ngIf="n.degree >= labelMinDegree && !isDragging"
+            <text *ngIf="showLabel(n)"
                   text-anchor="middle" [attr.dy]="nodeRadius(n) * proj(n.id).scale + 9"
-                  [attr.font-size]="8 * proj(n.id).scale" fill="#374151" font-weight="600"
-                  style="pointer-events:none">{{ n.nama | slice:0:16 }}</text>
+                  [attr.font-size]="viewMode==='3d' ? 8 * proj(n.id).scale : 8"
+                  [attr.fill]="viewMode==='3d' ? '#e2e8f0' : '#1e293b'"
+                  font-weight="600" style="pointer-events:none">{{ n.nama | slice:0:18 }}</text>
           </g>
 
           <!-- Hover tooltip -->
@@ -526,6 +585,70 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
     }
     .sk-select:focus { border-color: #7c3aed; }
 
+    /* ── PT multi-select ── */
+    .sk-filter-group--pt { flex: 1; min-width: 180px; }
+    .sk-pt-wrap { position: relative; }
+    .sk-pt-trigger {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: .4rem .65rem; border: 1px solid #e2e8f0; border-radius: 6px;
+      font-size: .83rem; background: #f8fafc; color: #334155; cursor: pointer;
+      text-align: left; white-space: nowrap;
+    }
+    .sk-pt-trigger--active { border-color: #7c3aed; background: #f5f3ff; color: #6d28d9; }
+    .sk-pt-arrow { font-size: .65rem; color: #94a3b8; margin-left: .4rem; }
+    .sk-pt-overlay { position: fixed; inset: 0; z-index: 49; }
+    .sk-pt-dropdown {
+      position: absolute; top: calc(100% + 4px); left: 0; z-index: 50;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.13); width: 220px; overflow: hidden;
+    }
+    .sk-pt-search {
+      width: 100%; padding: .5rem .75rem; border: none; border-bottom: 1px solid #f1f5f9;
+      font-size: .82rem; outline: none; background: #f8fafc; box-sizing: border-box;
+    }
+    .sk-pt-options { max-height: 220px; overflow-y: auto; padding: .3rem 0; }
+    .sk-pt-option {
+      display: flex; align-items: center; gap: .5rem; padding: .35rem .75rem;
+      cursor: pointer; font-size: .8rem; color: #334155; user-select: none;
+      transition: background .1s;
+    }
+    .sk-pt-option:hover { background: #f5f3ff; }
+    .sk-pt-checkbox {
+      width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #d1d5db;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .65rem; font-weight: 800; color: #fff; flex-shrink: 0;
+      background: #fff; transition: all .15s;
+    }
+    .sk-pt-checkbox--on { background: #7c3aed; border-color: #7c3aed; }
+    .sk-pt-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sk-pt-empty { padding: .5rem .75rem; font-size: .8rem; color: #94a3b8; }
+    .sk-pt-footer {
+      display: flex; justify-content: space-between; gap: .5rem;
+      padding: .5rem .75rem; border-top: 1px solid #f1f5f9; background: #f8fafc;
+    }
+    .sk-pt-clear-btn {
+      font-size: .75rem; color: #94a3b8; background: none; border: none;
+      cursor: pointer; padding: .2rem .4rem; border-radius: 4px;
+    }
+    .sk-pt-clear-btn:hover { color: #dc2626; }
+    .sk-pt-done-btn {
+      font-size: .75rem; color: #fff; background: #7c3aed; border: none;
+      cursor: pointer; padding: .25rem .75rem; border-radius: 5px; font-weight: 600;
+    }
+    .sk-pt-done-btn:hover { background: #6d28d9; }
+    /* Chips */
+    .sk-pt-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+    .sk-pt-chip {
+      display: inline-flex; align-items: center; gap: .25rem;
+      background: #ede9fe; color: #5b21b6; font-size: .72rem; font-weight: 600;
+      padding: .15rem .5rem; border-radius: 5px;
+    }
+    .sk-pt-chip-x {
+      cursor: pointer; font-size: .85rem; line-height: 1; color: #7c3aed;
+      margin-left: .1rem;
+    }
+    .sk-pt-chip-x:hover { color: #dc2626; }
+
     .sk-apply-btn {
       padding: .45rem 1.1rem; border-radius: 7px; font-size: .82rem; font-weight: 600;
       cursor: pointer; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #64748b;
@@ -599,10 +722,24 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
     .sk-legend-item { display: flex; align-items: center; gap: .25rem; font-size: .72rem; color: #475569; }
     .sk-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-    .sk-graph-container { width: 100%; overflow: hidden; background: #0f0f1a; border-radius: 0 0 12px 12px; }
-    .sk-svg { width: 100%; display: block; cursor: grab; }
+    .sk-graph-container { width: 100%; overflow: hidden; border-radius: 0 0 12px 12px; }
+    .sk-graph-container--dark    { background: #0f0f1a; }
+    .sk-graph-container--light   { background: #f8fafc; }
+    .sk-graph-container--cluster { background: #fafafa; }
+    .sk-svg { width: 100%; display: block; }
     .sk-svg--dragging { cursor: grabbing; }
     .sk-node { cursor: pointer; }
+
+    /* View mode tabs */
+    .sk-view-tabs { display: flex; border-radius: 7px; overflow: hidden; border: 1.5px solid #e2e8f0; }
+    .sk-view-tab {
+      padding: .28rem .75rem; font-size: .75rem; font-weight: 600;
+      border: none; background: #f8fafc; color: #64748b; cursor: pointer;
+      transition: all .15s; border-right: 1px solid #e2e8f0;
+    }
+    .sk-view-tab:last-child { border-right: none; }
+    .sk-view-tab:hover { background: #ede9fe; color: #5b21b6; }
+    .sk-view-tab--active { background: #7c3aed; color: #fff; }
 
     /* 2-col grid */
     .sk-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
@@ -721,7 +858,9 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
   filterSumber   = 'all';
   filterMinBobot = '1';
   filterMaxNodes = '400';
-  filterPt       = '';
+  selectedPts    = new Set<string>();
+  ptDropdownOpen = false;
+  ptSearch       = '';
 
   // track what is currently displayed
   private loadedSumber   = '';
@@ -732,6 +871,12 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
   // ── SVG canvas ───────────────────────────────────────────────────────────────
   svgW = 1000;
   svgH = 580;
+
+  // ── View mode ────────────────────────────────────────────────────────────────
+  viewMode: '3d' | '2d' | 'cluster' = '3d';
+  readonly viewLabels: Record<string, string> = {
+    '3d': 'Peta Jaringan 3D', '2d': 'Peta Jaringan 2D', 'cluster': 'Klaster Komunitas',
+  };
 
   // ── 3D rotation state ────────────────────────────────────────────────────────
   rotX = 0.28;   // initial slight tilt
@@ -746,6 +891,8 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
   // ── Node maps & projection cache ─────────────────────────────────────────────
   private nodeMap = new Map<number, GraphNode>();
   private projMap = new Map<number, ProjPos>();   // cached projections
+  private clusterPosMap = new Map<number, { x: number; y: number }>();
+  clusterCenters: { cx: number; cy: number; r: number; color: string; label: string }[] = [];
   visibleNodes: GraphNode[] = [];
   visibleEdges: GraphEdge[] = [];
   _sortedVisibleNodes: GraphNode[] = [];
@@ -771,6 +918,13 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
     const degrees = this.visibleNodes.map(n => n.degree);
     const max = Math.max(...degrees, 1);
     return Math.max(3, Math.round(max * 0.25));
+  }
+
+  showLabel(n: GraphNode): boolean {
+    if (this.isDragging) return false;
+    if (this.viewMode === 'cluster') return n.degree >= Math.max(2, this.labelMinDegree * 0.5);
+    if (this.viewMode === '2d')      return n.degree >= Math.max(2, this.labelMinDegree * 0.6);
+    return n.degree >= this.labelMinDegree;
   }
 
   get sortedVisibleNodes(): GraphNode[] { return this._sortedVisibleNodes; }
@@ -838,19 +992,48 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
     this.ptList = Array.from(set).sort();
   }
 
+  get filteredPtList(): string[] {
+    if (!this.ptSearch.trim()) return this.ptList;
+    const q = this.ptSearch.toLowerCase();
+    return this.ptList.filter(pt => pt.toLowerCase().includes(q));
+  }
+
+  get selectedPtsArray(): string[] {
+    return Array.from(this.selectedPts).sort();
+  }
+
+  togglePt(pt: string) {
+    if (this.selectedPts.has(pt)) this.selectedPts.delete(pt);
+    else this.selectedPts.add(pt);
+    this.selectedPts = new Set(this.selectedPts); // trigger change detection
+    this.applyPtFilter();
+  }
+
+  clearPts() {
+    this.selectedPts = new Set();
+    this.applyPtFilter();
+  }
+
   applyPtFilter() {
     if (!this.data) return;
-    if (!this.filterPt) {
+    if (this.selectedPts.size === 0) {
       this.visibleNodes = this.data.nodes;
       this.visibleEdges = this.data.edges;
     } else {
       this.visibleNodes = this.data.nodes;
-      const ptIds = new Set(this.data.nodes.filter(n => n.pt === this.filterPt).map(n => n.id));
+      const ptIds = new Set(
+        this.data.nodes.filter(n => this.selectedPts.has(n.pt)).map(n => n.id)
+      );
       this.visibleEdges = this.data.edges.filter(
         e => ptIds.has(e.source) && ptIds.has(e.target)
       );
     }
-    this.updateProjections();
+    if (this.viewMode === 'cluster') this.computeClusterPositions();
+    if (this.viewMode !== '3d') {
+      this._sortedVisibleNodes = [...this.visibleNodes].sort((a, b) => a.degree - b.degree);
+    } else {
+      this.updateProjections();
+    }
   }
 
   // ── 3D Projection ────────────────────────────────────────────────────────────
@@ -886,7 +1069,72 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
   }
 
   proj(nodeId: number): ProjPos {
-    return this.projMap.get(nodeId) ?? { x: 0, y: 0, sz: 0, scale: 1 };
+    if (this.viewMode === '3d') {
+      return this.projMap.get(nodeId) ?? { x: 0, y: 0, sz: 0, scale: 1 };
+    }
+    if (this.viewMode === 'cluster') {
+      const p = this.clusterPosMap.get(nodeId);
+      return p ? { x: p.x, y: p.y, sz: 0, scale: 1 } : { x: 0, y: 0, sz: 0, scale: 1 };
+    }
+    // 2D — raw spring layout positions
+    const n = this.nodeMap.get(nodeId);
+    if (!n) return { x: 0, y: 0, sz: 0, scale: 1 };
+    return {
+      x: Math.round(n.x * (this.svgW - 80) + 40),
+      y: Math.round(n.y * (this.svgH - 80) + 40),
+      sz: 0, scale: 1,
+    };
+  }
+
+  setViewMode(mode: '3d' | '2d' | 'cluster') {
+    this.viewMode = mode;
+    if (mode !== '3d') this.stopAutoRotate();
+    if (mode === 'cluster') this.computeClusterPositions();
+    // In 2D/cluster, depth sort is irrelevant — use degree sort instead
+    if (mode !== '3d') {
+      this._sortedVisibleNodes = [...this.visibleNodes]
+        .sort((a, b) => a.degree - b.degree); // low degree first, high on top
+    } else {
+      this.updateProjections();
+    }
+  }
+
+  private computeClusterPositions() {
+    const byKom = new Map<number, GraphNode[]>();
+    for (const n of this.data?.nodes ?? []) {
+      if (!byKom.has(n.komunitas)) byKom.set(n.komunitas, []);
+      byKom.get(n.komunitas)!.push(n);
+    }
+    const sorted = Array.from(byKom.entries()).sort((a, b) => b[1].length - a[1].length);
+    const numKom = sorted.length;
+    const cx = this.svgW / 2, cy = this.svgH / 2;
+    const bigR = Math.min(this.svgW, this.svgH) * 0.39;
+
+    this.clusterPosMap.clear();
+    this.clusterCenters = [];
+
+    sorted.forEach(([komId, nodes], idx) => {
+      const angle  = (idx / numKom) * 2 * Math.PI - Math.PI / 2;
+      const komCx  = cx + bigR * Math.cos(angle);
+      const komCy  = cy + bigR * Math.sin(angle);
+      const smallR = Math.min(55, Math.max(14, Math.sqrt(nodes.length) * 7));
+
+      const color = nodes[0]?.color ?? '#7c3aed';
+      const kom = this.data?.komunitas_list?.find(k => k.id === komId);
+      this.clusterCenters.push({
+        cx: Math.round(komCx), cy: Math.round(komCy),
+        r: smallR, color,
+        label: kom?.pt_dom || ('Kom ' + (idx + 1)),
+      });
+
+      nodes.forEach((n, ni) => {
+        const na = nodes.length > 1 ? (ni / nodes.length) * 2 * Math.PI : 0;
+        this.clusterPosMap.set(n.id, {
+          x: Math.round(komCx + smallR * Math.cos(na)),
+          y: Math.round(komCy + smallR * Math.sin(na)),
+        });
+      });
+    });
   }
 
   nodeRadius(n: GraphNode): number {
@@ -915,8 +1163,10 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
     event.preventDefault();
   }
 
-  onDragMove(event: MouseEvent) {
-    if (this.isDragging) {
+  onDragMove(event: MouseEvent) { this.onSvgMove(event); }
+
+  onSvgMove(event: MouseEvent) {
+    if (this.isDragging && this.viewMode === '3d') {
       const dx = event.clientX - this.lastDragX;
       const dy = event.clientY - this.lastDragY;
       if (Math.abs(dx) > 2 || Math.abs(dy) > 2) this.dragMoved = true;
