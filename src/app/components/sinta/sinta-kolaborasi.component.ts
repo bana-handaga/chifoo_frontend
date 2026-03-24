@@ -12,6 +12,7 @@ interface GraphNode {
   sinta_score: number; sinta_id: string;
   degree: number; betweenness: number;
   komunitas: number; color: string;
+  topik: string[];
   x: number; y: number; z: number;
 }
 interface GraphEdge {
@@ -230,6 +231,43 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
         </span>
       </div>
 
+      <!-- Author search & focus bar -->
+      <div class="sk-as-bar">
+        <div class="sk-as-wrap">
+          <span class="sk-as-icon">🔍</span>
+          <input class="sk-as-input" [(ngModel)]="authorSearchQuery"
+                 (input)="searchAuthor(authorSearchQuery)"
+                 (focus)="authorSearchDropdownOpen = authorSearchResults.length > 0"
+                 placeholder="Cari peneliti di jaringan…"
+                 autocomplete="off">
+          <button class="sk-as-clear-btn" *ngIf="focusAuthorId !== null" (click)="clearFocus()" title="Hapus fokus">✕</button>
+          <!-- Dropdown -->
+          <div class="sk-as-dropdown" *ngIf="authorSearchDropdownOpen">
+            <div class="sk-as-item" *ngFor="let r of authorSearchResults"
+                 (click)="selectFocusAuthor(r)">
+              <span class="sk-as-dot" [style.background]="r.color"></span>
+              <div class="sk-as-item-info">
+                <span class="sk-as-nama">{{ r.nama }}</span>
+                <span class="sk-as-pt">{{ r.pt }}</span>
+              </div>
+              <span class="sk-as-deg">{{ r.degree }} koneksi</span>
+            </div>
+          </div>
+          <div class="sk-as-overlay" *ngIf="authorSearchDropdownOpen" (click)="authorSearchDropdownOpen=false"></div>
+        </div>
+        <!-- Focus info strip -->
+        <div class="sk-as-focus-strip" *ngIf="focusAuthorId !== null">
+          <span class="sk-as-focus-dot" [style.background]="graphNodeOf(focusAuthorId!)?.color"></span>
+          <span class="sk-as-focus-name">{{ graphNodeOf(focusAuthorId!)?.nama }}</span>
+          <span class="sk-as-focus-stat">{{ focusNeighborIds.size }} kolaborator langsung</span>
+          <button class="sk-as-ego-btn" [class.sk-as-ego-btn--active]="focusEgoOnly"
+                  (click)="focusEgoOnly = !focusEgoOnly">
+            {{ focusEgoOnly ? '⊕ Tampilkan semua' : '⊙ Jaringan saja' }}
+          </button>
+          <button class="sk-as-profile-btn" (click)="openAuthorPopup(focusAuthorId!)">👤 Profil</button>
+        </div>
+      </div>
+
       <div class="sk-graph-container"
            [class.sk-graph-container--dark]="viewMode==='3d'"
            [class.sk-graph-container--light]="viewMode==='2d'"
@@ -264,30 +302,43 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
           </ng-container>
 
           <!-- Edges -->
-          <line *ngFor="let e of visibleEdges"
+          <line *ngFor="let e of graphEdges"
                 [attr.x1]="proj(e.source).x" [attr.y1]="proj(e.source).y"
                 [attr.x2]="proj(e.target).x" [attr.y2]="proj(e.target).y"
                 [attr.stroke-width]="edgeWidth(e.weight)"
                 [attr.stroke]="edgeColor(e)"
-                [attr.stroke-opacity]="viewMode==='3d' ? 0.3 : 0.4"/>
+                [attr.stroke-opacity]="edgeOpacity(e)"/>
 
           <!-- Nodes -->
-          <g *ngFor="let n of sortedVisibleNodes; trackBy: trackNode"
+          <g *ngFor="let n of graphNodes; trackBy: trackNode"
              [attr.transform]="'translate(' + proj(n.id).x + ',' + proj(n.id).y + ')'"
              class="sk-node"
              (click)="onNodeClick(n)"
              (mouseenter)="!isDragging && (hoveredNode = n)">
+            <!-- Focus ring -->
+            <circle *ngIf="focusAuthorId === n.id"
+                    [attr.r]="nodeRadius(n) * proj(n.id).scale + 6"
+                    fill="none" stroke="#f59e0b" stroke-width="2.5" opacity="0.9"/>
             <circle
               [attr.r]="nodeRadius(n) * proj(n.id).scale"
-              [attr.fill]="selectedPts.size > 0 && !selectedPts.has(n.pt) ? '#e2e8f0' : n.color"
-              [attr.opacity]="selectedPts.size > 0 && !selectedPts.has(n.pt) ? 0.15 : Math.max(0.55, proj(n.id).scale)"
-              [attr.stroke]="viewMode==='3d' ? '#fff' : (hoveredNode?.id===n.id ? '#1e293b' : '#fff')"
-              [attr.stroke-width]="hoveredNode?.id === n.id ? 2.5 : 1"/>
+              [attr.fill]="nodeColor(n)"
+              [attr.opacity]="nodeOpacity(n)"
+              [attr.stroke]="nodeStroke(n)"
+              [attr.stroke-width]="nodeStrokeWidth(n)"/>
             <text *ngIf="showLabel(n)"
                   text-anchor="middle" [attr.dy]="nodeRadius(n) * proj(n.id).scale + 9"
                   [attr.font-size]="viewMode==='3d' ? 8 * proj(n.id).scale : 8"
-                  [attr.fill]="viewMode==='3d' ? '#e2e8f0' : '#1e293b'"
+                  [attr.fill]="'#1e293b'"
                   font-weight="600" style="pointer-events:none">{{ n.nama | slice:0:18 }}</text>
+            <!-- Topic tags — shown in focus mode for focused node + neighbors -->
+            <ng-container *ngIf="focusAuthorId !== null && (focusAuthorId === n.id || focusNeighborIds.has(n.id)) && n.topik?.length">
+              <text *ngFor="let t of n.topik; let ti = index"
+                    text-anchor="middle"
+                    [attr.dy]="nodeRadius(n) * proj(n.id).scale + 20 + ti * 11"
+                    font-size="7"
+                    [attr.fill]="focusAuthorId === n.id ? '#b45309' : '#64748b'"
+                    font-weight="500" style="pointer-events:none">{{ t | slice:0:20 }}</text>
+            </ng-container>
           </g>
 
           <!-- Hover tooltip -->
@@ -723,7 +774,7 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
     .sk-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
     .sk-graph-container { width: 100%; overflow: hidden; border-radius: 0 0 12px 12px; }
-    .sk-graph-container--dark    { background: #0f0f1a; }
+    .sk-graph-container--dark    { background: #f2f2f2; }
     .sk-graph-container--light   { background: #f8fafc; }
     .sk-graph-container--cluster { background: #fafafa; }
     .sk-svg { width: 100%; display: block; }
@@ -841,6 +892,63 @@ interface ProjPos { x: number; y: number; sz: number; scale: number; }
     .ap-spark-item { }
     .ap-spark-lbl { font-size: 10px; color: #475569; font-weight: 600; margin-bottom: 3px; }
     .ap-spark { width: 100%; height: 40px; display: block; }
+
+    /* ── Author search bar ── */
+    .sk-as-bar {
+      padding: .5rem 1.1rem; border-bottom: 1px solid #f1f5f9;
+      display: flex; flex-direction: column; gap: .4rem; background: #fafafa;
+    }
+    .sk-as-wrap { position: relative; display: flex; align-items: center; gap: .5rem; }
+    .sk-as-icon { font-size: .9rem; color: #94a3b8; flex-shrink: 0; }
+    .sk-as-input {
+      flex: 1; padding: .38rem .65rem; border: 1.5px solid #e2e8f0; border-radius: 7px;
+      font-size: .82rem; background: #fff; color: #334155; outline: none;
+      transition: border-color .15s;
+    }
+    .sk-as-input:focus { border-color: #7c3aed; }
+    .sk-as-clear-btn {
+      padding: .25rem .55rem; border-radius: 5px; font-size: .75rem;
+      border: 1px solid #fca5a5; background: #fef2f2; color: #dc2626;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .sk-as-clear-btn:hover { background: #fee2e2; }
+    .sk-as-overlay { position: fixed; inset: 0; z-index: 49; }
+    .sk-as-dropdown {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.13); overflow: hidden;
+    }
+    .sk-as-item {
+      display: flex; align-items: center; gap: .5rem; padding: .45rem .75rem;
+      cursor: pointer; transition: background .1s; font-size: .8rem;
+    }
+    .sk-as-item:hover { background: #f5f3ff; }
+    .sk-as-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .sk-as-item-info { flex: 1; min-width: 0; }
+    .sk-as-nama { font-weight: 600; color: #1e293b; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sk-as-pt { font-size: .72rem; color: #7c3aed; font-weight: 600; }
+    .sk-as-deg { font-size: .75rem; color: #64748b; white-space: nowrap; font-weight: 600; flex-shrink: 0; }
+    /* Focus strip */
+    .sk-as-focus-strip {
+      display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+      background: #fefce8; border: 1px solid #fde68a; border-radius: 7px;
+      padding: .35rem .75rem; font-size: .8rem;
+    }
+    .sk-as-focus-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .sk-as-focus-name { font-weight: 700; color: #1e293b; }
+    .sk-as-focus-stat { color: #64748b; font-size: .75rem; }
+    .sk-as-ego-btn {
+      padding: .22rem .65rem; border-radius: 5px; font-size: .75rem; font-weight: 600;
+      border: 1.5px solid #fbbf24; background: #fff; color: #92400e; cursor: pointer;
+      transition: all .15s; margin-left: auto;
+    }
+    .sk-as-ego-btn:hover { background: #fef3c7; }
+    .sk-as-ego-btn--active { background: #fbbf24; border-color: #f59e0b; color: #1c1917; }
+    .sk-as-profile-btn {
+      padding: .22rem .65rem; border-radius: 5px; font-size: .75rem; font-weight: 600;
+      border: 1.5px solid #c4b5fd; background: #f5f3ff; color: #5b21b6; cursor: pointer;
+    }
+    .sk-as-profile-btn:hover { background: #ede9fe; }
   `]
 })
 export class SintaKolaboasiComponent implements OnInit, OnDestroy {
@@ -904,6 +1012,14 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
 
   authorPopup:        AuthorProfile | null = null;
   authorPopupLoading  = false;
+
+  // ── Author search / focus ────────────────────────────────────────────────────
+  focusAuthorId:          number | null = null;
+  focusNeighborIds        = new Set<number>();
+  authorSearchQuery       = '';
+  authorSearchResults:    GraphNode[] = [];
+  authorSearchDropdownOpen = false;
+  focusEgoOnly            = false;
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
   graphNodeOf(authorId: number): GraphNode | undefined {
@@ -971,6 +1087,7 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
           this.loadedSumber   = this.filterSumber;
           this.loadedMinBobot = this.filterMinBobot;
           this.loadedMaxNodes = this.filterMaxNodes;
+          this.clearFocus();
           this.buildNodeMap(d);
           this.buildPtList(d);
           this.applyPtFilter();
@@ -1299,5 +1416,98 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
 
   barPct(val: number, max: number): number {
     return max ? Math.round(val / max * 100) : 0;
+  }
+
+  // ── Author search & focus ─────────────────────────────────────────────────────
+  searchAuthor(q: string) {
+    if (!q.trim()) {
+      this.authorSearchResults  = [];
+      this.authorSearchDropdownOpen = false;
+      return;
+    }
+    const lower = q.toLowerCase();
+    this.authorSearchResults = this.visibleNodes
+      .filter(n => n.nama.toLowerCase().includes(lower) || n.pt.toLowerCase().includes(lower))
+      .sort((a, b) => b.degree - a.degree)
+      .slice(0, 10);
+    this.authorSearchDropdownOpen = this.authorSearchResults.length > 0;
+  }
+
+  selectFocusAuthor(n: GraphNode) {
+    this.focusAuthorId        = n.id;
+    this.authorSearchQuery    = n.nama;
+    this.authorSearchDropdownOpen = false;
+    this.focusNeighborIds     = new Set<number>();
+    for (const e of this.visibleEdges) {
+      if (e.source === n.id) this.focusNeighborIds.add(e.target);
+      if (e.target === n.id) this.focusNeighborIds.add(e.source);
+    }
+  }
+
+  clearFocus() {
+    this.focusAuthorId        = null;
+    this.focusNeighborIds     = new Set();
+    this.authorSearchQuery    = '';
+    this.authorSearchResults  = [];
+    this.authorSearchDropdownOpen = false;
+    this.focusEgoOnly         = false;
+  }
+
+  // Getters used in template for focus-aware node/edge lists
+  get graphNodes(): GraphNode[] {
+    if (this.focusEgoOnly && this.focusAuthorId !== null) {
+      const allowed = new Set([this.focusAuthorId, ...this.focusNeighborIds]);
+      return this._sortedVisibleNodes.filter(n => allowed.has(n.id));
+    }
+    return this._sortedVisibleNodes;
+  }
+
+  get graphEdges(): GraphEdge[] {
+    if (this.focusEgoOnly && this.focusAuthorId !== null) {
+      return this.visibleEdges.filter(
+        e => e.source === this.focusAuthorId || e.target === this.focusAuthorId
+      );
+    }
+    return this.visibleEdges;
+  }
+
+  // Focus-aware node styling
+  nodeColor(n: GraphNode): string {
+    if (this.focusAuthorId !== null && !this.focusEgoOnly) {
+      if (n.id !== this.focusAuthorId && !this.focusNeighborIds.has(n.id)) return '#cbd5e1';
+    }
+    if (this.selectedPts.size > 0 && !this.selectedPts.has(n.pt)) return '#e2e8f0';
+    return n.color;
+  }
+
+  nodeOpacity(n: GraphNode): number {
+    if (this.focusAuthorId !== null && !this.focusEgoOnly) {
+      if (n.id === this.focusAuthorId) return 1;
+      if (this.focusNeighborIds.has(n.id)) return 0.9;
+      return 0.1;
+    }
+    if (this.selectedPts.size > 0 && !this.selectedPts.has(n.pt)) return 0.15;
+    if (this.viewMode === '3d') return Math.max(0.65, this.proj(n.id).scale);
+    return 1;
+  }
+
+  nodeStroke(n: GraphNode): string {
+    if (this.focusAuthorId === n.id) return '#f59e0b';
+    if (this.hoveredNode?.id === n.id) return '#1e293b';
+    return 'rgba(255,255,255,0.7)';
+  }
+
+  nodeStrokeWidth(n: GraphNode): number {
+    if (this.focusAuthorId === n.id) return 3;
+    if (this.hoveredNode?.id === n.id) return 2.5;
+    return 1;
+  }
+
+  edgeOpacity(e: GraphEdge): number {
+    if (this.focusAuthorId !== null && !this.focusEgoOnly) {
+      if (e.source === this.focusAuthorId || e.target === this.focusAuthorId) return 0.85;
+      return 0.05;
+    }
+    return this.viewMode === '3d' ? 0.45 : 0.4;
   }
 }
