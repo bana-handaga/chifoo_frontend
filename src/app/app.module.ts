@@ -33,6 +33,7 @@ import { SintaClusterComponent }   from './components/sinta/sinta-cluster.compon
 import { SintaAfiliasiComponent }  from './components/sinta/sinta-afiliasi.component';
 import { SintaJurnalComponent, IssnPipe } from './components/sinta/sinta-jurnal.component';
 import { SintaAuthorComponent }    from './components/sinta/sinta-author.component';
+import { SintaKolaboasiComponent } from './components/sinta/sinta-kolaborasi.component';
 
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
@@ -66,6 +67,7 @@ const routes: Routes = [
       { path: 'sinta/buku',       component: SintaBukuComponent },
       { path: 'sinta/jurnal',     component: SintaJurnalComponent },
       { path: 'sinta/cluster',    component: SintaClusterComponent },
+      { path: 'network-x',        component: SintaKolaboasiComponent },
     ]
   },
   { path: '**', redirectTo: '' }
@@ -92,6 +94,7 @@ const routes: Routes = [
     SintaIprComponent, SintaBukuComponent,
     SintaJurnalComponent,
     SintaClusterComponent,
+    SintaKolaboasiComponent,
     IssnPipe, TitleCaseIdPipe,
     MahasiswaTrenComponent,
   ],

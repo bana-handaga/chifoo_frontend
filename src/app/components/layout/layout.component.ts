@@ -61,6 +61,12 @@ import { AuthService } from '../../services/auth.service';
           </svg>
           <span class="nav-label">SINTA</span>
         </a>
+        <a routerLink="/network-x" routerLinkActive="active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 12a5 5 0 1 0-4.48 4.97V18h-2v2h2v1h2v-1h2v-2h-2v-1.03A5 5 0 0 0 17 12zm-5 3a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM4 6a2 2 0 1 1 4 0 2 2 0 0 1-4 0zm2-4a4 4 0 1 0 0 8A4 4 0 0 0 6 2zm14 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0-2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
+          </svg>
+          <span class="nav-label">NetworkX</span>
+        </a>
       </nav>
 
       <!-- Kanan: user / login -->
@@ -137,6 +143,12 @@ import { AuthService } from '../../services/auth.service';
           <path d="M19.5 3.09L15 7.59V4h-2v7h7V9h-3.59l4.5-4.5-1.41-1.41zM4 13v2h3.59l-4.5 4.5 1.41 1.41L9 16.41V20h2v-7H4z"/>
         </svg>
         <span class="tab-label">SINTA</span>
+      </a>
+      <a routerLink="/network-x" routerLinkActive="active">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17 12a5 5 0 1 0-4.48 4.97V18h-2v2h2v1h2v-1h2v-2h-2v-1.03A5 5 0 0 0 17 12zm-5 3a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM4 6a2 2 0 1 1 4 0 2 2 0 0 1-4 0zm2-4a4 4 0 1 0 0 8A4 4 0 0 0 6 2zm14 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0-2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
+        </svg>
+        <span class="tab-label">NetworkX</span>
       </a>
     </nav>
   `,
