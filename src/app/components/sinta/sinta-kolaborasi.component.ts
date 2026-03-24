@@ -12,7 +12,7 @@ interface GraphNode {
   sinta_score: number; sinta_id: string;
   degree: number; betweenness: number;
   komunitas: number; color: string;
-  x: number; y: number;
+  x: number; y: number; z: number;
 }
 interface GraphEdge {
   source: number; target: number;
@@ -61,6 +61,7 @@ interface AuthorProfile {
   affil_score: number; affil_score_3year: number;
   scraped_at: string; trend: AuthorTrendItem[];
 }
+interface ProjPos { x: number; y: number; sz: number; scale: number; }
 
 @Component({
   selector: 'app-sinta-kolaborasi',
@@ -83,7 +84,7 @@ interface AuthorProfile {
   <div class="sk-filterbar">
     <div class="sk-filter-group">
       <label class="sk-filter-lbl">Sumber Data</label>
-      <select class="sk-select" [(ngModel)]="filterSumber" (change)="loadGraph()">
+      <select class="sk-select" [(ngModel)]="filterSumber" (change)="markDirty()">
         <option value="all">Semua (Penelitian + Pengabdian + Scopus)</option>
         <option value="penelitian">Penelitian saja</option>
         <option value="pengabdian">Pengabdian saja</option>
@@ -92,7 +93,7 @@ interface AuthorProfile {
     </div>
     <div class="sk-filter-group">
       <label class="sk-filter-lbl">Min. Kolaborasi</label>
-      <select class="sk-select" [(ngModel)]="filterMinBobot" (change)="loadGraph()">
+      <select class="sk-select" [(ngModel)]="filterMinBobot" (change)="markDirty()">
         <option value="1">≥ 1 kali</option>
         <option value="2">≥ 2 kali</option>
         <option value="3">≥ 3 kali</option>
@@ -101,7 +102,7 @@ interface AuthorProfile {
     </div>
     <div class="sk-filter-group">
       <label class="sk-filter-lbl">Tampilkan</label>
-      <select class="sk-select" [(ngModel)]="filterMaxNodes" (change)="loadGraph()">
+      <select class="sk-select" [(ngModel)]="filterMaxNodes" (change)="markDirty()">
         <option value="200">200 peneliti teratas</option>
         <option value="400">400 peneliti teratas</option>
         <option value="600">600 peneliti teratas</option>
@@ -113,6 +114,17 @@ interface AuthorProfile {
         <option value="">Semua PT</option>
         <option *ngFor="let pt of ptList" [value]="pt">{{ pt }}</option>
       </select>
+    </div>
+    <!-- Recreate button — muncul saat filter berubah -->
+    <div class="sk-filter-group sk-filter-group--btn">
+      <label class="sk-filter-lbl">&nbsp;</label>
+      <button class="sk-apply-btn"
+              [class.sk-apply-btn--dirty]="filtersDirty"
+              [disabled]="loading"
+              (click)="applyFilters()">
+        <span *ngIf="filtersDirty">↻ Terapkan Filter</span>
+        <span *ngIf="!filtersDirty">✓ Diterapkan</span>
+      </button>
     </div>
   </div>
 
@@ -161,62 +173,76 @@ interface AuthorProfile {
     <div class="sk-graph-card">
       <div class="sk-graph-head">
         <span class="sk-graph-title">
-          Peta Jaringan — menampilkan {{ visibleNodes.length | number }} peneliti,
+          Peta Jaringan 3D — {{ visibleNodes.length | number }} peneliti,
           {{ visibleEdges.length | number }} tautan
         </span>
-        <div class="sk-graph-legend">
-          <span class="sk-legend-item" *ngFor="let k of topKomunitas">
-            <span class="sk-legend-dot" [style.background]="k.color"></span>{{ k.pt_dom || ('Kom. ' + k.id) }}
-          </span>
+        <div class="sk-graph-controls">
+          <button class="sk-ctrl-btn" (click)="resetView()" title="Reset sudut pandang">↺ Reset</button>
+          <button class="sk-ctrl-btn" [class.sk-ctrl-btn--active]="autoRotate" (click)="toggleAutoRotate()" title="Rotasi otomatis">⟳ Auto</button>
+          <span class="sk-hint">🖱 seret untuk memutar</span>
         </div>
+      </div>
+      <div class="sk-graph-legend">
+        <span class="sk-legend-item" *ngFor="let k of topKomunitas">
+          <span class="sk-legend-dot" [style.background]="k.color"></span>{{ k.pt_dom || ('Kom. ' + k.id) }}
+        </span>
       </div>
 
       <div class="sk-graph-container" #graphContainer>
         <svg class="sk-svg" [attr.viewBox]="'0 0 ' + svgW + ' ' + svgH"
-             (mousemove)="onSvgMouseMove($event)"
-             (mouseleave)="hoveredNode = null">
-
-          <!-- Edges -->
-          <line *ngFor="let e of visibleEdges"
-                [attr.x1]="nodePos(e.source).x" [attr.y1]="nodePos(e.source).y"
-                [attr.x2]="nodePos(e.target).x" [attr.y2]="nodePos(e.target).y"
-                [attr.stroke-width]="edgeWidth(e.weight)"
-                [attr.stroke]="edgeColor(e)"
-                stroke-opacity="0.35"/>
-
-          <!-- Nodes -->
-          <g *ngFor="let n of visibleNodes"
-             [attr.transform]="'translate(' + nodePos(n.id).x + ',' + nodePos(n.id).y + ')'"
-             class="sk-node"
-             (click)="openAuthorPopup(n.id)"
-             (mouseenter)="hoveredNode = n">
-            <circle [attr.r]="nodeRadius(n)"
-                    [attr.fill]="filterPt && n.pt !== filterPt ? '#e2e8f0' : n.color"
-                    [attr.opacity]="filterPt && n.pt !== filterPt ? 0.25 : 0.9"
-                    stroke="#fff" [attr.stroke-width]="hoveredNode?.id === n.id ? 2.5 : 1.5"/>
-            <text *ngIf="n.degree >= labelMinDegree"
-                  text-anchor="middle" [attr.dy]="nodeRadius(n) + 9"
-                  font-size="8" fill="#374151" font-weight="600"
-                  style="pointer-events:none">{{ n.nama | slice:0:16 }}</text>
-          </g>
-
-          <!-- Hover tooltip inside SVG -->
-          <g *ngIf="hoveredNode" class="sk-tooltip-g"
-             [attr.transform]="tooltipTransform()">
-            <rect x="0" y="0" width="180" height="56" rx="6"
-                  fill="white" stroke="#e2e8f0" stroke-width="1"
-                  filter="url(#sk-shadow)"/>
-            <text x="8" y="16" font-size="10" font-weight="700" fill="#111827">{{ hoveredNode.nama | slice:0:24 }}</text>
-            <text x="8" y="29" font-size="9" fill="#6b7280">{{ hoveredNode.pt }}</text>
-            <text x="8" y="42" font-size="9" fill="#374151">Koneksi: <tspan font-weight="700">{{ hoveredNode.degree }}</tspan>  ·  Skor: <tspan font-weight="700">{{ hoveredNode.sinta_score | number }}</tspan></text>
-            <text x="8" y="53" font-size="8" fill="#9ca3af">klik untuk detail profil</text>
-          </g>
+             [class.sk-svg--dragging]="isDragging"
+             (mousedown)="onDragStart($event)"
+             (mousemove)="onDragMove($event)"
+             (mouseup)="onDragEnd()"
+             (mouseleave)="onDragEnd(); hoveredNode = null"
+             (touchstart)="onTouchStart($event)"
+             (touchmove)="onTouchMove($event)"
+             (touchend)="onDragEnd()">
 
           <defs>
             <filter id="sk-shadow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="1" dy="2" stdDeviation="3" flood-opacity="0.12"/>
             </filter>
           </defs>
+
+          <!-- Edges (render below nodes) -->
+          <line *ngFor="let e of visibleEdges"
+                [attr.x1]="proj(e.source).x" [attr.y1]="proj(e.source).y"
+                [attr.x2]="proj(e.target).x" [attr.y2]="proj(e.target).y"
+                [attr.stroke-width]="edgeWidth(e.weight)"
+                [attr.stroke]="edgeColor(e)"
+                stroke-opacity="0.3"/>
+
+          <!-- Nodes depth-sorted (far nodes first) -->
+          <g *ngFor="let n of sortedVisibleNodes; trackBy: trackNode"
+             [attr.transform]="'translate(' + proj(n.id).x + ',' + proj(n.id).y + ')'"
+             class="sk-node"
+             (click)="onNodeClick(n)"
+             (mouseenter)="!isDragging && (hoveredNode = n)">
+            <circle
+              [attr.r]="nodeRadius(n) * proj(n.id).scale"
+              [attr.fill]="filterPt && n.pt !== filterPt ? '#e2e8f0' : n.color"
+              [attr.opacity]="filterPt && n.pt !== filterPt ? 0.2 : Math.max(0.55, proj(n.id).scale)"
+              stroke="#fff"
+              [attr.stroke-width]="hoveredNode?.id === n.id ? 2.5 : 1"/>
+            <text *ngIf="n.degree >= labelMinDegree && !isDragging"
+                  text-anchor="middle" [attr.dy]="nodeRadius(n) * proj(n.id).scale + 9"
+                  [attr.font-size]="8 * proj(n.id).scale" fill="#374151" font-weight="600"
+                  style="pointer-events:none">{{ n.nama | slice:0:16 }}</text>
+          </g>
+
+          <!-- Hover tooltip -->
+          <g *ngIf="hoveredNode && !isDragging" class="sk-tooltip-g"
+             [attr.transform]="tooltipTransform()">
+            <rect x="0" y="0" width="190" height="58" rx="6"
+                  fill="white" stroke="#e2e8f0" stroke-width="1"
+                  filter="url(#sk-shadow)"/>
+            <text x="8" y="16" font-size="10" font-weight="700" fill="#111827">{{ hoveredNode.nama | slice:0:26 }}</text>
+            <text x="8" y="29" font-size="9" fill="#6b7280">{{ hoveredNode.pt }}</text>
+            <text x="8" y="42" font-size="9" fill="#374151">Koneksi: <tspan font-weight="700">{{ hoveredNode.degree }}</tspan>  ·  Skor: <tspan font-weight="700">{{ hoveredNode.sinta_score | number }}</tspan></text>
+            <text x="8" y="54" font-size="8" fill="#9ca3af">klik untuk detail profil</text>
+          </g>
+
         </svg>
       </div>
     </div>
@@ -401,6 +427,56 @@ interface AuthorProfile {
             </div>
           </div>
         </div>
+        <!-- Tren tahunan sparklines -->
+        <div class="ap-section" *ngIf="trenData(p,'scopus').length || trenData(p,'gscholar_pub').length || trenData(p,'research').length || trenData(p,'service').length">
+          <div class="ap-section-lbl">Tren Tahunan</div>
+          <div class="ap-sparklines">
+            <div class="ap-spark-item" *ngIf="trenData(p,'scopus').length">
+              <div class="ap-spark-lbl">🟠 Artikel Scopus</div>
+              <svg class="ap-spark" viewBox="0 0 200 40" preserveAspectRatio="none">
+                <path [attr.d]="sparkPath(trenData(p,'scopus'))" fill="none" stroke="#d97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path [attr.d]="sparkArea(trenData(p,'scopus'))" fill="#fde68a" opacity="0.5"/>
+                <circle *ngFor="let pt of sparkPts(trenData(p,'scopus'))"
+                        [attr.cx]="pt.x" [attr.cy]="pt.y" r="2" fill="#d97706">
+                  <title>{{ pt.tahun }}: {{ pt.v }}</title>
+                </circle>
+              </svg>
+            </div>
+            <div class="ap-spark-item" *ngIf="trenData(p,'gscholar_pub').length">
+              <div class="ap-spark-lbl">🔵 Artikel G.Scholar</div>
+              <svg class="ap-spark" viewBox="0 0 200 40" preserveAspectRatio="none">
+                <path [attr.d]="sparkPath(trenData(p,'gscholar_pub'))" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path [attr.d]="sparkArea(trenData(p,'gscholar_pub'))" fill="#bfdbfe" opacity="0.5"/>
+                <circle *ngFor="let pt of sparkPts(trenData(p,'gscholar_pub'))"
+                        [attr.cx]="pt.x" [attr.cy]="pt.y" r="2" fill="#2563eb">
+                  <title>{{ pt.tahun }}: {{ pt.v }}</title>
+                </circle>
+              </svg>
+            </div>
+            <div class="ap-spark-item" *ngIf="trenData(p,'research').length">
+              <div class="ap-spark-lbl">🔬 Penelitian</div>
+              <svg class="ap-spark" viewBox="0 0 200 40" preserveAspectRatio="none">
+                <path [attr.d]="sparkPath(trenData(p,'research'))" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path [attr.d]="sparkArea(trenData(p,'research'))" fill="#a7f3d0" opacity="0.5"/>
+                <circle *ngFor="let pt of sparkPts(trenData(p,'research'))"
+                        [attr.cx]="pt.x" [attr.cy]="pt.y" r="2" fill="#059669">
+                  <title>{{ pt.tahun }}: {{ pt.v }}</title>
+                </circle>
+              </svg>
+            </div>
+            <div class="ap-spark-item" *ngIf="trenData(p,'service').length">
+              <div class="ap-spark-lbl">🤝 Pengabdian</div>
+              <svg class="ap-spark" viewBox="0 0 200 40" preserveAspectRatio="none">
+                <path [attr.d]="sparkPath(trenData(p,'service'))" fill="none" stroke="#0284c7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path [attr.d]="sparkArea(trenData(p,'service'))" fill="#bae6fd" opacity="0.5"/>
+                <circle *ngFor="let pt of sparkPts(trenData(p,'service'))"
+                        [attr.cx]="pt.x" [attr.cy]="pt.y" r="2" fill="#0284c7">
+                  <title>{{ pt.tahun }}: {{ pt.v }}</title>
+                </circle>
+              </svg>
+            </div>
+          </div>
+        </div>
         <div class="ap-footer">
           <a [href]="p.url_profil" target="_blank" rel="noopener" class="ap-link">
             Lihat profil SINTA lengkap ↗
@@ -438,9 +514,10 @@ interface AuthorProfile {
     .sk-filterbar {
       display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.25rem;
       background: #fff; border-radius: 10px; padding: .75rem 1rem;
-      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      box-shadow: 0 1px 4px rgba(0,0,0,.07); align-items: flex-end;
     }
     .sk-filter-group { display: flex; flex-direction: column; gap: .25rem; }
+    .sk-filter-group--btn { margin-left: auto; }
     .sk-filter-lbl { font-size: .72rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
     .sk-select {
       padding: .4rem .65rem; border: 1px solid #e2e8f0; border-radius: 6px;
@@ -448,6 +525,22 @@ interface AuthorProfile {
       outline: none;
     }
     .sk-select:focus { border-color: #7c3aed; }
+
+    .sk-apply-btn {
+      padding: .45rem 1.1rem; border-radius: 7px; font-size: .82rem; font-weight: 600;
+      cursor: pointer; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #64748b;
+      transition: all .2s; white-space: nowrap;
+    }
+    .sk-apply-btn--dirty {
+      background: #7c3aed; border-color: #7c3aed; color: #fff;
+      box-shadow: 0 2px 8px rgba(124,58,237,.35);
+      animation: sk-pulse .9s ease-in-out infinite alternate;
+    }
+    @keyframes sk-pulse {
+      from { box-shadow: 0 2px 8px rgba(124,58,237,.3); }
+      to   { box-shadow: 0 2px 18px rgba(124,58,237,.6); }
+    }
+    .sk-apply-btn:disabled { opacity: .6; cursor: not-allowed; }
 
     /* Loading */
     .sk-loading {
@@ -490,17 +583,26 @@ interface AuthorProfile {
     }
     .sk-graph-head {
       display: flex; align-items: center; justify-content: space-between;
-      padding: .75rem 1.1rem; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: .5rem;
+      padding: .65rem 1.1rem; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: .5rem;
     }
     .sk-graph-title { font-size: .85rem; font-weight: 700; color: #334155; }
-    .sk-graph-legend { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .sk-graph-controls { display: flex; align-items: center; gap: .5rem; }
+    .sk-ctrl-btn {
+      padding: .3rem .7rem; border-radius: 6px; font-size: .75rem; font-weight: 600;
+      border: 1.5px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer;
+      transition: all .15s;
+    }
+    .sk-ctrl-btn:hover { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; }
+    .sk-ctrl-btn--active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+    .sk-hint { font-size: .72rem; color: #94a3b8; }
+    .sk-graph-legend { display: flex; flex-wrap: wrap; gap: .5rem; padding: .4rem 1.1rem; border-bottom: 1px solid #f1f5f9; }
     .sk-legend-item { display: flex; align-items: center; gap: .25rem; font-size: .72rem; color: #475569; }
     .sk-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-    .sk-graph-container { width: 100%; overflow: hidden; background: #f8fafc; }
+    .sk-graph-container { width: 100%; overflow: hidden; background: #0f0f1a; border-radius: 0 0 12px 12px; }
     .sk-svg { width: 100%; display: block; cursor: grab; }
+    .sk-svg--dragging { cursor: grabbing; }
     .sk-node { cursor: pointer; }
-    .sk-node:hover circle { stroke: #1e293b; stroke-width: 2.5px; }
 
     /* 2-col grid */
     .sk-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
@@ -598,30 +700,55 @@ interface AuthorProfile {
     .ap-footer { border-top: 1px solid #f3f4f6; padding-top: 10px; text-align: center; }
     .ap-link { display: inline-block; font-size: 12px; color: #7c3aed; text-decoration: none; font-weight: 600; padding: .35rem .9rem; border: 1px solid #ddd6fe; border-radius: 6px; background: #f5f3ff; }
     .ap-link:hover { background: #ede9fe; }
+    .ap-sparklines { display: flex; flex-direction: column; gap: 10px; }
+    .ap-spark-item { }
+    .ap-spark-lbl { font-size: 10px; color: #475569; font-weight: 600; margin-bottom: 3px; }
+    .ap-spark { width: 100%; height: 40px; display: block; }
   `]
 })
 export class SintaKolaboasiComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   @ViewChild('graphContainer') graphContainerRef!: ElementRef;
 
+  readonly Math = Math;
+
   data:    GraphResponse | null = null;
   loading  = false;
   error    = '';
   isAdmin  = false;
 
+  // ── Filters ─────────────────────────────────────────────────────────────────
   filterSumber   = 'all';
   filterMinBobot = '1';
   filterMaxNodes = '400';
   filterPt       = '';
 
-  // SVG canvas dimensions
-  svgW = 1000;
-  svgH = 600;
+  // track what is currently displayed
+  private loadedSumber   = '';
+  private loadedMinBobot = '';
+  private loadedMaxNodes = '';
+  filtersDirty = false;
 
-  // Node lookup maps built after data loads
+  // ── SVG canvas ───────────────────────────────────────────────────────────────
+  svgW = 1000;
+  svgH = 580;
+
+  // ── 3D rotation state ────────────────────────────────────────────────────────
+  rotX = 0.28;   // initial slight tilt
+  rotY = 0.38;
+  isDragging  = false;
+  private dragMoved  = false;
+  private lastDragX  = 0;
+  private lastDragY  = 0;
+  autoRotate  = false;
+  private autoRafId  = 0;
+
+  // ── Node maps & projection cache ─────────────────────────────────────────────
   private nodeMap = new Map<number, GraphNode>();
+  private projMap = new Map<number, ProjPos>();   // cached projections
   visibleNodes: GraphNode[] = [];
   visibleEdges: GraphEdge[] = [];
+  _sortedVisibleNodes: GraphNode[] = [];
   ptList: string[] = [];
 
   hoveredNode: GraphNode | null = null;
@@ -631,7 +758,7 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
   authorPopup:        AuthorProfile | null = null;
   authorPopupLoading  = false;
 
-  // Author popup ── for connection count overlay
+  // ── Helpers ──────────────────────────────────────────────────────────────────
   graphNodeOf(authorId: number): GraphNode | undefined {
     return this.nodeMap.get(authorId);
   }
@@ -646,14 +773,34 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
     return Math.max(3, Math.round(max * 0.25));
   }
 
+  get sortedVisibleNodes(): GraphNode[] { return this._sortedVisibleNodes; }
+
+  trackNode(_: number, n: GraphNode) { return n.id; }
+
   constructor(private http: HttpClient) {}
 
   ngOnInit() { this.loadGraph(); }
-  ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.stopAutoRotate();
+  }
+
+  // ── Filter logic ─────────────────────────────────────────────────────────────
+  markDirty() {
+    this.filtersDirty =
+      this.filterSumber   !== this.loadedSumber   ||
+      this.filterMinBobot !== this.loadedMinBobot  ||
+      this.filterMaxNodes !== this.loadedMaxNodes;
+  }
+
+  applyFilters() { this.loadGraph(false); }
 
   loadGraph(force = false) {
-    this.loading = true;
-    this.error   = '';
+    this.loading     = true;
+    this.error       = '';
+    this.filtersDirty = false;
     const params: Record<string, string> = {
       sumber:    this.filterSumber,
       min_bobot: this.filterMinBobot,
@@ -667,6 +814,9 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
         next: d => {
           if (!d.ready) { this.error = d.error || 'Gagal membangun graph.'; return; }
           this.data = d;
+          this.loadedSumber   = this.filterSumber;
+          this.loadedMinBobot = this.filterMinBobot;
+          this.loadedMaxNodes = this.filterMaxNodes;
           this.buildNodeMap(d);
           this.buildPtList(d);
           this.applyPtFilter();
@@ -694,56 +844,162 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
       this.visibleNodes = this.data.nodes;
       this.visibleEdges = this.data.edges;
     } else {
-      // Show all nodes but dim non-PT; only keep edges within PT
       this.visibleNodes = this.data.nodes;
       const ptIds = new Set(this.data.nodes.filter(n => n.pt === this.filterPt).map(n => n.id));
       this.visibleEdges = this.data.edges.filter(
         e => ptIds.has(e.source) && ptIds.has(e.target)
       );
     }
+    this.updateProjections();
   }
 
-  // ── SVG helpers ────────────────────────────────────────────────────────────
-  nodePos(nodeId: number): { x: number; y: number } {
-    const n = this.nodeMap.get(nodeId);
-    if (!n) return { x: 0, y: 0 };
-    return {
-      x: Math.round(n.x * (this.svgW - 40) + 20),
-      y: Math.round(n.y * (this.svgH - 40) + 20),
-    };
+  // ── 3D Projection ────────────────────────────────────────────────────────────
+  private project3D(x: number, y: number, z: number): ProjPos {
+    const cx = x - 0.5, cy = y - 0.5, cz = z - 0.5;
+    // Rotate around Y
+    const cosY = Math.cos(this.rotY), sinY = Math.sin(this.rotY);
+    const x1 = cx * cosY - cz * sinY;
+    const z1 = cx * sinY + cz * cosY;
+    // Rotate around X
+    const cosX = Math.cos(this.rotX), sinX = Math.sin(this.rotX);
+    const y2 = cy * cosX - z1 * sinX;
+    const z2 = cy * sinX + z1 * cosX;
+    // Perspective
+    const fov = 1.8;
+    const scale = fov / (fov + z2 * 0.55);
+    const sx = Math.round((x1 * scale + 0.5) * (this.svgW - 80) + 40);
+    const sy = Math.round((y2 * scale + 0.5) * (this.svgH - 80) + 40);
+    return { x: sx, y: sy, sz: z2, scale };
+  }
+
+  private updateProjections() {
+    this.projMap.clear();
+    for (const n of (this.data?.nodes || [])) {
+      this.projMap.set(n.id, this.project3D(n.x, n.y, n.z ?? 0.5));
+    }
+    // depth-sort: far (high sz) first
+    this._sortedVisibleNodes = [...this.visibleNodes].sort((a, b) => {
+      const szA = this.projMap.get(a.id)?.sz ?? 0;
+      const szB = this.projMap.get(b.id)?.sz ?? 0;
+      return szB - szA;
+    });
+  }
+
+  proj(nodeId: number): ProjPos {
+    return this.projMap.get(nodeId) ?? { x: 0, y: 0, sz: 0, scale: 1 };
   }
 
   nodeRadius(n: GraphNode): number {
     const degrees = this.visibleNodes.map(v => v.degree);
     const max = Math.max(...degrees, 1);
-    return Math.max(3, Math.min(18, Math.round((n.degree / max) * 18)));
+    return Math.max(3, Math.min(16, Math.round((n.degree / max) * 16)));
   }
 
   edgeWidth(weight: number): number {
-    return Math.max(0.5, Math.min(3.5, weight * 0.4));
+    return Math.max(0.4, Math.min(3, weight * 0.35));
   }
 
   edgeColor(e: GraphEdge): string {
-    if (e.sources.includes('scopus'))     return '#d97706';
-    if (e.sources.includes('penelitian')) return '#059669';
-    return '#0284c7';
+    if (e.sources.includes('scopus'))     return '#f59e0b';
+    if (e.sources.includes('penelitian')) return '#10b981';
+    return '#60a5fa';
   }
 
-  onSvgMouseMove(event: MouseEvent) {
-    const el = event.currentTarget as SVGElement;
-    const rect = el.getBoundingClientRect();
-    this.mouseX = ((event.clientX - rect.left) / rect.width)  * this.svgW;
-    this.mouseY = ((event.clientY - rect.top)  / rect.height) * this.svgH;
+  // ── Drag / Rotate ────────────────────────────────────────────────────────────
+  onDragStart(event: MouseEvent) {
+    this.isDragging = true;
+    this.dragMoved  = false;
+    this.lastDragX  = event.clientX;
+    this.lastDragY  = event.clientY;
+    this.stopAutoRotate();
+    event.preventDefault();
   }
 
+  onDragMove(event: MouseEvent) {
+    if (this.isDragging) {
+      const dx = event.clientX - this.lastDragX;
+      const dy = event.clientY - this.lastDragY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) this.dragMoved = true;
+      this.rotY += dx * 0.006;
+      this.rotX += dy * 0.006;
+      this.rotX  = Math.max(-Math.PI * 0.48, Math.min(Math.PI * 0.48, this.rotX));
+      this.lastDragX = event.clientX;
+      this.lastDragY = event.clientY;
+      this.updateProjections();
+      this.hoveredNode = null;
+    } else {
+      const el = event.currentTarget as SVGElement;
+      const rect = el.getBoundingClientRect();
+      this.mouseX = ((event.clientX - rect.left) / rect.width)  * this.svgW;
+      this.mouseY = ((event.clientY - rect.top)  / rect.height) * this.svgH;
+    }
+  }
+
+  onDragEnd() { this.isDragging = false; }
+
+  onTouchStart(event: TouchEvent) {
+    if (event.touches.length !== 1) return;
+    this.isDragging = true;
+    this.dragMoved  = false;
+    this.lastDragX  = event.touches[0].clientX;
+    this.lastDragY  = event.touches[0].clientY;
+    this.stopAutoRotate();
+  }
+
+  onTouchMove(event: TouchEvent) {
+    if (!this.isDragging || event.touches.length !== 1) return;
+    const dx = event.touches[0].clientX - this.lastDragX;
+    const dy = event.touches[0].clientY - this.lastDragY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) this.dragMoved = true;
+    this.rotY += dx * 0.006;
+    this.rotX += dy * 0.006;
+    this.rotX  = Math.max(-Math.PI * 0.48, Math.min(Math.PI * 0.48, this.rotX));
+    this.lastDragX = event.touches[0].clientX;
+    this.lastDragY = event.touches[0].clientY;
+    this.updateProjections();
+    event.preventDefault();
+  }
+
+  onNodeClick(n: GraphNode) {
+    if (!this.dragMoved) this.openAuthorPopup(n.id);
+  }
+
+  resetView() {
+    this.rotX = 0.28;
+    this.rotY = 0.38;
+    this.updateProjections();
+  }
+
+  // ── Auto rotate ───────────────────────────────────────────────────────────────
+  toggleAutoRotate() {
+    this.autoRotate = !this.autoRotate;
+    if (this.autoRotate) this.startAutoRotate(); else this.stopAutoRotate();
+  }
+
+  private startAutoRotate() {
+    const step = () => {
+      if (!this.autoRotate) return;
+      this.rotY += 0.008;
+      this.updateProjections();
+      this.autoRafId = requestAnimationFrame(step);
+    };
+    this.autoRafId = requestAnimationFrame(step);
+  }
+
+  private stopAutoRotate() {
+    this.autoRotate = false;
+    if (this.autoRafId) { cancelAnimationFrame(this.autoRafId); this.autoRafId = 0; }
+  }
+
+  // ── Tooltip ──────────────────────────────────────────────────────────────────
   tooltipTransform(): string {
-    const tw = 190, th = 60;
+    const tw = 200, th = 65;
     const x = this.mouseX + 14 + tw > this.svgW ? this.mouseX - tw - 6 : this.mouseX + 14;
     const y = this.mouseY + th > this.svgH ? this.mouseY - th - 6 : this.mouseY + 4;
     return `translate(${x},${y})`;
   }
 
-  // ── Author popup ────────────────────────────────────────────────────────────
+  // ── Author popup ─────────────────────────────────────────────────────────────
   openAuthorPopup(authorId: number) {
     this.authorPopup        = null;
     this.authorPopupLoading = true;
@@ -757,8 +1013,38 @@ export class SintaKolaboasiComponent implements OnInit, OnDestroy {
 
   closePopup() { this.authorPopup = null; this.authorPopupLoading = false; }
 
+  trenData(p: AuthorProfile, jenis: string): { tahun: number; jumlah: number }[] {
+    return (p.trend || []).filter(t => t.jenis === jenis).sort((a, b) => a.tahun - b.tahun);
+  }
+
   trenTotal(p: AuthorProfile, jenis: string): number {
-    return (p.trend || []).filter(t => t.jenis === jenis).reduce((s, t) => s + t.jumlah, 0);
+    return this.trenData(p, jenis).reduce((s, t) => s + t.jumlah, 0);
+  }
+
+  sparkPts(data: { tahun: number; jumlah: number }[]): { x: number; y: number; tahun: number; v: number }[] {
+    if (!data?.length) return [];
+    const max = Math.max(...data.map(d => d.jumlah), 1);
+    const W = 200, H = 36, pad = 4;
+    return data.map((d, i) => ({
+      x: data.length > 1 ? pad + i * (W - 2 * pad) / (data.length - 1) : W / 2,
+      y: H - pad - (d.jumlah / max) * (H - 2 * pad),
+      tahun: d.tahun,
+      v: d.jumlah,
+    }));
+  }
+
+  sparkPath(data: { tahun: number; jumlah: number }[]): string {
+    const pts = this.sparkPts(data);
+    return pts.length ? 'M ' + pts.map(p => `${p.x},${p.y}`).join(' L ') : '';
+  }
+
+  sparkArea(data: { tahun: number; jumlah: number }[]): string {
+    const pts = this.sparkPts(data);
+    if (!pts.length) return '';
+    const bottom = 36;
+    return `M ${pts[0].x},${bottom} L ` +
+           pts.map(p => `${p.x},${p.y}`).join(' L ') +
+           ` L ${pts[pts.length - 1].x},${bottom} Z`;
   }
 
   barPct(val: number, max: number): number {
