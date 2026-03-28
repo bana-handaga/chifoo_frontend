@@ -4,6 +4,11 @@ import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import * as XLSX from 'xlsx';
+import {
+  Chart, BarController, BarElement, CategoryScale, LinearScale,
+  Tooltip, Legend, ArcElement, DoughnutController
+} from 'chart.js';
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, ArcElement, DoughnutController);
 
 const API = environment.apiUrl;
 
@@ -473,6 +478,10 @@ function initialsAvatar(name: string): string {
             [alt]="detail.nama"
             (error)="onImgError($event, detail.nama)"
           />
+          <button class="au-btn-pdf au-btn-pdf--photo" (click)="downloadAuthorPdf()">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 17.5v-5h1.25c.69 0 1.25.56 1.25 1.25v2.5c0 .69-.56 1.25-1.25 1.25H8.5zm1.25-4h-.25v3h.25c.14 0 .25-.11.25-.25v-2.5c0-.14-.11-.25-.25-.25zm2.25 4v-5H13v.5h-1v1.5h.75v.5H12v1.5h1v.5h-1.75v.5zm3-2.5h-.75v2.5h-1v-5H15c.69 0 1.25.56 1.25 1.25v1.25c0 .69-.56 1.25-1.25 1zm0-1.5c.14 0 .25.11.25.25v1.25c0 .14-.11.25-.25.25h-.75v-1.75h.75z"/></svg>
+            PDF
+          </button>
         </div>
         <div class="au-modal__meta">
           <h2 class="au-modal__name">{{ detail.nama }}</h2>
@@ -510,40 +519,25 @@ function initialsAvatar(name: string): string {
         </div>
       </div>
 
-      <!-- ── Stats Tabs ── -->
+      <!-- ── Stats 3 Kolom ── -->
       <div class="au-modal__section">
-        <div class="au-tabs">
-          <button class="au-tab" [class.au-tab--active]="activeTab==='scopus'" (click)="activeTab='scopus'">Scopus</button>
-          <button class="au-tab" [class.au-tab--active]="activeTab==='gscholar'" (click)="activeTab='gscholar'">Google Scholar</button>
-          <button class="au-tab" [class.au-tab--active]="activeTab==='wos'" (click)="activeTab='wos'">Web of Science</button>
-        </div>
-
-        <!-- Scopus -->
-        <table class="au-stats-table" *ngIf="activeTab==='scopus'">
-          <tr><td>Artikel</td><td>{{ detail.scopus_artikel }}</td></tr>
-          <tr><td>Sitasi</td><td>{{ detail.scopus_sitasi | number }}</td></tr>
-          <tr><td>Cited Doc</td><td>{{ detail.scopus_cited_doc }}</td></tr>
-          <tr><td>H-Index</td><td>{{ detail.scopus_h_index }}</td></tr>
-          <tr><td>i10-Index</td><td>{{ detail.scopus_i10_index }}</td></tr>
-          <tr><td>G-Index</td><td>{{ detail.scopus_g_index }}</td></tr>
-        </table>
-
-        <!-- Google Scholar -->
-        <table class="au-stats-table" *ngIf="activeTab==='gscholar'">
-          <tr><td>Artikel</td><td>{{ detail.gscholar_artikel }}</td></tr>
-          <tr><td>Sitasi</td><td>{{ detail.gscholar_sitasi | number }}</td></tr>
-          <tr><td>Cited Doc</td><td>{{ detail.gscholar_cited_doc }}</td></tr>
-          <tr><td>H-Index</td><td>{{ detail.gscholar_h_index }}</td></tr>
-          <tr><td>i10-Index</td><td>{{ detail.gscholar_i10_index }}</td></tr>
-          <tr><td>G-Index</td><td>{{ detail.gscholar_g_index }}</td></tr>
-        </table>
-
-        <!-- WOS -->
-        <table class="au-stats-table" *ngIf="activeTab==='wos'">
-          <tr><td>Artikel</td><td>{{ detail.wos_artikel }}</td></tr>
-          <tr><td>Sitasi</td><td>{{ detail.wos_sitasi | number }}</td></tr>
-          <tr><td>Cited Doc</td><td>{{ detail.wos_cited_doc }}</td></tr>
-          <tr><td>H-Index</td><td>{{ detail.wos_h_index }}</td></tr>
+        <table class="au-stats-table au-stats-3col">
+          <thead>
+            <tr>
+              <th class="au-th--metric">Metrik</th>
+              <th class="au-th--scopus">Scopus</th>
+              <th class="au-th--gs">Google Scholar</th>
+              <th class="au-th--wos">Web of Science</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Artikel</td><td>{{ detail.scopus_artikel }}</td><td>{{ detail.gscholar_artikel }}</td><td>{{ detail.wos_artikel }}</td></tr>
+            <tr><td>Sitasi</td><td>{{ detail.scopus_sitasi | number }}</td><td>{{ detail.gscholar_sitasi | number }}</td><td>{{ detail.wos_sitasi | number }}</td></tr>
+            <tr><td>Cited Doc</td><td>{{ detail.scopus_cited_doc }}</td><td>{{ detail.gscholar_cited_doc }}</td><td>{{ detail.wos_cited_doc }}</td></tr>
+            <tr><td>H-Index</td><td>{{ detail.scopus_h_index }}</td><td>{{ detail.gscholar_h_index }}</td><td>{{ detail.wos_h_index }}</td></tr>
+            <tr><td>i10-Index</td><td>{{ detail.scopus_i10_index }}</td><td>{{ detail.gscholar_i10_index }}</td><td>—</td></tr>
+            <tr><td>G-Index</td><td>{{ detail.scopus_g_index }}</td><td>{{ detail.gscholar_g_index }}</td><td>—</td></tr>
+          </tbody>
         </table>
       </div>
 
@@ -1770,11 +1764,35 @@ function initialsAvatar(name: string): string {
       border-top: 1px solid var(--au-border);
       padding-top: 12px;
       margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
     .au-modal__scraped {
       font-size: 11px;
       color: #94a3b8;
+      flex: 1;
     }
+    .au-btn-pdf {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer;
+      background: #1a237e; color: #fff; font-size: 12px; font-weight: 600;
+      white-space: nowrap;
+    }
+    .au-btn-pdf:hover { background: #283593; }
+    .au-btn-pdf--photo {
+      display: flex; width: 100%; margin-top: 8px; justify-content: center;
+      padding: 5px 0; font-size: 11px; border-radius: 6px;
+    }
+    .au-stats-3col { width: 100%; border-collapse: collapse; }
+    .au-stats-3col th, .au-stats-3col td { padding: 6px 10px; border: 1px solid var(--au-border); font-size: 12px; }
+    .au-stats-3col thead th { font-weight: 700; text-align: center; }
+    .au-th--metric { background: var(--au-bg); color: var(--au-text); }
+    .au-th--scopus { background: #e0f7fa; color: #0891b2; }
+    .au-th--gs { background: #fce7f3; color: #be185d; }
+    .au-th--wos { background: #eff6ff; color: #1d4ed8; }
+    .au-stats-3col tbody td:first-child { font-weight: 600; color: var(--au-muted); background: var(--au-bg); }
+    .au-stats-3col tbody td:not(:first-child) { text-align: right; font-weight: 700; }
   `]
 })
 export class SintaAuthorComponent implements OnInit, OnDestroy {
@@ -2139,6 +2157,212 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
 
   hasQuartileData(d: AuthorDetail): boolean {
     return (d.scopus_q1 + d.scopus_q2 + d.scopus_q3 + d.scopus_q4 + d.scopus_noq) > 0;
+  }
+
+  async downloadAuthorPdf(): Promise<void> {
+    const d = this.detail;
+    if (!d) return;
+
+    const fmtNum = (n: any) => (n != null ? Number(n).toLocaleString('id') : '—');
+    const fmtDate = (s: string) => s ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+    // Load foto via backend proxy (bypass CORS dari URL eksternal SINTA)
+    const fotoBase64: string = d.foto_url
+      ? await fetch(`${API}/proxy-image/?url=${encodeURIComponent(d.foto_url)}`)
+          .then(r => r.json())
+          .catch(() => '')
+      : '';
+
+    // ── Render tren chart off-screen (Chart.js bar) ────────────────
+    const mkCanvas = (w: number, h: number) => {
+      const c = document.createElement('canvas'); c.width = w; c.height = h; return c;
+    };
+    const trenSeries = [
+      { label: 'Scopus',           color: '#0891b2', jenis: 'scopus' },
+      { label: 'Penelitian',       color: '#22c55e', jenis: 'research' },
+      { label: 'Pengabdian',       color: '#f97316', jenis: 'service' },
+      { label: 'GScholar Pub',     color: '#6366f1', jenis: 'gscholar_pub' },
+      { label: 'GScholar Sitasi',  color: '#a855f7', jenis: 'gscholar_cite' },
+    ].filter(s => this.getTrend(d.trend || [], s.jenis).length > 0);
+
+    // Kumpulkan semua tahun unik, sorted
+    const allYears = [...new Set((d.trend || []).map((t: TrendItem) => t.tahun))].sort();
+
+    const trenImg = (() => {
+      if (!trenSeries.length || !allYears.length) return '';
+      const datasets = trenSeries.map(s => ({
+        label: s.label,
+        data: allYears.map(y => {
+          const found = (d.trend || []).find((t: TrendItem) => t.jenis === s.jenis && t.tahun === y);
+          return found ? found.jumlah : 0;
+        }),
+        backgroundColor: s.color + 'cc',
+        borderColor: s.color,
+        borderWidth: 1,
+        borderRadius: 3,
+      }));
+      const c = mkCanvas(720, 260);
+      const ch = new Chart(c, {
+        type: 'bar',
+        data: { labels: allYears.map(String), datasets },
+        options: {
+          animation: false, responsive: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 12, padding: 8 } } },
+          scales: {
+            x: { ticks: { font: { size: 9 } }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: (v: any) => Number(v).toLocaleString('id') } }
+          }
+        }
+      });
+      const img = c.toDataURL('image/png'); ch.destroy(); return img;
+    })();
+
+    // Kuartil bar HTML
+    const kuartilTotal = d.scopus_q1 + d.scopus_q2 + d.scopus_q3 + d.scopus_q4 + d.scopus_noq;
+    const kuartilHtml = kuartilTotal > 0 ? (() => {
+      const qs = [
+        { key: 'Q1', val: d.scopus_q1, c: '#22c55e' },
+        { key: 'Q2', val: d.scopus_q2, c: '#84cc16' },
+        { key: 'Q3', val: d.scopus_q3, c: '#eab308' },
+        { key: 'Q4', val: d.scopus_q4, c: '#f97316' },
+        { key: 'NoQ', val: d.scopus_noq, c: '#94a3b8' },
+      ].filter(q => q.val > 0);
+      const bars = qs.map(q => {
+        const pct = Math.round(q.val / kuartilTotal * 100);
+        return `<div class="kq" style="flex:${q.val};background:${q.c};min-width:${pct < 8 ? 28 : 0}px" title="${q.key}: ${q.val}">
+          <span>${q.key}</span>
+        </div>`;
+      }).join('');
+      const legend = qs.map(q => `<span class="kleg-item"><span class="kleg-dot" style="background:${q.c}"></span>${q.key}: ${q.val}</span>`).join('');
+      return `<div class="kuartil-bar">${bars}</div><div class="kleg">${legend}</div>`;
+    })() : '';
+
+    // Scopus artikel HTML
+    const qColor: Record<string,string> = { Q1:'#16a34a', Q2:'#65a30d', Q3:'#ca8a04', Q4:'#ea580c', NoQ:'#6b7280' };
+    const artikelHtml = this.scopusArtikels.map(a => `
+      <div class="art-item">
+        <div class="art-top">
+          <span class="art-q" style="color:${qColor[a.kuartil||'NoQ']||'#6b7280'};background:${qColor[a.kuartil||'NoQ']||'#6b7280'}22">${a.kuartil||'NoQ'}</span>
+          <span style="font-size:10px;color:#64748b">${a.tahun}</span>
+          ${a.sitasi > 0 ? `<span style="font-size:10px;color:#64748b">Sitasi: ${a.sitasi}</span>` : ''}
+          ${a.urutan_penulis ? `<span style="font-size:10px;color:#94a3b8">Penulis ${a.urutan_penulis}/${a.total_penulis}</span>` : ''}
+        </div>
+        <div class="art-title">${a.judul}</div>
+        ${a.jurnal_nama ? `<div class="art-journal">${a.jurnal_nama}</div>` : ''}
+      </div>`).join('');
+
+    const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">
+<title>Profil Author — ${d.nama}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 10.5px; margin: 0; padding: 20px; color: #1e293b; }
+  .header { display: flex; gap: 16px; align-items: flex-start; border-bottom: 3px solid #0891b2; padding-bottom: 14px; margin-bottom: 4px; }
+  .photo-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; gap: 4px; }
+  .photo-col img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #e0f7fa; }
+  .photo-initials { width:80px;height:80px;border-radius:50%;background:#0891b2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800; }
+  .header-info { flex: 1; }
+  .header-info h1 { font-size: 18px; color: #0c4a6e; margin: 0 0 4px; font-weight: 800; }
+  .header-info .affil { font-size: 11px; color: #475569; margin-bottom: 4px; }
+  .header-info .sinta-link { font-size: 10px; color: #0891b2; margin-bottom: 6px; display: block; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+  .tag { background: #e0f7fa; color: #0e7490; font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .tagline { font-size: 9px; color: #94a3b8; text-align: right; margin-bottom: 12px; }
+  .scores { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+  .sc { border-radius: 10px; padding: 10px 8px; text-align: center; color: #fff; }
+  .sc-1 { background: #0891b2; } .sc-2 { background: #0e7490; }
+  .sc-3 { background: #7c3aed; } .sc-4 { background: #059669; }
+  .sc .val { font-size: 22px; font-weight: 800; line-height: 1; }
+  .sc .lbl { font-size: 9px; opacity: .9; margin-top: 4px; line-height: 1.3; }
+  .section-title { font-size: 12px; font-weight: 700; color: #0c4a6e; border-left: 3px solid #0891b2; padding-left: 8px; margin: 14px 0 8px; }
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 14px; }
+  .stats-table th, .stats-table td { padding: 5px 9px; border: 1px solid #e2e8f0; }
+  .stats-table thead th { font-weight: 700; text-align: center; }
+  .th-metric { background: #f8fafc; color: #374151; }
+  .th-scopus { background: #e0f7fa; color: #0891b2; }
+  .th-gs { background: #fce7f3; color: #be185d; }
+  .th-wos { background: #eff6ff; color: #1d4ed8; }
+  .stats-table tbody td:first-child { font-weight: 600; color: #64748b; background: #f8fafc; }
+  .stats-table tbody td:not(:first-child) { text-align: right; font-weight: 700; }
+  .stats-table tbody tr:nth-child(even) td:not(:first-child) { background: #fafafa; }
+  .tren-row { display: flex; gap: 14px; flex-wrap: wrap; background: #f8fafc; border-radius: 8px; padding: 10px; margin-bottom: 14px; }
+  .tren-panel { flex: 1; min-width: 120px; }
+  .tren-title { font-size: 10px; font-weight: 700; color: #374151; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px solid #e2e8f0; }
+  .kuartil-bar { display: flex; height: 26px; border-radius: 6px; overflow: hidden; margin-bottom: 7px; }
+  .kq { display: flex; align-items: center; justify-content: center; }
+  .kq span { font-size: 9px; color: #fff; font-weight: 700; }
+  .kleg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .kleg-item { font-size: 9px; display: flex; align-items: center; gap: 3px; }
+  .kleg-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .art-item { padding: 6px 0; border-bottom: 1px solid #e2e8f0; }
+  .art-top { display: flex; gap: 8px; align-items: center; margin-bottom: 2px; }
+  .art-q { font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+  .art-title { font-size: 10px; font-weight: 600; color: #1e293b; margin-bottom: 2px; }
+  .art-journal { font-size: 9px; color: #64748b; }
+  .sources { font-size: 9.5px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px; line-height: 1.7; }
+  .sources a { color: #0891b2; }
+  @media print { @page { size: A4 portrait; margin: 12mm 12mm; } body { padding: 0; } }
+</style></head><body>
+
+<div class="header">
+  <div class="photo-col">
+    ${fotoBase64 ? `<img src="${fotoBase64}" alt="${d.nama}">` : `<div class="photo-initials">${(d.nama||'?').split(' ').slice(0,2).map((w:string)=>w[0]).join('').toUpperCase()}</div>`}
+  </div>
+  <div class="header-info">
+    <h1>${d.nama}</h1>
+    <div class="affil">${d.pt_singkatan||''}${d.dept_nama ? ` &nbsp;·&nbsp; ${d.dept_nama}${d.dept_jenjang ? ` (${d.dept_jenjang})` : ''}` : ''}</div>
+    ${d.url_profil ? `<a class="sinta-link" href="${d.url_profil}">🔗 ${d.url_profil}</a>` : ''}
+    ${d.bidang_keilmuan?.length ? `<div class="tags">${d.bidang_keilmuan.map((b: string) => `<span class="tag">${b}</span>`).join('')}</div>` : ''}
+  </div>
+</div>
+<div class="tagline">Profil Author SINTA &mdash; Digenerate: ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+
+<div class="scores">
+  <div class="sc sc-1"><div class="val">${fmtNum(d.sinta_score_overall)}</div><div class="lbl">Skor SINTA Overall</div></div>
+  <div class="sc sc-2"><div class="val">${fmtNum(d.sinta_score_3year)}</div><div class="lbl">Skor SINTA 3 Tahun</div></div>
+  <div class="sc sc-3"><div class="val">${fmtNum(d.affil_score)}</div><div class="lbl">Skor Afiliasi</div></div>
+  <div class="sc sc-4"><div class="val">${fmtNum(d.affil_score_3year)}</div><div class="lbl">Afiliasi 3 Tahun</div></div>
+</div>
+
+<div class="section-title">Statistik Publikasi</div>
+<table class="stats-table">
+  <thead><tr>
+    <th class="th-metric">Metrik</th>
+    <th class="th-scopus">Scopus</th>
+    <th class="th-gs">Google Scholar</th>
+    <th class="th-wos">Web of Science</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>Artikel</td><td>${fmtNum(d.scopus_artikel)}</td><td>${fmtNum(d.gscholar_artikel)}</td><td>${fmtNum(d.wos_artikel)}</td></tr>
+    <tr><td>Sitasi</td><td>${fmtNum(d.scopus_sitasi)}</td><td>${fmtNum(d.gscholar_sitasi)}</td><td>${fmtNum(d.wos_sitasi)}</td></tr>
+    <tr><td>Cited Doc</td><td>${fmtNum(d.scopus_cited_doc)}</td><td>${fmtNum(d.gscholar_cited_doc)}</td><td>${fmtNum(d.wos_cited_doc)}</td></tr>
+    <tr><td>H-Index</td><td>${fmtNum(d.scopus_h_index)}</td><td>${fmtNum(d.gscholar_h_index)}</td><td>${fmtNum(d.wos_h_index)}</td></tr>
+    <tr><td>i10-Index</td><td>${fmtNum(d.scopus_i10_index)}</td><td>${fmtNum(d.gscholar_i10_index)}</td><td>—</td></tr>
+    <tr><td>G-Index</td><td>${fmtNum(d.scopus_g_index)}</td><td>${fmtNum(d.gscholar_g_index)}</td><td>—</td></tr>
+  </tbody>
+</table>
+
+${kuartilHtml ? `<div class="section-title">Distribusi Kuartil Scopus</div><div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:14px">${kuartilHtml}</div>` : ''}
+
+${trenImg ? `<div class="section-title">Tren Publikasi per Tahun</div>
+<div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:14px;text-align:center">
+  <img src="${trenImg}" style="width:100%;max-width:720px;height:auto">
+</div>` : ''}
+
+${artikelHtml ? `<div class="section-title">Daftar Artikel Scopus (${this.scopusArtikels.length} ditampilkan${this.scopusTotal > this.scopusArtikels.length ? ` dari ${this.scopusTotal}` : ''})</div>
+<div style="margin-bottom:14px">${artikelHtml}</div>` : ''}
+
+<div class="sources">
+  <strong>Sumber data:</strong><br>
+  &bull; SINTA Kemdiktisaintek: <a href="https://sinta.kemdiktisaintek.go.id/">https://sinta.kemdiktisaintek.go.id/</a><br>
+  &bull; Scopus: <a href="https://www.scopus.com/">https://www.scopus.com/</a><br>
+  &bull; Google Scholar &nbsp;&bull;&nbsp; Web of Science<br>
+  ${d.scraped_at ? `<span style="color:#94a3b8">Data diperbarui: ${fmtDate(d.scraped_at)}</span>` : ''}
+</div>
+<script>window.onload=function(){window.print();window.close();}</script>
+</body></html>`;
+
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
   }
 
   getTrend(trend: TrendItem[], jenis: string): TrendItem[] {
