@@ -1936,7 +1936,7 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     return 'green';
   }
 
-  downloadPtPdf(): void {
+  async downloadPtPdf(): Promise<void> {
     const pt = this.pt;
     if (!pt) return;
 
@@ -1944,82 +1944,150 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     const fmtNum  = (n: number | null) => n != null ? n.toLocaleString('id') : '—';
     const akrLabel: Record<string, string> = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', c: 'C', belum: 'Belum Terakreditasi' };
 
+    // ── Load logo as base64 ────────────────────────────────────────
+    const logoBase64: string = await fetch('/assets/logo-diktilitbang-red.png')
+      .then(r => r.blob())
+      .then(b => new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(b);
+      }))
+      .catch(() => '');
+
     // ── Render charts off-screen ───────────────────────────────────
     const mkCanvas = (w: number, h: number) => {
       const c = document.createElement('canvas'); c.width = w; c.height = h; return c;
     };
 
-    // Chart 1: Sebaran Jenjang (pie)
+    // ── Inline plugin: data labels for pie charts ──────────────────
+    const pieDataLabelPlugin = {
+      id: 'pdfPieDL',
+      afterDatasetsDraw(chart: any) {
+        const ctx = chart.ctx;
+        chart.data.datasets.forEach((dataset: any, di: number) => {
+          const meta = chart.getDatasetMeta(di);
+          const total = (dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
+          meta.data.forEach((el: any, idx: number) => {
+            const value = dataset.data[idx] as number;
+            if (!value || total === 0) return;
+            const pct = Math.round(value / total * 100);
+            if (pct < 4) return;
+            const pos = el.tooltipPosition();
+            ctx.save();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(value), pos.x, pos.y - 7);
+            ctx.font = '9px Arial';
+            ctx.fillText(`(${pct}%)`, pos.x, pos.y + 7);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    // ── Inline plugin: data labels for line chart ──────────────────
+    const lineDataLabelPlugin = {
+      id: 'pdfLineDL',
+      afterDatasetsDraw(chart: any) {
+        const ctx = chart.ctx;
+        chart.data.datasets.forEach((dataset: any, _di: number) => {
+          const meta = chart.getDatasetMeta(_di);
+          meta.data.forEach((el: any, idx: number) => {
+            const value = dataset.data[idx] as number;
+            if (value == null) return;
+            const pos = el.tooltipPosition();
+            ctx.save();
+            ctx.fillStyle = '#1a237e';
+            ctx.font = 'bold 8px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(Number(value).toLocaleString('id'), pos.x, pos.y - 4);
+            ctx.restore();
+          });
+        });
+      }
+    };
+
+    // Chart 1: Sebaran Jenjang (pie + data labels)
     const prodi = pt.program_studi || [];
     const jenjangCount: Record<string, number> = {};
     prodi.forEach((p: any) => { const k = p.jenjang_display || p.jenjang || '?'; jenjangCount[k] = (jenjangCount[k] || 0) + 1; });
     const jenjangImg = (() => {
       if (!Object.keys(jenjangCount).length) return '';
-      const c = mkCanvas(400, 280);
+      const c = mkCanvas(400, 290);
       const ch = new Chart(c, {
-        type: 'doughnut',
+        type: 'pie', plugins: [pieDataLabelPlugin],
         data: { labels: Object.keys(jenjangCount), datasets: [{ data: Object.values(jenjangCount),
-          backgroundColor: ['#6366f1','#0891b2','#22c55e','#f97316','#ec4899','#a855f7','#14b8a6','#eab308'] }] },
+          backgroundColor: ['#6366f1','#0891b2','#22c55e','#f97316','#ec4899','#a855f7','#14b8a6','#eab308'],
+          borderColor: '#fff', borderWidth: 2 }] },
         options: { animation: false, responsive: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } } }
       });
       const img = c.toDataURL('image/png'); ch.destroy(); return img;
     })();
 
-    // Chart 2: Sebaran Akreditasi (pie)
+    // Chart 2: Sebaran Akreditasi (pie + data labels)
     const akrCount: Record<string, number> = {};
     prodi.forEach((p: any) => { const k = p.akreditasi_display || p.akreditasi || 'Belum'; akrCount[k] = (akrCount[k] || 0) + 1; });
     const akrImg = (() => {
       if (!Object.keys(akrCount).length) return '';
-      const c = mkCanvas(400, 280);
+      const c = mkCanvas(400, 290);
       const ch = new Chart(c, {
-        type: 'doughnut',
+        type: 'pie', plugins: [pieDataLabelPlugin],
         data: { labels: Object.keys(akrCount), datasets: [{ data: Object.values(akrCount),
-          backgroundColor: ['#22c55e','#0891b2','#eab308','#f97316','#94a3b8'] }] },
+          backgroundColor: ['#22c55e','#0891b2','#eab308','#f97316','#94a3b8'],
+          borderColor: '#fff', borderWidth: 2 }] },
         options: { animation: false, responsive: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } } }
       });
       const img = c.toDataURL('image/png'); ch.destroy(); return img;
     })();
 
-    // Chart 3: Tren Mahasiswa Aktif (line)
-    const mhsData = [...(pt.data_mahasiswa || [])].reverse();
-    const mhsImg = (() => {
-      if (!mhsData.length) return '';
-      const c = mkCanvas(700, 280);
-      const ch = new Chart(c, {
-        type: 'line',
-        data: {
-          labels: mhsData.map((m: any) => `${m.tahun_akademik} ${m.semester === 'ganjil' ? 'Ganjil' : 'Genap'}`),
-          datasets: [{ label: 'Mahasiswa Aktif', data: mhsData.map((m: any) => m.mahasiswa_aktif),
-            borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', tension: 0.3, fill: true,
-            pointBackgroundColor: '#6366f1', pointRadius: 3 }]
-        },
-        options: { animation: false, responsive: false,
-          plugins: { legend: { display: false } },
-          scales: { x: { ticks: { maxRotation: 45, font: { size: 9 } }, grid: { display: false } },
-            y: { beginAtZero: false, grace: '10%', ticks: { font: { size: 9 }, callback: (v: any) => Number(v).toLocaleString('id') } } } }
-      });
-      const img = c.toDataURL('image/png'); ch.destroy(); return img;
-    })();
-
-    // Chart 4: Komposisi Pendidikan Dosen — ambil periode terbaru
+    // Chart 3: Komposisi Pendidikan Dosen (pie + data labels) — periode terbaru
     const lastDsn = (pt.data_dosen || [])[0];
     const dsnImg = (() => {
       if (!lastDsn) return '';
-      const total = (lastDsn.dosen_s3 || 0) + (lastDsn.dosen_s2 || 0) + (lastDsn.dosen_s1 || 0);
-      if (total === 0) return '';
-      const c = mkCanvas(400, 280);
+      const s3 = lastDsn.dosen_s3 || 0, s2 = lastDsn.dosen_s2 || 0, s1 = lastDsn.dosen_s1 || 0;
+      if (s3 + s2 + s1 === 0) return '';
+      const c = mkCanvas(400, 290);
       const ch = new Chart(c, {
-        type: 'doughnut',
+        type: 'pie', plugins: [pieDataLabelPlugin],
         data: { labels: ['S3 / Doktor', 'S2 / Magister', 'S1 / Sarjana'],
-          datasets: [{ data: [lastDsn.dosen_s3, lastDsn.dosen_s2, lastDsn.dosen_s1],
-            backgroundColor: ['#6366f1','#0891b2','#22c55e'] }] },
+          datasets: [{ data: [s3, s2, s1],
+            backgroundColor: ['#6366f1','#0891b2','#22c55e'],
+            borderColor: '#fff', borderWidth: 2 }] },
         options: { animation: false, responsive: false,
           plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } } }
       });
       const img = c.toDataURL('image/png'); ch.destroy(); return img;
     })();
 
-    // ── Build rows ─────────────────────────────────────────────────
+    // Chart 4: Tren Mahasiswa Aktif (line + point labels) — ganjil→genap per tahun
+    const mhsData = [...(pt.data_mahasiswa || [])].sort((a: any, b: any) => {
+      if (a.tahun_akademik !== b.tahun_akademik)
+        return String(a.tahun_akademik) < String(b.tahun_akademik) ? -1 : 1;
+      return (a.semester === 'ganjil' ? 0 : 1) - (b.semester === 'ganjil' ? 0 : 1);
+    });
+    const mhsImg = (() => {
+      if (!mhsData.length) return '';
+      const c = mkCanvas(680, 260);
+      const ch = new Chart(c, {
+        type: 'line', plugins: [lineDataLabelPlugin],
+        data: {
+          labels: mhsData.map((m: any) => `${m.tahun_akademik} ${m.semester === 'ganjil' ? 'Ganjil' : 'Genap'}`),
+          datasets: [{ label: 'Mahasiswa Aktif', data: mhsData.map((m: any) => m.mahasiswa_aktif),
+            borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.12)', tension: 0.3, fill: true,
+            pointBackgroundColor: '#6366f1', pointRadius: 4 }]
+        },
+        options: { animation: false, responsive: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { ticks: { maxRotation: 45, font: { size: 8 } }, grid: { display: false } },
+            y: { beginAtZero: false, grace: '18%', ticks: { font: { size: 8 }, callback: (v: any) => Number(v).toLocaleString('id') } } } }
+      });
+      const img = c.toDataURL('image/png'); ch.destroy(); return img;
+    })();
+
+    // ── Build table rows ───────────────────────────────────────────
     const prodiRows = prodi.map((p: any, i: number) =>
       `<tr><td>${i+1}</td><td>${p.nama}</td><td>${p.jenjang_display||p.jenjang}</td>
        <td>${akrLabel[p.akreditasi]||p.akreditasi||'—'}</td><td>${p.no_sk_akreditasi||'—'}</td>
@@ -2028,11 +2096,10 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
        <td class="num">${fmtNum(p.dosen_tetap_periode)}</td></tr>`
     ).join('');
 
-    const mhsRows = (pt.data_mahasiswa || []).map((m: any) =>
+    // Tabel mahasiswa: hanya kolom Aktif, urutan sama dengan chart
+    const mhsRows = mhsData.map((m: any) =>
       `<tr><td>${m.tahun_akademik} ${m.semester==='ganjil'?'Ganjil':'Genap'}</td>
-       <td class="num">${fmtNum(m.mahasiswa_aktif)}</td><td class="num">${fmtNum(m.mahasiswa_baru)}</td>
-       <td class="num">${fmtNum(m.mahasiswa_lulus)}</td><td class="num">${fmtNum(m.mahasiswa_dropout)}</td>
-       <td class="num">${fmtNum(m.mahasiswa_pria)}</td><td class="num">${fmtNum(m.mahasiswa_wanita)}</td></tr>`
+       <td class="num">${fmtNum(m.mahasiswa_aktif)}</td></tr>`
     ).join('');
 
     const dsnRows = (pt.data_dosen || []).map((d: any) =>
@@ -2051,23 +2118,31 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; font-size: 10.5px; margin: 0; padding: 20px; color: #1e293b; }
-  .cover { border-bottom: 4px solid #1a237e; padding-bottom: 16px; margin-bottom: 18px; }
-  .cover h1 { font-size: 20px; color: #1a237e; margin: 0 0 4px; }
-  .cover .sub { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+  .letterhead { display: flex; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 3px solid #1a237e; margin-bottom: 4px; }
+  .letterhead img { height: 72px; width: auto; flex-shrink: 0; }
+  .letterhead-text { flex: 1; }
+  .letterhead-text .org { font-size: 11px; font-weight: 700; color: #78350f; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+  .letterhead-text .divisi { font-size: 10px; color: #64748b; margin-bottom: 6px; }
+  .letterhead-text h1 { font-size: 17px; color: #1a237e; font-weight: 700; margin: 0 0 3px; line-height: 1.2; }
+  .letterhead-text .sub { font-size: 11px; color: #475569; }
+  .badges { margin-top: 6px; }
   .badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-right: 4px; }
   .badge-unggul{background:#d1fae5;color:#065f46} .badge-baik_sekali{background:#e0f2fe;color:#075985}
   .badge-baik{background:#fef9c3;color:#713f12} .badge-c{background:#fee2e2;color:#991b1b}
   .badge-belum{background:#f1f5f9;color:#64748b} .badge-muhammadiyah{background:#fef9c3;color:#78350f}
   .badge-aisyiyah{background:#fce7f3;color:#831843}
+  .tagline { font-size: 9px; color: #94a3b8; text-align: right; margin-bottom: 14px; }
   .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 14px; background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
   .info-label { font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
   .info-val { font-size: 11px; font-weight: 600; color: #1e293b; }
   .section-title { font-size: 12px; font-weight: 700; color: #1a237e; border-left: 3px solid #1a237e; padding-left: 8px; margin: 16px 0 8px; }
-  .charts-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-  .chart-block { flex: 1; min-width: 180px; background: #f8fafc; border-radius: 8px; padding: 10px; text-align: center; }
+  .charts-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .chart-block { flex: 1; min-width: 160px; background: #f8fafc; border-radius: 8px; padding: 10px; text-align: center; }
   .chart-title { font-size: 10px; font-weight: 700; color: #374151; margin-bottom: 6px; }
   .chart-img { width: 100%; max-width: 320px; height: auto; }
-  .chart-block--wide { flex: 2; min-width: 300px; }
+  .chart-block--wide { flex: 2; min-width: 280px; }
+  .mhs-side { flex: 1; min-width: 120px; }
+  .mhs-side table { margin-bottom: 0; }
   table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-bottom: 16px; }
   th { background: #1a237e; color: #fff; padding: 5px 7px; text-align: left; }
   th.num, td.num { text-align: right; }
@@ -2076,17 +2151,23 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
   .sources { font-size: 9.5px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px; }
   .sources a { color: #1a237e; }
   .generated { font-size: 9px; color: #cbd5e1; margin-top: 4px; }
-  @media print { @page { size: A4 portrait; margin: 14mm 12mm; } body { padding: 0; } }
+  @media print { @page { size: A4 portrait; margin: 12mm 12mm; } body { padding: 0; } }
 </style></head><body>
 
-<div class="cover">
-  <h1>${pt.nama}</h1>
-  <div class="sub">${pt.kode_pt} &nbsp;·&nbsp; ${pt.jenis||''} &nbsp;·&nbsp; ${pt.kota}, ${pt.provinsi}</div>
-  <div>
-    <span class="badge badge-${pt.organisasi_induk}">${(pt.organisasi_induk||'').replace('_',' ')}</span>
-    <span class="badge badge-${pt.akreditasi_institusi}">${akrLabel[pt.akreditasi_institusi]||pt.akreditasi_institusi||'Belum'}</span>
+<div class="letterhead">
+  ${logoBase64 ? `<img src="${logoBase64}" alt="Logo">` : ''}
+  <div class="letterhead-text">
+    <div class="org">Pimpinan Pusat Muhammadiyah &mdash; Majelis Diktilitbang</div>
+    <div class="divisi">Sistem Informasi Perguruan Tinggi Muhammadiyah &amp; Aisyiyah</div>
+    <h1>${pt.nama}</h1>
+    <div class="sub">${pt.kode_pt} &nbsp;·&nbsp; ${pt.jenis||''} &nbsp;·&nbsp; ${pt.kota}, ${pt.provinsi}</div>
+    <div class="badges">
+      <span class="badge badge-${pt.organisasi_induk}">${(pt.organisasi_induk||'').replace('_',' ')}</span>
+      <span class="badge badge-${pt.akreditasi_institusi}">${akrLabel[pt.akreditasi_institusi]||pt.akreditasi_institusi||'Belum'}</span>
+    </div>
   </div>
 </div>
+<div class="tagline">Profil Perguruan Tinggi &mdash; Digenerate: ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
 
 <div class="info-grid">
   <div><div class="info-label">No. SK Akreditasi</div><div class="info-val" style="font-size:9.5px">${pt.nomor_sk_akreditasi||'—'}</div></div>
@@ -2105,25 +2186,28 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
   ${chartSection('Sebaran Akreditasi Prodi', akrImg)}
   ${chartSection('Komposisi Pendidikan Dosen', dsnImg)}
 </div>
-${mhsImg ? `<div class="charts-row"><div class="chart-block chart-block--wide">
-  <div class="chart-title">Tren Mahasiswa Aktif per Semester</div>
-  <img src="${mhsImg}" class="chart-img">
-</div></div>` : ''}
+
+${(mhsImg || mhsRows) ? `<div class="section-title">Tren Mahasiswa Aktif per Semester</div>
+<div class="charts-row" style="align-items:stretch">
+  ${mhsImg ? `<div class="chart-block chart-block--wide" style="text-align:left">
+    <div class="chart-title">Grafik Tren Mahasiswa Aktif</div>
+    <img src="${mhsImg}" class="chart-img" style="max-width:100%">
+  </div>` : ''}
+  ${mhsRows ? `<div class="mhs-side">
+    <table><thead><tr><th>Semester</th><th class="num">Aktif</th></tr></thead>
+    <tbody>${mhsRows}</tbody></table>
+  </div>` : ''}
+</div>` : ''}
 
 ${prodiRows ? `<div class="section-title">Daftar Program Studi Aktif</div>
 <table><thead><tr><th>#</th><th>Nama Prodi</th><th>Jenjang</th><th>Akreditasi</th><th>No. SK</th><th>Berlaku s/d</th><th class="num">Mhs. Aktif</th><th class="num">Dosen Tetap</th></tr></thead>
 <tbody>${prodiRows}</tbody></table>` : ''}
-
-${mhsRows ? `<div class="section-title">Tren Data Mahasiswa per Semester</div>
-<table><thead><tr><th>Semester</th><th class="num">Aktif</th><th class="num">Baru</th><th class="num">Lulus</th><th class="num">Dropout</th><th class="num">Pria</th><th class="num">Wanita</th></tr></thead>
-<tbody>${mhsRows}</tbody></table>` : ''}
 
 ${dsnRows ? `<div class="section-title">Tren Data Dosen per Semester</div>
 <table><thead><tr><th>Semester</th><th class="num">Tetap</th><th class="num">Tdk Tetap</th><th class="num">S3</th><th class="num">S2</th><th class="num">S1</th><th class="num">Guru Besar</th><th class="num">Bersertifikat</th></tr></thead>
 <tbody>${dsnRows}</tbody></table>` : ''}
 
 <div class="sources">Sumber data: <a href="https://pddikti.kemdiktisaintek.go.id/">PDDikti</a> &nbsp;·&nbsp; <a href="https://www.banpt.or.id/">BAN-PT</a> &nbsp;·&nbsp; LAM Terkait</div>
-<div class="generated">Digenerate: ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
 <script>window.onload=function(){window.print();window.close();}</script>
 </body></html>`;
 
