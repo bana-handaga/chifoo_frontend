@@ -1296,7 +1296,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
         <p style="font-size:10px;color:#666;margin-bottom:8px">Total: ${rows.length} program studi</p>
         <table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
         <tbody>${rows_html}</tbody></table>
-        <script>window.onload=function(){window.print();window.close();}</script>
+        <script>window.onload=function(){var A4H=1090;var h=document.body.scrollHeight;if(h>A4H){var z=(A4H/h).toFixed(4);document.body.style.zoom=z;document.body.style.transformOrigin='top left';}window.print();window.close();};</script>
         </body></html>`;
       const w = window.open('', '_blank');
       if (w) { w.document.write(html); w.document.close(); }
@@ -2017,7 +2017,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">
 <title>Profil Prodi — ${d.nama}</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   body { font-family: Arial, sans-serif; font-size: 11px; margin: 0; padding: 20px; color: #1e293b; }
   .header { border-bottom: 3px solid #6366f1; padding-bottom: 12px; margin-bottom: 16px; }
   .header h1 { font-size: 18px; margin: 0 0 4px; color: #1e293b; }
@@ -2077,7 +2077,7 @@ ${lastDsn && totalDsn > 0 ? `<div class="section-title">Komposisi Pendidikan Dos
 </div>` : ''}
 
 <div class="sources">Sumber data: <a href="https://pddikti.kemdiktisaintek.go.id/" target="_blank">PDDikti</a> &nbsp;·&nbsp; <a href="https://www.banpt.or.id/" target="_blank">BAN-PT</a> &nbsp;·&nbsp; LAM Terkait</div>
-<script>window.onload=function(){window.print();window.close();}</script>
+<script>window.onload=function(){var A4H=1090;var h=document.body.scrollHeight;if(h>A4H){var z=(A4H/h).toFixed(4);document.body.style.zoom=z;document.body.style.transformOrigin='top left';}window.print();window.close();};</script>
 </body></html>`;
 
     const w = window.open('', '_blank');

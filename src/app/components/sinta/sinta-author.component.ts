@@ -2254,7 +2254,7 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
     const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">
 <title>Profil Author — ${d.nama}</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   body { font-family: Arial, sans-serif; font-size: 10.5px; margin: 0; padding: 20px; color: #1e293b; }
   .header { display: flex; gap: 16px; align-items: flex-start; border-bottom: 3px solid #0891b2; padding-bottom: 14px; margin-bottom: 4px; }
   .photo-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; gap: 4px; }
@@ -2268,7 +2268,8 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   .tag { background: #e0f7fa; color: #0e7490; font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
   .tagline { font-size: 9px; color: #94a3b8; text-align: right; margin-bottom: 12px; }
   .scores { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
-  .sc { border-radius: 10px; padding: 10px 8px; text-align: center; color: #fff; }
+  .sc { border-radius: 10px; padding: 10px 8px; text-align: center; color: #fff;
+        print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .sc-1 { background: #0891b2; } .sc-2 { background: #0e7490; }
   .sc-3 { background: #7c3aed; } .sc-4 { background: #059669; }
   .sc .val { font-size: 22px; font-weight: 800; line-height: 1; }
@@ -2358,7 +2359,19 @@ ${artikelHtml ? `<div class="section-title">Daftar Artikel Scopus (${this.scopus
   &bull; Google Scholar &nbsp;&bull;&nbsp; Web of Science<br>
   ${d.scraped_at ? `<span style="color:#94a3b8">Data diperbarui: ${fmtDate(d.scraped_at)}</span>` : ''}
 </div>
-<script>window.onload=function(){window.print();window.close();}</script>
+<script>
+window.onload = function() {
+  var A4H = 1090;
+  var h = document.body.scrollHeight;
+  if (h > A4H) {
+    var z = (A4H / h).toFixed(4);
+    document.body.style.zoom = z;
+    document.body.style.transformOrigin = 'top left';
+  }
+  window.print();
+  window.close();
+};
+</script>
 </body></html>`;
 
     const w = window.open('', '_blank');

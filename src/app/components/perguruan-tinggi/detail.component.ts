@@ -2174,7 +2174,7 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">
 <title>Profil PT — ${pt.nama}</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   body { font-family: Arial, sans-serif; font-size: 10.5px; margin: 0; padding: 20px; color: #1e293b; }
   .letterhead { display: flex; align-items: flex-start; gap: 16px; padding-bottom: 12px; border-bottom: 3px solid #1a237e; margin-bottom: 4px; }
   .letterhead img { height: 76px; width: auto; flex-shrink: 0; object-fit: contain; }
@@ -2286,7 +2286,7 @@ ${dsnRows ? `<div class="section-title">Tren Data Dosen per Semester</div>
   <strong>PP Muhammadiyah &mdash; Majelis Diktilitbang</strong> &nbsp;·&nbsp; Sistem Informasi Perguruan Tinggi Muhammadiyah &amp; Aisyiyah<br>
   Sumber data: <a href="https://pddikti.kemdiktisaintek.go.id/">PDDikti</a> &nbsp;·&nbsp; <a href="https://www.banpt.or.id/">BAN-PT</a> &nbsp;·&nbsp; LAM Terkait
 </div>
-<script>window.onload=function(){window.print();window.close();}</script>
+<script>window.onload=function(){var A4H=1090;var h=document.body.scrollHeight;if(h>A4H){var z=(A4H/h).toFixed(4);document.body.style.zoom=z;document.body.style.transformOrigin='top left';}window.print();window.close();};</script>
 </body></html>`;
 
     const w = window.open('', '_blank');

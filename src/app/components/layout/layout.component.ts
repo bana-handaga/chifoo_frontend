@@ -72,9 +72,24 @@ import { AuthService } from '../../services/auth.service';
       <!-- Kanan: user / login -->
       <div class="topbar-right">
         <ng-container *ngIf="currentUser; else guestBtn">
-          <div class="user-chip">
+          <div class="user-chip" (click)="showUserMenu=!showUserMenu" style="cursor:pointer;position:relative;">
             <span class="user-avatar">{{ userInitial }}</span>
             <span class="user-name">{{ currentUser.first_name || currentUser.username }}</span>
+            <div class="user-menu" *ngIf="showUserMenu" (click)="$event.stopPropagation()">
+              <div class="user-menu-name">{{ currentUser.first_name || currentUser.username }}</div>
+              <div class="user-menu-email">{{ currentUser.email || '-' }}</div>
+              <div class="user-menu-divider"></div>
+              <div class="user-menu-item">
+                <span>MFA Email</span>
+                <label class="mfa-toggle">
+                  <input type="checkbox" [checked]="currentUser.mfa_enabled" (change)="onToggleMfa($event)">
+                  <span class="mfa-slider"></span>
+                </label>
+              </div>
+              <div class="user-menu-hint" *ngIf="!currentUser.email">Email belum diatur — hubungi admin</div>
+              <div class="user-menu-divider"></div>
+              <div class="user-menu-item user-menu-logout" (click)="logout()">Keluar</div>
+            </div>
           </div>
           <button class="icon-btn" (click)="logout()" title="Keluar">
             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
@@ -203,6 +218,24 @@ import { AuthService } from '../../services/auth.service';
       font-weight: 700; font-size: 13px;
     }
     .user-name { font-size: 13px; font-weight: 600; display: none; }
+    .user-menu {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 999;
+      background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      min-width: 220px; padding: 8px 0; color: #1f2937;
+    }
+    .user-menu-name { padding: 10px 16px 2px; font-weight: 700; font-size: 14px; }
+    .user-menu-email { padding: 0 16px 10px; font-size: 12px; color: #6b7280; }
+    .user-menu-divider { border-top: 1px solid #f3f4f6; margin: 4px 0; }
+    .user-menu-item { padding: 9px 16px; font-size: 13px; display: flex; align-items: center; justify-content: space-between; }
+    .user-menu-hint { padding: 0 16px 8px; font-size: 11px; color: #ef4444; }
+    .user-menu-logout { cursor: pointer; color: #dc2626; font-weight: 600; }
+    .user-menu-logout:hover { background: #fef2f2; }
+    .mfa-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .mfa-toggle input { opacity: 0; width: 0; height: 0; }
+    .mfa-slider { position: absolute; cursor: pointer; inset: 0; background: #d1d5db; border-radius: 20px; transition: .3s; }
+    .mfa-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; }
+    .mfa-toggle input:checked + .mfa-slider { background: #16a34a; }
+    .mfa-toggle input:checked + .mfa-slider:before { transform: translateX(16px); }
     .icon-btn {
       background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
       color: white; border-radius: 8px; padding: 7px 10px;
@@ -276,6 +309,7 @@ import { AuthService } from '../../services/auth.service';
 })
 export class LayoutComponent implements OnInit {
   currentUser: any;
+  showUserMenu = false;
 
   constructor(private authService: AuthService, private router: Router) {}
 
@@ -292,10 +326,25 @@ export class LayoutComponent implements OnInit {
   logout() {
     this.authService.logout().subscribe({ error: () => {} });
     this.authService.clearAuth();
-    this.router.navigate(['/dashboard']);
+    window.location.href = '/login';
   }
 
   goLogin() {
     this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+  }
+
+  onToggleMfa(event: Event) {
+    const enable = (event.target as HTMLInputElement).checked;
+    this.authService.toggleMfa(enable).subscribe({
+      next: (res: any) => {
+        this.currentUser = { ...this.currentUser, mfa_enabled: res.mfa_enabled };
+        localStorage.setItem('ptma_user', JSON.stringify(this.currentUser));
+      },
+      error: (err: any) => {
+        alert(err?.error?.detail || 'Gagal mengubah pengaturan MFA.');
+        // revert checkbox
+        (event.target as HTMLInputElement).checked = !enable;
+      }
+    });
   }
 }

@@ -15,14 +15,31 @@ export class AuthService {
 
   login(username: string, password: string): Observable<any> {
     const authUrl = environment.apiUrl.replace('/api', '') + '/api/auth/login/';
-    // const authUrl = environment.apiUrl + '/auth/login/';
     return this.http.post(authUrl, { username, password }).pipe(
+      tap((response: any) => {
+        if (!response.mfa_required) {
+          localStorage.setItem(this.tokenKey, response.token);
+          localStorage.setItem(this.userKey, JSON.stringify(response.user));
+          this._currentUser.next(response.user);
+        }
+      })
+    );
+  }
+
+  verifyMfa(mfaToken: string, otpCode: string): Observable<any> {
+    const url = environment.apiUrl.replace('/api', '') + '/api/auth/mfa/verify/';
+    return this.http.post(url, { mfa_token: mfaToken, otp_code: otpCode }).pipe(
       tap((response: any) => {
         localStorage.setItem(this.tokenKey, response.token);
         localStorage.setItem(this.userKey, JSON.stringify(response.user));
         this._currentUser.next(response.user);
       })
     );
+  }
+
+  toggleMfa(enable: boolean): Observable<any> {
+    const url = environment.apiUrl.replace('/api', '') + '/api/auth/mfa/toggle/';
+    return this.http.post(url, { enable });
   }
 
   logout(): Observable<any> {

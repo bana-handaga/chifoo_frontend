@@ -45,6 +45,7 @@ const routes: Routes = [
   {
     path: '',
     component: LayoutComponent,
+    canActivate: [AuthGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: DashboardComponent },
@@ -52,7 +53,7 @@ const routes: Routes = [
       { path: 'perguruan-tinggi/:id', component: PerguruanTinggiDetailComponent },
       { path: 'program-studi', component: ProgramStudiListComponent },
       { path: 'dosen', component: DosenListComponent },
-      { path: 'laporan', component: LaporanComponent, canActivate: [AuthGuard] },
+      { path: 'laporan', component: LaporanComponent },
       { path: 'pendidikan-tinggi', component: PendidikanTinggiComponent },
       { path: 'mahasiswa', component: MahasiswaTrenComponent },
       { path: 'statistik', component: StatistikComponent },

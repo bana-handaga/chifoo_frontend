@@ -15,20 +15,39 @@ import { AuthService } from '../../services/auth.service';
           <h1>PTMA Monitor</h1>
           <p>Sistem Monitoring Perguruan Tinggi<br>Muhammadiyah & Aisyiyah</p>
         </div>
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-          <div class="form-group">
-            <label>Username</label>
-            <input type="text" formControlName="username" placeholder="Masukkan username" autocomplete="username">
+        <ng-container *ngIf="step === 'login'">
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" formControlName="username" placeholder="Masukkan username" autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" formControlName="password" placeholder="Masukkan password" autocomplete="current-password">
+            </div>
+            <div class="error-msg" *ngIf="errorMsg">{{ errorMsg }}</div>
+            <button type="submit" [disabled]="loading || loginForm.invalid" class="btn-login">
+              {{ loading ? 'Masuk...' : 'Masuk' }}
+            </button>
+          </form>
+        </ng-container>
+        <ng-container *ngIf="step === 'otp'">
+          <div class="otp-info">
+            Kode verifikasi telah dikirim ke <strong>{{ emailHint }}</strong>.<br>
+            Masukkan kode 6 digit yang diterima.
           </div>
-          <div class="form-group">
-            <label>Password</label>
-            <input type="password" formControlName="password" placeholder="Masukkan password" autocomplete="current-password">
-          </div>
-          <div class="error-msg" *ngIf="errorMsg">{{ errorMsg }}</div>
-          <button type="submit" [disabled]="loading || loginForm.invalid" class="btn-login">
-            {{ loading ? 'Masuk...' : 'Masuk' }}
-          </button>
-        </form>
+          <form [formGroup]="otpForm" (ngSubmit)="onVerifyOtp()">
+            <div class="form-group">
+              <label>Kode OTP</label>
+              <input type="text" formControlName="otp_code" placeholder="000000" maxlength="6" autocomplete="one-time-code" style="letter-spacing:6px;font-size:22px;text-align:center;">
+            </div>
+            <div class="error-msg" *ngIf="errorMsg">{{ errorMsg }}</div>
+            <button type="submit" [disabled]="loading || otpForm.invalid" class="btn-login">
+              {{ loading ? 'Memverifikasi...' : 'Verifikasi' }}
+            </button>
+          </form>
+          <button class="btn-back" (click)="backToLogin()">&#8592; Kembali</button>
+        </ng-container>
       </div>
     </div>
   `,
@@ -53,18 +72,27 @@ import { AuthService } from '../../services/auth.service';
       border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; transition:background 0.2s; }
     .btn-login:hover:not(:disabled) { background:#283593; }
     .btn-login:disabled { opacity:0.6; cursor:not-allowed; }
+    .otp-info { background:#e8f0fe; color:#1a237e; padding:12px 14px; border-radius:8px; font-size:13px; line-height:1.5; margin-bottom:16px; }
+    .btn-back { background:none; border:none; color:#1a237e; cursor:pointer; font-size:13px; margin-top:10px; padding:4px 0; text-decoration:underline; }
   `]
 })
 export class LoginComponent {
   loginForm: FormGroup;
+  otpForm: FormGroup;
   loading = false;
   errorMsg = '';
+  step: 'login' | 'otp' = 'login';
+  mfaToken = '';
+  emailHint = '';
 
   constructor(private fb: FormBuilder, private authService: AuthService,
     private router: Router, private route: ActivatedRoute) {
     this.loginForm = this.fb.group({
       username: ['', Validators.required],
       password: ['', Validators.required]
+    });
+    this.otpForm = this.fb.group({
+      otp_code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
     });
   }
 
@@ -74,14 +102,45 @@ export class LoginComponent {
     this.errorMsg = '';
     const { username, password } = this.loginForm.value;
     this.authService.login(username, password).subscribe({
-      next: () => {
-        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
-        this.router.navigate([returnUrl]);
+      next: (res: any) => {
+        if (res.mfa_required) {
+          this.mfaToken = res.mfa_token;
+          this.emailHint = res.email_hint;
+          this.step = 'otp';
+          this.loading = false;
+        } else {
+          const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+          this.router.navigate([returnUrl]);
+        }
       },
       error: () => {
         this.errorMsg = 'Username atau password salah.';
         this.loading = false;
       }
     });
+  }
+
+  onVerifyOtp() {
+    if (this.otpForm.invalid) return;
+    this.loading = true;
+    this.errorMsg = '';
+    const { otp_code } = this.otpForm.value;
+    this.authService.verifyMfa(this.mfaToken, otp_code).subscribe({
+      next: () => {
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+        this.router.navigate([returnUrl]);
+      },
+      error: (err: any) => {
+        this.errorMsg = err?.error?.detail || 'Kode OTP salah atau kadaluarsa.';
+        this.loading = false;
+      }
+    });
+  }
+
+  backToLogin() {
+    this.step = 'login';
+    this.mfaToken = '';
+    this.errorMsg = '';
+    this.otpForm.reset();
   }
 }
