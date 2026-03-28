@@ -1,14 +1,18 @@
 import { Component, OnInit, AfterViewChecked, ElementRef, ViewChild, NgZone } from '@angular/core';
+import html2canvas from 'html2canvas';
 import { HttpParams } from '@angular/common/http';
 import { ApiService } from '../../services/api.service';
 import * as XLSX from 'xlsx';
 import {
   Chart, BarController, BarElement,
   ArcElement, DoughnutController,
-  LinearScale, CategoryScale, Tooltip, Legend
+  LineController, LineElement, PointElement,
+  LinearScale, CategoryScale, Tooltip, Legend, Filler
 } from 'chart.js';
 
-Chart.register(BarController, BarElement, ArcElement, DoughnutController, LinearScale, CategoryScale, Tooltip, Legend);
+Chart.register(BarController, BarElement, ArcElement, DoughnutController,
+  LineController, LineElement, PointElement,
+  LinearScale, CategoryScale, Tooltip, Legend, Filler);
 
 interface ProdiGroup {
   nama: string;
@@ -426,14 +430,26 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
 
 <!-- Modal detail prodi -->
 <div class="pd-backdrop" *ngIf="prodiModal.open" (click)="closeProdiModal()"></div>
-<div class="pd-box" *ngIf="prodiModal.open">
+<div class="pd-box" id="prodiModalBox" *ngIf="prodiModal.open">
   <div class="pd-header">
     <div class="pd-header-info">
       <span class="pd-jenjang jenjang-{{ prodiModal.data?.jenjang }}">{{ prodiModal.data?.jenjang_display }}</span>
       <div class="pd-nama">{{ prodiModal.data?.nama }}</div>
       <div class="pd-pt">{{ prodiModal.data?.pt_singkatan || prodiModal.data?.pt_nama }} — {{ prodiModal.data?.pt_kota }}</div>
     </div>
-    <button class="pd-close" (click)="closeProdiModal()">✕</button>
+    <div class="pd-header-actions">
+      <button class="pd-btn-jpg" (click)="downloadProdiJpg()" title="Download JPG" [disabled]="jpgGenerating">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+        {{ jpgGenerating ? '...' : 'JPG' }}
+      </button>
+      <button class="pd-btn-pdf" (click)="downloadProdiPdf()" title="Download PDF">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 17.5v-5h1.25c.69 0 1.25.56 1.25 1.25v2.5c0 .69-.56 1.25-1.25 1.25H8.5zm1.25-4h-.25v3h.25c.14 0 .25-.11.25-.25v-2.5c0-.14-.11-.25-.25-.25zm2.25 4v-5H13v.5h-1v1.5h.75v.5H12v1.5h1v.5h-1.75v.5zm3-2.5h-.75v2.5h-1v-5H15c.69 0 1.25.56 1.25 1.25v1.25c0 .69-.56 1.25-1.25 1zm0-1.5c.14 0 .25.11.25.25v1.25c0 .14-.11.25-.25.25h-.75v-1.75h.75z"/>
+        </svg>
+        PDF
+      </button>
+      <button class="pd-close" (click)="closeProdiModal()">✕</button>
+    </div>
   </div>
 
   <div class="pd-loading" *ngIf="prodiModal.loading">
@@ -479,58 +495,39 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       </div>
     </div>
 
-    <!-- Tren mahasiswa -->
-    <div class="pd-section" *ngIf="prodiModal.data.tren_mahasiswa?.length">
-      <div class="pd-section-title">Tren Mahasiswa Aktif</div>
-      <div class="pd-tren-scroll">
-        <table class="pd-tren-table">
-          <thead>
-            <tr>
-              <th>Semester</th>
-              <th class="num-col">Aktif</th>
-              <th class="num-col">Pria</th>
-              <th class="num-col">Wanita</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let t of prodiModal.data.tren_mahasiswa">
-              <td>{{ t.label }}</td>
-              <td class="num-col"><strong>{{ t.aktif | number }}</strong></td>
-              <td class="num-col">{{ t.pria | number }}</td>
-              <td class="num-col">{{ t.wanita | number }}</td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- Tren mahasiswa + Dosen side by side -->
+    <div class="pd-charts-row">
+      <!-- Line chart mahasiswa -->
+      <div class="pd-section pd-section--chart" *ngIf="prodiModal.data.tren_mahasiswa?.length">
+        <div class="pd-section-title">
+          Tren Mahasiswa Aktif
+          <span class="pd-periode-badge" *ngIf="periodeLabel">Periode aktif: {{ periodeLabel }}</span>
+        </div>
+        <div class="pd-chart-wrap">
+          <canvas #prodiMhsChart></canvas>
+        </div>
+      </div>
+
+      <!-- Pie chart komposisi pendidikan dosen -->
+      <div class="pd-section pd-section--chart" *ngIf="prodiModal.data.tren_dosen?.length">
+        <div class="pd-section-title">
+          Komposisi Pendidikan Dosen
+          <span class="pd-periode-badge" *ngIf="periodeLabel">Periode aktif: {{ periodeLabel }}</span>
+        </div>
+        <div class="pd-pie-wrap">
+          <canvas #prodiDsnChart></canvas>
+        </div>
       </div>
     </div>
 
-    <!-- Tren dosen -->
-    <div class="pd-section" *ngIf="prodiModal.data.tren_dosen?.length">
-      <div class="pd-section-title">Tren Dosen</div>
-      <div class="pd-tren-scroll">
-        <table class="pd-tren-table">
-          <thead>
-            <tr>
-              <th>Semester</th>
-              <th class="num-col">Tetap</th>
-              <th class="num-col">Tdk Tetap</th>
-              <th class="num-col">S3</th>
-              <th class="num-col">S2</th>
-              <th class="num-col">S1</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let d of prodiModal.data.tren_dosen">
-              <td>{{ d.label }}</td>
-              <td class="num-col"><strong>{{ d.tetap | number }}</strong></td>
-              <td class="num-col">{{ d.tidak_tetap | number }}</td>
-              <td class="num-col">{{ d.s3 | number }}</td>
-              <td class="num-col">{{ d.s2 | number }}</td>
-              <td class="num-col">{{ d.s1 | number }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- Sumber data -->
+    <div class="pd-sources">
+      <span class="pd-sources-label">Sumber data:</span>
+      <a href="https://pddikti.kemdiktisaintek.go.id/" target="_blank" rel="noopener">PDDikti</a>
+      <span>·</span>
+      <a href="https://www.banpt.or.id/" target="_blank" rel="noopener">BAN-PT</a>
+      <span>·</span>
+      <span>LAM Terkait</span>
     </div>
   </div>
 </div>
@@ -850,6 +847,22 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     }
     .pd-nama { font-size: 1.15rem; font-weight: 700; color: #1e293b; margin: 4px 0 2px; }
     .pd-pt   { font-size: .85rem; color: #64748b; }
+    .pd-header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .pd-btn-jpg {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 12px; font-size: 12px; font-weight: 600;
+      background: #f0fdf4; color: #166534; border: 1px solid #86efac;
+      border-radius: 6px; cursor: pointer;
+    }
+    .pd-btn-jpg:hover:not(:disabled) { background: #dcfce7; }
+    .pd-btn-jpg:disabled { opacity: 0.6; cursor: not-allowed; }
+    .pd-btn-pdf {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 12px; font-size: 12px; font-weight: 600;
+      background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5;
+      border-radius: 6px; cursor: pointer;
+    }
+    .pd-btn-pdf:hover { background: #fee2e2; }
     .pd-close {
       background: none; border: none; font-size: 1.2rem; cursor: pointer;
       color: #94a3b8; padding: 2px 8px; border-radius: 6px; flex-shrink: 0;
@@ -864,15 +877,27 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     .pd-info-item { display: flex; flex-direction: column; gap: 2px; }
     .pd-info-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; }
     .pd-info-val   { font-size: 13px; color: #1e293b; font-weight: 500; }
-    .pd-section-title { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px; border-left: 3px solid #6366f1; padding-left: 8px; }
-    .pd-tren-scroll { overflow-x: auto; }
-    .pd-tren-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-    .pd-tren-table thead th {
-      background: #f8fafc; padding: 7px 12px; text-align: left;
-      font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+    .pd-section-title {
+      font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 10px;
+      border-left: 3px solid #6366f1; padding-left: 8px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
-    .pd-tren-table tbody td { padding: 6px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; white-space: nowrap; }
-    .pd-tren-table tbody tr:hover { background: #f8fafc; }
+    .pd-periode-badge {
+      font-size: 11px; font-weight: 500; color: #6366f1;
+      background: #eef2ff; border-radius: 12px; padding: 2px 8px;
+    }
+    .pd-charts-row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 640px) { .pd-charts-row { grid-template-columns: 1fr 1fr; } }
+    .pd-section--chart { display: flex; flex-direction: column; }
+    .pd-chart-wrap { position: relative; height: 220px; }
+    .pd-pie-wrap   { position: relative; height: 220px; display: flex; justify-content: center; }
+    .pd-sources {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 10px;
+    }
+    .pd-sources-label { font-weight: 600; color: #64748b; }
+    .pd-sources a { color: #6366f1; text-decoration: none; }
+    .pd-sources a:hover { text-decoration: underline; }
 
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100;
@@ -988,6 +1013,8 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   @ViewChild('mhsChart')     mhsChartRef!:     ElementRef<HTMLCanvasElement>;
   @ViewChild('dsnChart')     dsnChartRef!:     ElementRef<HTMLCanvasElement>;
   @ViewChild('modalChart')   modalChartRef!:   ElementRef<HTMLCanvasElement>;
+  @ViewChild('prodiMhsChart') prodiMhsChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('prodiDsnChart') prodiDsnChartRef!: ElementRef<HTMLCanvasElement>;
 
   rows:     ProdiGroup[] = [];
   filtered: ProdiGroup[] = [];
@@ -1024,8 +1051,8 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     list: [] as any[],
   };
 
-  prodiModal: { open: boolean; loading: boolean; data: any } = {
-    open: false, loading: false, data: null
+  prodiModal: { open: boolean; loading: boolean; data: any; chartsReady: boolean } = {
+    open: false, loading: false, data: null, chartsReady: false
   };
 
   // Charts
@@ -1290,6 +1317,8 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     return valid.has(key) ? `akr-${key}` : 'akr-belum';
   }
 
+  jpgGenerating = false;
+
   constructor(private api: ApiService, private zone: NgZone) {}
 
   ngOnInit(): void {
@@ -1307,6 +1336,78 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     if (this.chartModal.open && !this.modalChartReady && this.modalChartRef) {
       this.modalChartReady = true;
       this.zone.runOutsideAngular(() => this.renderModalChart());
+    }
+    if (this.prodiModal.open && !this.prodiModal.chartsReady && !this.prodiModal.loading && this.prodiModal.data
+        && this.prodiMhsChartRef) {
+      this.prodiModal.chartsReady = true;
+      this.zone.runOutsideAngular(() => this.renderProdiCharts());
+    }
+  }
+
+  private renderProdiCharts(): void {
+    const d = this.prodiModal.data;
+
+    // Line chart mahasiswa
+    if (this.prodiMhsChartRef && d.tren_mahasiswa?.length) {
+      const labels = d.tren_mahasiswa.map((t: any) => t.label);
+      const aktif  = d.tren_mahasiswa.map((t: any) => t.aktif);
+      new Chart(this.prodiMhsChartRef.nativeElement, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Mahasiswa Aktif',
+            data: aktif,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99,102,241,0.08)',
+            pointBackgroundColor: '#6366f1',
+            tension: 0.3,
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
+            y: { beginAtZero: false, grace: '10%', ticks: { font: { size: 10 }, callback: (v: any) => Number(v).toLocaleString('id') } }
+          }
+        }
+      });
+    }
+
+    // Pie chart komposisi pendidikan dosen (ambil periode terbaru)
+    if (this.prodiDsnChartRef && d.tren_dosen?.length) {
+      const last = d.tren_dosen[d.tren_dosen.length - 1];
+      const values = [last.s3, last.s2, last.s1];
+      const total = values.reduce((a: number, b: number) => a + b, 0);
+      if (total > 0) {
+        new Chart(this.prodiDsnChartRef.nativeElement, {
+          type: 'doughnut',
+          data: {
+            labels: ['S3 / Doktor', 'S2 / Magister', 'S1 / Sarjana'],
+            datasets: [{
+              data: values,
+              backgroundColor: ['#6366f1', '#0891b2', '#22c55e'],
+              borderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+              tooltip: {
+                callbacks: {
+                  label: (ctx: any) => {
+                    const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                    return ` ${ctx.label}: ${ctx.raw} (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
     }
   }
 
@@ -1869,7 +1970,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   closePtModal(): void { this.ptModal.open = false; }
 
   openProdiModal(r: any): void {
-    this.prodiModal = { open: true, loading: true, data: null };
+    this.prodiModal = { open: true, loading: true, data: null, chartsReady: false };
     this.api.getProdiDetailPopup(r.prodi_id).subscribe({
       next: data => { this.prodiModal.loading = false; this.prodiModal.data = data; },
       error: ()   => { this.prodiModal.loading = false; }
@@ -1877,6 +1978,111 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   }
 
   closeProdiModal(): void { this.prodiModal.open = false; }
+
+  downloadProdiJpg(): void {
+    const el = document.getElementById('prodiModalBox');
+    if (!el || this.jpgGenerating) return;
+    this.jpgGenerating = true;
+    html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+      const link = document.createElement('a');
+      const nama = (this.prodiModal.data?.nama || 'prodi').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      link.download = `profil_${nama}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.92);
+      link.click();
+      this.jpgGenerating = false;
+    }).catch(() => { this.jpgGenerating = false; });
+  }
+
+  downloadProdiPdf(): void {
+    const d = this.prodiModal.data;
+    if (!d) return;
+
+    const akrLabel: Record<string, string> = {
+      unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', c: 'C', belum: 'Belum Terakreditasi'
+    };
+    const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+
+    const mhsRows = (d.tren_mahasiswa || []).map((t: any) =>
+      `<tr><td>${t.label}</td><td class="num">${t.aktif.toLocaleString('id')}</td></tr>`
+    ).join('');
+
+    const dsnRows = (d.tren_dosen || []).map((dd: any) =>
+      `<tr><td>${dd.label}</td><td class="num">${dd.tetap.toLocaleString('id')}</td><td class="num">${dd.tidak_tetap.toLocaleString('id')}</td><td class="num">${dd.s3}</td><td class="num">${dd.s2}</td><td class="num">${dd.s1}</td></tr>`
+    ).join('');
+
+    const lastDsn = d.tren_dosen?.length ? d.tren_dosen[d.tren_dosen.length - 1] : null;
+    const totalDsn = lastDsn ? lastDsn.s3 + lastDsn.s2 + lastDsn.s1 : 0;
+    const pct = (n: number) => totalDsn > 0 ? ((n / totalDsn) * 100).toFixed(1) + '%' : '0%';
+
+    const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">
+<title>Profil Prodi — ${d.nama}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 11px; margin: 0; padding: 20px; color: #1e293b; }
+  .header { border-bottom: 3px solid #6366f1; padding-bottom: 12px; margin-bottom: 16px; }
+  .header h1 { font-size: 18px; margin: 0 0 4px; color: #1e293b; }
+  .header .sub { font-size: 12px; color: #64748b; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+  .badge-jenjang { background: #e0e7ff; color: #3730a3; }
+  .badge-unggul { background: #d1fae5; color: #065f46; }
+  .badge-baik_sekali { background: #e0f2fe; color: #075985; }
+  .badge-baik { background: #fef9c3; color: #713f12; }
+  .badge-c { background: #fee2e2; color: #991b1b; }
+  .badge-belum { background: #f1f5f9; color: #64748b; }
+  .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px; }
+  .info-label { font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+  .info-val { font-size: 12px; font-weight: 600; color: #1e293b; }
+  .section-title { font-size: 12px; font-weight: 700; color: #374151; border-left: 3px solid #6366f1; padding-left: 8px; margin: 14px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 14px; }
+  th { background: #6366f1; color: #fff; padding: 5px 8px; text-align: left; font-size: 10px; }
+  th.num, td.num { text-align: right; }
+  td { padding: 4px 8px; border-bottom: 1px solid #e2e8f0; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .pie-summary { display: flex; gap: 16px; margin-bottom: 14px; }
+  .pie-item { display: flex; align-items: center; gap: 6px; }
+  .pie-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .sources { font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 4px; }
+  .sources a { color: #6366f1; }
+  @media print { @page { size: A4 portrait; margin: 15mm; } body { padding: 0; } }
+</style></head><body>
+<div class="header">
+  <span class="badge badge-jenjang">${d.jenjang_display}</span>
+  <h1>${d.nama}</h1>
+  <div class="sub">${d.pt_nama} &nbsp;·&nbsp; ${d.pt_kota}, ${d.pt_provinsi}</div>
+</div>
+
+<div class="info-grid">
+  <div><div class="info-label">Kode Prodi</div><div class="info-val">${d.kode_prodi || '—'}</div></div>
+  <div><div class="info-label">Akreditasi</div><div><span class="badge badge-${d.akreditasi}">${akrLabel[d.akreditasi] || d.akreditasi}</span></div></div>
+  <div><div class="info-label">No. SK</div><div class="info-val" style="font-size:10px">${d.no_sk || '—'}</div></div>
+  <div><div class="info-label">Berlaku s/d</div><div class="info-val">${fmtDate(d.tgl_exp)}</div></div>
+  <div><div class="info-label">Akreditasi PT</div><div><span class="badge badge-${d.pt_akreditasi}">${akrLabel[d.pt_akreditasi] || d.pt_akreditasi || '—'}</span></div></div>
+  <div><div class="info-label">Status Prodi</div><div class="info-val">${d.is_active ? 'Aktif' : 'Tidak Aktif'}</div></div>
+  <div><div class="info-label">Periode Data</div><div class="info-val">${this.periodeLabel || '—'}</div></div>
+</div>
+
+${mhsRows ? `<div class="section-title">Tren Mahasiswa Aktif</div>
+<table><thead><tr><th>Semester</th><th class="num">Aktif</th></tr></thead>
+<tbody>${mhsRows}</tbody></table>` : ''}
+
+${dsnRows ? `<div class="section-title">Tren Dosen per Semester</div>
+<table><thead><tr><th>Semester</th><th class="num">Tetap</th><th class="num">Tdk Tetap</th><th class="num">S3</th><th class="num">S2</th><th class="num">S1</th></tr></thead>
+<tbody>${dsnRows}</tbody></table>` : ''}
+
+${lastDsn && totalDsn > 0 ? `<div class="section-title">Komposisi Pendidikan Dosen (Periode Terbaru)</div>
+<div class="pie-summary">
+  <div class="pie-item"><div class="pie-dot" style="background:#6366f1"></div><span>S3/Doktor: ${lastDsn.s3} (${pct(lastDsn.s3)})</span></div>
+  <div class="pie-item"><div class="pie-dot" style="background:#0891b2"></div><span>S2/Magister: ${lastDsn.s2} (${pct(lastDsn.s2)})</span></div>
+  <div class="pie-item"><div class="pie-dot" style="background:#22c55e"></div><span>S1/Sarjana: ${lastDsn.s1} (${pct(lastDsn.s1)})</span></div>
+</div>` : ''}
+
+<div class="sources">Sumber data: <a href="https://pddikti.kemdiktisaintek.go.id/" target="_blank">PDDikti</a> &nbsp;·&nbsp; <a href="https://www.banpt.or.id/" target="_blank">BAN-PT</a> &nbsp;·&nbsp; LAM Terkait</div>
+<script>window.onload=function(){window.print();window.close();}</script>
+</body></html>`;
+
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  }
 
   isExpSoon(tgl: string | null): boolean {
     if (!tgl) return false;

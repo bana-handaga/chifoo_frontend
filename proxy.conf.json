@@ -1,7 +1,7 @@
 {
   "/api": {
-    "target": "http://172.16.64.194:8000",
-    "secure": false,
+    "target": "https://chifoo.biroti-ums.id",
+    "secure": true,
     "changeOrigin": true
   }
 }
