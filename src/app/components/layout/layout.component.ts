@@ -78,6 +78,7 @@ import { AuthService } from '../../services/auth.service';
             <div class="user-menu" *ngIf="showUserMenu" (click)="$event.stopPropagation()">
               <div class="user-menu-name">{{ currentUser.first_name || currentUser.username }}</div>
               <div class="user-menu-email">{{ currentUser.email || '-' }}</div>
+              <div class="user-menu-item user-menu-link" (click)="goProfile()">Profil &amp; Keamanan</div>
               <div class="user-menu-divider"></div>
               <div class="user-menu-item">
                 <span>MFA Email</span>
@@ -228,6 +229,8 @@ import { AuthService } from '../../services/auth.service';
     .user-menu-divider { border-top: 1px solid #f3f4f6; margin: 4px 0; }
     .user-menu-item { padding: 9px 16px; font-size: 13px; display: flex; align-items: center; justify-content: space-between; }
     .user-menu-hint { padding: 0 16px 8px; font-size: 11px; color: #ef4444; }
+    .user-menu-link { cursor: pointer; color: #1a237e; }
+    .user-menu-link:hover { background: #f0f4ff; }
     .user-menu-logout { cursor: pointer; color: #dc2626; font-weight: 600; }
     .user-menu-logout:hover { background: #fef2f2; }
     .mfa-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
@@ -331,6 +334,11 @@ export class LayoutComponent implements OnInit {
 
   goLogin() {
     this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+  }
+
+  goProfile() {
+    this.showUserMenu = false;
+    this.router.navigate(['/profile']);
   }
 
   onToggleMfa(event: Event) {

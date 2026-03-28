@@ -42,6 +42,29 @@ export class AuthService {
     return this.http.post(url, { enable });
   }
 
+  updateEmail(email: string, password: string): Observable<any> {
+    const url = environment.apiUrl.replace('/api', '') + '/api/auth/update-email/';
+    return this.http.post(url, { email, password }).pipe(
+      tap((res: any) => {
+        if (res.user) {
+          localStorage.setItem(this.userKey, JSON.stringify(res.user));
+          this._currentUser.next(res.user);
+        }
+      })
+    );
+  }
+
+  updatePassword(oldPassword: string, newPassword: string, confirmPassword: string): Observable<any> {
+    const url = environment.apiUrl.replace('/api', '') + '/api/auth/update-password/';
+    return this.http.post(url, { old_password: oldPassword, new_password: newPassword, confirm_password: confirmPassword }).pipe(
+      tap((res: any) => {
+        if (res.token) {
+          localStorage.setItem(this.tokenKey, res.token);
+        }
+      })
+    );
+  }
+
   logout(): Observable<any> {
     const authUrl = environment.apiUrl.replace('/api', '') + '/api/auth/logout/';
     // const authUrl = environment.apiUrl  + '/auth/logout/';

@@ -15,6 +15,7 @@ import { PerguruanTinggiListComponent } from './components/perguruan-tinggi/list
 import { PerguruanTinggiDetailComponent } from './components/perguruan-tinggi/detail.component';
 import { LaporanComponent } from './components/laporan/laporan.component';
 import { LoginComponent } from './components/auth/login.component';
+import { ProfileComponent } from './components/auth/profile.component';
 import { LayoutComponent } from './components/layout/layout.component';
 import { StatistikComponent } from './components/statistik/statistik.component';
 import { ProgramStudiListComponent } from './components/program-studi/list.component';
@@ -69,6 +70,7 @@ const routes: Routes = [
       { path: 'sinta/jurnal',     component: SintaJurnalComponent },
       { path: 'sinta/cluster',    component: SintaClusterComponent },
       { path: 'network-x',        component: SintaKolaboasiComponent },
+      { path: 'profile',          component: ProfileComponent },
     ]
   },
   { path: '**', redirectTo: '' }
@@ -85,6 +87,7 @@ const routes: Routes = [
     PendidikanTinggiComponent,
     LaporanComponent,
     LoginComponent,
+    ProfileComponent,
     LayoutComponent,
     StatistikComponent,
     SintaComponent,
