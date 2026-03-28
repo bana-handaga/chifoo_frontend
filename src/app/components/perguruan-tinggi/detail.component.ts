@@ -1944,15 +1944,17 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     const fmtNum  = (n: number | null) => n != null ? n.toLocaleString('id') : '—';
     const akrLabel: Record<string, string> = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', c: 'C', belum: 'Belum Terakreditasi' };
 
-    // ── Load logo as base64 ────────────────────────────────────────
-    const logoBase64: string = await fetch('/assets/logo-diktilitbang-red.png')
-      .then(r => r.blob())
-      .then(b => new Promise<string>(resolve => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(b);
-      }))
-      .catch(() => '');
+    // ── Load logo PT sebagai base64 ────────────────────────────────
+    const logoBase64: string = pt.logo
+      ? await fetch(pt.logo)
+          .then(r => r.blob())
+          .then(b => new Promise<string>(resolve => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(b);
+          }))
+          .catch(() => '')
+      : '';
 
     // ── Render charts off-screen ───────────────────────────────────
     const mkCanvas = (w: number, h: number) => {
