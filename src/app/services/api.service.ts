@@ -170,6 +170,10 @@ export class ApiService {
     return this.http.get<{ count_7m: number; count_12m: number }>(`${this.baseUrl}/program-studi/exp_counts/`);
   }
 
+  getProdiDetailPopup(id: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/program-studi/${id}/detail_popup/`);
+  }
+
   getDosenStats(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/dosen-stats/`);
   }

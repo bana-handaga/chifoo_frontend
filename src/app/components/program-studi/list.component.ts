@@ -67,13 +67,11 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
           <input type="text" [(ngModel)]="psForm.nama" placeholder="Ketik nama prodi..." (keyup.enter)="runPs()">
         </div>
         <div class="psf">
-          <label>Jenjang</label>
-          <select [(ngModel)]="psForm.jenjang">
+          <label>Kedaluarsa Akreditasi</label>
+          <select [(ngModel)]="psForm.kedaluarsa" (change)="applyPsFilter()">
             <option value="">— Semua —</option>
-            <option value="d1">D1</option><option value="d2">D2</option>
-            <option value="d3">D3</option><option value="d4">D4 / Sarjana Terapan</option>
-            <option value="s1">S1</option><option value="profesi">Profesi</option>
-            <option value="s2">S2</option><option value="s3">S3</option>
+            <option value="7m">&lt; 7 Bulan</option>
+            <option value="12m">&lt; 12 Bulan</option>
           </select>
         </div>
         <div class="psf psf--pt">
@@ -103,11 +101,13 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
           </select>
         </div>
         <div class="psf">
-          <label>Kedaluarsa Akreditasi</label>
-          <select [(ngModel)]="psForm.kedaluarsa" (change)="applyPsFilter()">
+          <label>Jenjang</label>
+          <select [(ngModel)]="psForm.jenjang">
             <option value="">— Semua —</option>
-            <option value="7m">&lt; 7 Bulan</option>
-            <option value="12m">&lt; 12 Bulan</option>
+            <option value="d1">D1</option><option value="d2">D2</option>
+            <option value="d3">D3</option><option value="d4">D4 / Sarjana Terapan</option>
+            <option value="s1">S1</option><option value="profesi">Profesi</option>
+            <option value="s2">S2</option><option value="s3">S3</option>
           </select>
         </div>
         <div class="psf psf--action">
@@ -153,7 +153,7 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of psPaginated">
+              <tr *ngFor="let r of psPaginated" (click)="openProdiModal(r)" style="cursor:pointer">
                 <td>
                   <div class="ps-nama">{{ r.nama_prodi }}</div>
                   <div class="ps-prodi-kode">{{ r.kode_prodi }}</div>
@@ -421,6 +421,117 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
         </tr>
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- Modal detail prodi -->
+<div class="pd-backdrop" *ngIf="prodiModal.open" (click)="closeProdiModal()"></div>
+<div class="pd-box" *ngIf="prodiModal.open">
+  <div class="pd-header">
+    <div class="pd-header-info">
+      <span class="pd-jenjang jenjang-{{ prodiModal.data?.jenjang }}">{{ prodiModal.data?.jenjang_display }}</span>
+      <div class="pd-nama">{{ prodiModal.data?.nama }}</div>
+      <div class="pd-pt">{{ prodiModal.data?.pt_singkatan || prodiModal.data?.pt_nama }} — {{ prodiModal.data?.pt_kota }}</div>
+    </div>
+    <button class="pd-close" (click)="closeProdiModal()">✕</button>
+  </div>
+
+  <div class="pd-loading" *ngIf="prodiModal.loading">
+    <div class="spinner"></div><span>Memuat...</span>
+  </div>
+
+  <div class="pd-body" *ngIf="!prodiModal.loading && prodiModal.data">
+    <!-- Info grid -->
+    <div class="pd-info-grid">
+      <div class="pd-info-item">
+        <span class="pd-info-label">Kode Prodi</span>
+        <span class="pd-info-val">{{ prodiModal.data.kode_prodi || '—' }}</span>
+      </div>
+      <div class="pd-info-item">
+        <span class="pd-info-label">Akreditasi</span>
+        <span class="akr-badge" [ngClass]="akrClass(prodiModal.data.akreditasi)">{{ prodiModal.data.akreditasi_display }}</span>
+      </div>
+      <div class="pd-info-item">
+        <span class="pd-info-label">No. SK Akreditasi</span>
+        <span class="pd-info-val">{{ prodiModal.data.no_sk || '—' }}</span>
+      </div>
+      <div class="pd-info-item">
+        <span class="pd-info-label">Berlaku s/d</span>
+        <span [ngClass]="prodiModal.data.tgl_exp ? 'exp-badge ' + expClass(prodiModal.data.tgl_exp) : 'pd-info-val'">
+          {{ prodiModal.data.tgl_exp ? (prodiModal.data.tgl_exp | date:'dd MMMM yyyy') : '—' }}
+        </span>
+      </div>
+      <div class="pd-info-item">
+        <span class="pd-info-label">Perguruan Tinggi</span>
+        <span class="pd-info-val">{{ prodiModal.data.pt_nama }}</span>
+      </div>
+      <div class="pd-info-item">
+        <span class="pd-info-label">Kota / Provinsi</span>
+        <span class="pd-info-val">{{ prodiModal.data.pt_kota }}, {{ prodiModal.data.pt_provinsi }}</span>
+      </div>
+      <div class="pd-info-item">
+        <span class="pd-info-label">Akreditasi PT</span>
+        <span class="akr-badge" [ngClass]="akrClass(prodiModal.data.pt_akreditasi)">{{ prodiModal.data.pt_akreditasi || '—' }}</span>
+      </div>
+      <div class="pd-info-item">
+        <span class="pd-info-label">Status</span>
+        <span class="pd-info-val">{{ prodiModal.data.is_active ? 'Aktif' : 'Tidak Aktif' }}</span>
+      </div>
+    </div>
+
+    <!-- Tren mahasiswa -->
+    <div class="pd-section" *ngIf="prodiModal.data.tren_mahasiswa?.length">
+      <div class="pd-section-title">Tren Mahasiswa Aktif</div>
+      <div class="pd-tren-scroll">
+        <table class="pd-tren-table">
+          <thead>
+            <tr>
+              <th>Semester</th>
+              <th class="num-col">Aktif</th>
+              <th class="num-col">Pria</th>
+              <th class="num-col">Wanita</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of prodiModal.data.tren_mahasiswa">
+              <td>{{ t.label }}</td>
+              <td class="num-col"><strong>{{ t.aktif | number }}</strong></td>
+              <td class="num-col">{{ t.pria | number }}</td>
+              <td class="num-col">{{ t.wanita | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tren dosen -->
+    <div class="pd-section" *ngIf="prodiModal.data.tren_dosen?.length">
+      <div class="pd-section-title">Tren Dosen</div>
+      <div class="pd-tren-scroll">
+        <table class="pd-tren-table">
+          <thead>
+            <tr>
+              <th>Semester</th>
+              <th class="num-col">Tetap</th>
+              <th class="num-col">Tdk Tetap</th>
+              <th class="num-col">S3</th>
+              <th class="num-col">S2</th>
+              <th class="num-col">S1</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of prodiModal.data.tren_dosen">
+              <td>{{ d.label }}</td>
+              <td class="num-col"><strong>{{ d.tetap | number }}</strong></td>
+              <td class="num-col">{{ d.tidak_tetap | number }}</td>
+              <td class="num-col">{{ d.s3 | number }}</td>
+              <td class="num-col">{{ d.s2 | number }}</td>
+              <td class="num-col">{{ d.s1 | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -723,6 +834,46 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     .pagination button:not(:disabled):hover { background: #f0f0f0; }
 
     /* Modal */
+    /* Modal detail prodi */
+    .pd-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; }
+    .pd-box {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      z-index: 201; background: #fff; border-radius: 14px;
+      width: min(94vw, 860px); max-height: 88vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 8px 40px rgba(0,0,0,.25);
+    }
+    .pd-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 18px 20px 14px; border-bottom: 1px solid #e2e8f0; gap: 12px;
+      background: #f8fafc; border-radius: 14px 14px 0 0;
+    }
+    .pd-nama { font-size: 1.15rem; font-weight: 700; color: #1e293b; margin: 4px 0 2px; }
+    .pd-pt   { font-size: .85rem; color: #64748b; }
+    .pd-close {
+      background: none; border: none; font-size: 1.2rem; cursor: pointer;
+      color: #94a3b8; padding: 2px 8px; border-radius: 6px; flex-shrink: 0;
+    }
+    .pd-close:hover { background: #e2e8f0; color: #374151; }
+    .pd-loading { display: flex; align-items: center; gap: 10px; padding: 40px; justify-content: center; color: #64748b; }
+    .pd-body { overflow-y: auto; flex: 1; padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; }
+    .pd-info-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px;
+    }
+    @media (min-width: 600px) { .pd-info-grid { grid-template-columns: repeat(4, 1fr); } }
+    .pd-info-item { display: flex; flex-direction: column; gap: 2px; }
+    .pd-info-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; }
+    .pd-info-val   { font-size: 13px; color: #1e293b; font-weight: 500; }
+    .pd-section-title { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px; border-left: 3px solid #6366f1; padding-left: 8px; }
+    .pd-tren-scroll { overflow-x: auto; }
+    .pd-tren-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .pd-tren-table thead th {
+      background: #f8fafc; padding: 7px 12px; text-align: left;
+      font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+    }
+    .pd-tren-table tbody td { padding: 6px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; white-space: nowrap; }
+    .pd-tren-table tbody tr:hover { background: #f8fafc; }
+
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100;
     }
@@ -871,6 +1022,10 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     open: false, loading: false,
     nama: '', jenjang: '', jenjang_display: '',
     list: [] as any[],
+  };
+
+  prodiModal: { open: boolean; loading: boolean; data: any } = {
+    open: false, loading: false, data: null
   };
 
   // Charts
@@ -1712,6 +1867,16 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   }
 
   closePtModal(): void { this.ptModal.open = false; }
+
+  openProdiModal(r: any): void {
+    this.prodiModal = { open: true, loading: true, data: null };
+    this.api.getProdiDetailPopup(r.prodi_id).subscribe({
+      next: data => { this.prodiModal.loading = false; this.prodiModal.data = data; },
+      error: ()   => { this.prodiModal.loading = false; }
+    });
+  }
+
+  closeProdiModal(): void { this.prodiModal.open = false; }
 
   isExpSoon(tgl: string | null): boolean {
     if (!tgl) return false;
