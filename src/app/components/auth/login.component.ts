@@ -29,6 +29,7 @@ import { AuthService } from '../../services/auth.service';
             <button type="submit" [disabled]="loading || loginForm.invalid" class="btn-login">
               {{ loading ? 'Masuk...' : 'Masuk' }}
             </button>
+            <div class="forgot-link"><a routerLink="/forgot-password">Lupa password?</a></div>
           </form>
         </ng-container>
         <ng-container *ngIf="step === 'otp'">
@@ -74,6 +75,9 @@ import { AuthService } from '../../services/auth.service';
     .btn-login:disabled { opacity:0.6; cursor:not-allowed; }
     .otp-info { background:#e8f0fe; color:#1a237e; padding:12px 14px; border-radius:8px; font-size:13px; line-height:1.5; margin-bottom:16px; }
     .btn-back { background:none; border:none; color:#1a237e; cursor:pointer; font-size:13px; margin-top:10px; padding:4px 0; text-decoration:underline; }
+    .forgot-link { text-align:right; margin-top:10px; }
+    .forgot-link a { font-size:12px; color:#1a237e; text-decoration:none; }
+    .forgot-link a:hover { text-decoration:underline; }
   `]
 })
 export class LoginComponent {

@@ -16,6 +16,8 @@ import { PerguruanTinggiDetailComponent } from './components/perguruan-tinggi/de
 import { LaporanComponent } from './components/laporan/laporan.component';
 import { LoginComponent } from './components/auth/login.component';
 import { ProfileComponent } from './components/auth/profile.component';
+import { ForgotPasswordComponent } from './components/auth/forgot-password.component';
+import { ResetPasswordComponent } from './components/auth/reset-password.component';
 import { LayoutComponent } from './components/layout/layout.component';
 import { StatistikComponent } from './components/statistik/statistik.component';
 import { ProgramStudiListComponent } from './components/program-studi/list.component';
@@ -43,6 +45,8 @@ import { AuthGuard } from './services/auth.guard';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
+  { path: 'forgot-password', component: ForgotPasswordComponent },
+  { path: 'reset-password', component: ResetPasswordComponent },
   {
     path: '',
     component: LayoutComponent,
@@ -88,6 +92,8 @@ const routes: Routes = [
     LaporanComponent,
     LoginComponent,
     ProfileComponent,
+    ForgotPasswordComponent,
+    ResetPasswordComponent,
     LayoutComponent,
     StatistikComponent,
     SintaComponent,
