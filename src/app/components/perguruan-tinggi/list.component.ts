@@ -21,15 +21,15 @@ Chart.register(...registerables);
       </div>
 
       <!-- Notifikasi kadaluarsa — paling atas -->
-      <div class="notif-bar" *ngIf="count2m > 0 || count3m > 0">
-        <div class="notif-item notif-red" *ngIf="count2m > 0" (click)="setExpFilter('less_2m')">
+      <div class="notif-bar" *ngIf="count7m > 0 || count12m > count7m">
+        <div class="notif-item notif-red" *ngIf="count7m > 0" (click)="setExpFilter('less_7m')">
           <span class="notif-icon">🔴</span>
-          <span><strong>{{ count2m }} PT</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 2 bulan</strong></span>
+          <span><strong>{{ count7m }} PT</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 7 bulan</strong></span>
           <span class="notif-action">Lihat →</span>
         </div>
-        <div class="notif-item notif-yellow" *ngIf="count3m > 0" (click)="setExpFilter('less_3m')">
+        <div class="notif-item notif-yellow" *ngIf="count12m > count7m" (click)="setExpFilter('less_12m')">
           <span class="notif-icon">🟡</span>
-          <span><strong>{{ count3m }} PT</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 3 bulan</strong></span>
+          <span><strong>{{ count12m - count7m }} PT</strong> akreditasinya kedaluarsa dalam <strong>7 – 12 bulan</strong></span>
           <span class="notif-action">Lihat →</span>
         </div>
       </div>
@@ -61,10 +61,8 @@ Chart.register(...registerables);
                   <label>Kadaluarsa Akreditasi</label>
                   <select [(ngModel)]="filterExp" (change)="applyFilter()">
                     <option value="">Semua</option>
-                    <option value="more_1y">Lebih dari 1 tahun</option>
-                    <option value="less_3m">Kurang dari 3 bulan</option>
-                    <option value="less_2m">Kurang dari 2 bulan</option>
-                    <option value="less_1m">Kurang dari 1 bulan</option>
+                    <option value="less_12m">Kurang dari 12 bulan</option>
+                    <option value="less_7m">Kurang dari 7 bulan</option>
                   </select>
                 </div>
               </div>
@@ -524,8 +522,8 @@ export class PerguruanTinggiListComponent implements OnInit {
   sortKey = 'mhs_sort';
   sortAsc = false;
   searchTimeout: any;
-  count3m = 0;
-  count2m = 0;
+  count12m = 0;
+  count7m = 0;
   statistik: any = null;
   chartJenis: any[] = [];
   chartAkreditasi: any[] = [];
@@ -575,11 +573,11 @@ export class PerguruanTinggiListComponent implements OnInit {
   }
 
   loadNotifCounts() {
-    this.api.getPerguruanTinggiList({ exp_filter: 'less_3m', page: 1 }).subscribe({
-      next: res => this.count3m = res.count || 0
+    this.api.getPerguruanTinggiList({ exp_filter: 'less_12m', page: 1 }).subscribe({
+      next: res => this.count12m = res.count || 0
     });
-    this.api.getPerguruanTinggiList({ exp_filter: 'less_2m', page: 1 }).subscribe({
-      next: res => this.count2m = res.count || 0
+    this.api.getPerguruanTinggiList({ exp_filter: 'less_7m', page: 1 }).subscribe({
+      next: res => this.count7m = res.count || 0
     });
   }
 
@@ -883,9 +881,10 @@ export class PerguruanTinggiListComponent implements OnInit {
     if (!tgl) return '';
     const now = new Date();
     const exp = new Date(tgl);
-    const diffDays = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays < 60) return 'red';
-    if (diffDays < 90) return 'yellow';
+    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
+    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
+    if (exp <= limit7m)  return 'red';
+    if (exp <= limit12m) return 'yellow';
     return 'green';
   }
 }

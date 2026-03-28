@@ -160,9 +160,14 @@ export class ApiService {
     return this.http.get<any>(`${this.baseUrl}/program-studi/grouping/`, { params });
   }
 
-  getProgramStudiPtList(nama: string, jenjang: string): Observable<any[]> {
-    const params = new HttpParams().set('nama', nama).set('jenjang', jenjang);
+  getProgramStudiPtList(nama: string, jenjang: string, ptId?: number): Observable<any[]> {
+    let params = new HttpParams().set('nama', nama).set('jenjang', jenjang);
+    if (ptId) params = params.set('pt_id', ptId.toString());
     return this.http.get<any[]>(`${this.baseUrl}/program-studi/pt_list/`, { params });
+  }
+
+  getProdiExpCounts(): Observable<{ count_7m: number; count_12m: number }> {
+    return this.http.get<{ count_7m: number; count_12m: number }>(`${this.baseUrl}/program-studi/exp_counts/`);
   }
 
   getDosenStats(): Observable<any> {

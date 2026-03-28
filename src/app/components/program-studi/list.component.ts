@@ -38,6 +38,20 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     </div>
   </div>
 
+  <!-- Warning kedaluarsa (selalu tampil) -->
+  <div *ngIf="notifCount7m > 0 || notifCount12m > notifCount7m" class="ps-notif-bar ps-notif-bar--top">
+    <div *ngIf="notifCount7m > 0" class="ps-notif-item ps-notif-red" (click)="openPsWithExpFilter('7m')">
+      <span>&#9888;</span>
+      <span><strong>{{ notifCount7m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 7 bulan</strong></span>
+      <span class="ps-notif-action">Lihat →</span>
+    </div>
+    <div *ngIf="notifCount12m > notifCount7m" class="ps-notif-item ps-notif-yellow" (click)="openPsWithExpFilter('12m')">
+      <span>&#9888;</span>
+      <span><strong>{{ notifCount12m - notifCount7m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>7 – 12 bulan</strong></span>
+      <span class="ps-notif-action">Lihat →</span>
+    </div>
+  </div>
+
   <!-- Accordion Pencarian Prodi -->
   <div class="ps-accordion" [class.open]="psOpen">
     <button class="ps-toggle" (click)="togglePs()">
@@ -62,6 +76,21 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
             <option value="s2">S2</option><option value="s3">S3</option>
           </select>
         </div>
+        <div class="psf psf--pt">
+          <label>Perguruan Tinggi</label>
+          <div class="psf-pt-wrap">
+            <input type="text" [(ngModel)]="ptSearch" (ngModelChange)="onPtSearch()"
+              (focus)="ptPanelOpen=true" (blur)="closePtPanel()"
+              placeholder="Ketik nama atau singkatan PT..." autocomplete="off" class="psf-pt-input">
+            <span *ngIf="psForm.ptId" class="psf-pt-clear" (click)="clearPtFilter()">✕</span>
+          </div>
+          <div class="psf-pt-panel" *ngIf="ptPanelOpen && ptSearchResults.length" (mousedown)="$event.preventDefault()">
+            <div *ngFor="let pt of ptSearchResults" class="psf-pt-option" (mousedown)="selectPt(pt)">
+              <span class="psf-pt-singkat">{{ pt.singkatan }}</span>
+              <span class="psf-pt-nama">{{ pt.nama }}</span>
+            </div>
+          </div>
+        </div>
         <div class="psf">
           <label>Akreditasi</label>
           <select [(ngModel)]="psForm.akreditasi" (change)="applyPsFilter()">
@@ -77,9 +106,8 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
           <label>Kedaluarsa Akreditasi</label>
           <select [(ngModel)]="psForm.kedaluarsa" (change)="applyPsFilter()">
             <option value="">— Semua —</option>
-            <option value="2m">&lt; 2 Bulan</option>
-            <option value="3m">&lt; 3 Bulan</option>
-            <option value="1y">&lt; 1 Tahun</option>
+            <option value="7m">&lt; 7 Bulan</option>
+            <option value="12m">&lt; 12 Bulan</option>
           </select>
         </div>
         <div class="psf psf--action">
@@ -491,6 +519,34 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     }
     .ps-btn-reset:hover { background: #efe6d8; }
 
+    /* PT filter */
+    .psf--pt { position: relative; min-width: 220px; }
+    .psf-pt-wrap { position: relative; display: flex; align-items: center; }
+    .psf-pt-input { width: 100%; padding: .4rem .6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
+    .psf-pt-clear { position: absolute; right: 8px; cursor: pointer; color: #94a3b8; font-size: 14px; }
+    .psf-pt-clear:hover { color: #ef4444; }
+    .psf-pt-panel {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      max-height: 200px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .psf-pt-option { display: flex; gap: 8px; padding: 7px 12px; cursor: pointer; font-size: 13px; }
+    .psf-pt-option:hover { background: #f1f5f9; }
+    .psf-pt-singkat { font-weight: 700; color: #6366f1; min-width: 48px; }
+    .psf-pt-nama { color: #374151; }
+
+    /* Notif warning kedaluarsa */
+    .ps-notif-bar { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .ps-notif-bar--top { margin-bottom: 16px; }
+    .ps-notif-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+    .ps-notif-red    { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .ps-notif-yellow { background: #fefce8; border: 1px solid #fde047; color: #854d0e; }
+    .ps-notif-item:hover { filter: brightness(0.96); }
+    .ps-notif-action { margin-left: auto; font-weight: 700; white-space: nowrap; }
+
     /* Results */
     .ps-results { margin-top: .5rem; }
     .ps-results__header {
@@ -844,7 +900,17 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   psOpen       = false;
   psSearching  = false;
   psDone       = false;
-  psForm       = { nama: '', jenjang: '', akreditasi: '', kedaluarsa: '' };
+  psForm       = { nama: '', jenjang: '', akreditasi: '', kedaluarsa: '', ptId: 0 };
+
+  // PT filter autocomplete
+  ptSearch        = '';
+  ptSearchResults: any[] = [];
+  ptPanelOpen     = false;
+  ptSearchTimeout: any;
+
+  // Notif counts (loaded on init)
+  notifCount7m  = 0;
+  notifCount12m = 0;
   psRawResults: any[] = [];
   psResults: any[] = [];
   psPaginated: any[] = [];
@@ -860,7 +926,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   runPs(page = 1) {
     this.psSearching = true;
     this.psPage = page;
-    this.api.getProgramStudiPtList(this.psForm.nama.trim(), this.psForm.jenjang).subscribe({
+    this.api.getProgramStudiPtList(this.psForm.nama.trim(), this.psForm.jenjang, this.psForm.ptId || undefined).subscribe({
       next: (res: any[]) => {
         this.psRawResults = res;
         this.psSearching  = false;
@@ -875,13 +941,13 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     const akr = this.psForm.akreditasi;
     const kdl = this.psForm.kedaluarsa;
     const now = Date.now();
-    const limitMs: Record<string, number> = { '2m': 60, '3m': 90, '1y': 365 };
     this.psResults = this.psRawResults.filter(r => {
       if (akr && (r.akreditasi || 'belum').toLowerCase() !== akr) return false;
       if (kdl) {
         if (!r.tgl_exp) return false;
-        const diff = (new Date(r.tgl_exp).getTime() - now) / 86400000;
-        if (diff < 0 || diff >= limitMs[kdl]) return false;
+        const exp = new Date(r.tgl_exp);
+        const limit = new Date(now); limit.setMonth(limit.getMonth() + (kdl === '7m' ? 7 : 12));
+        if (exp > limit) return false;
       }
       return true;
     });
@@ -891,13 +957,67 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
 
   expClass(tgl: string | null): string {
     if (!tgl) return '';
-    const diff = (new Date(tgl).getTime() - Date.now()) / 86400000;
-    if (diff < 0) return 'exp-expired';
-    if (diff < 60)  return 'exp-red';
-    if (diff < 90)  return 'exp-yellow';
-    if (diff < 365) return 'exp-green';
+    const now = new Date();
+    const exp = new Date(tgl);
+    if (exp < now) return 'exp-expired';
+    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
+    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
+    if (exp <= limit7m)  return 'exp-red';
+    if (exp <= limit12m) return 'exp-yellow';
     return '';
   }
+
+  get psExpRed(): any[] {
+    const now = new Date();
+    const limit = new Date(now); limit.setMonth(limit.getMonth() + 7);
+    return this.psRawResults.filter(r => r.tgl_exp && new Date(r.tgl_exp) <= limit);
+  }
+
+  get psExpYellow(): any[] {
+    const now = new Date();
+    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
+    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
+    return this.psRawResults.filter(r =>
+      r.tgl_exp && new Date(r.tgl_exp) > limit7m && new Date(r.tgl_exp) <= limit12m
+    );
+  }
+
+  setPsExpFilter(val: string) {
+    this.psForm.kedaluarsa = val;
+    this.applyPsFilter();
+  }
+
+  openPsWithExpFilter(val: string) {
+    this.psForm.kedaluarsa = val;
+    this.psOpen = true;
+    if (!this.psDone) this.runPs();
+    else this.applyPsFilter();
+  }
+
+  onPtSearch() {
+    clearTimeout(this.ptSearchTimeout);
+    if (!this.ptSearch.trim()) { this.ptSearchResults = []; return; }
+    this.ptSearchTimeout = setTimeout(() => {
+      this.api.getPerguruanTinggiList({ search: this.ptSearch, page_size: 10 }).subscribe({
+        next: (res: any) => this.ptSearchResults = res.results || []
+      });
+    }, 300);
+  }
+
+  selectPt(pt: any) {
+    this.psForm.ptId = pt.id;
+    this.ptSearch    = pt.singkatan ? `${pt.singkatan} — ${pt.nama}` : pt.nama;
+    this.ptPanelOpen = false;
+    this.ptSearchResults = [];
+  }
+
+  clearPtFilter() {
+    this.psForm.ptId = 0;
+    this.ptSearch    = '';
+    this.ptSearchResults = [];
+  }
+
+  closePtPanel() { setTimeout(() => this.ptPanelOpen = false, 150); }
 
   goPs(p: number) {
     this.psPage = p;
@@ -905,7 +1025,9 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   }
 
   resetPs() {
-    this.psForm      = { nama: '', jenjang: '', akreditasi: '', kedaluarsa: '' };
+    this.psForm      = { nama: '', jenjang: '', akreditasi: '', kedaluarsa: '', ptId: 0 };
+    this.ptSearch    = '';
+    this.ptSearchResults = [];
     this.psDone      = false;
     this.psRawResults = [];
     this.psResults   = [];
@@ -1015,7 +1137,12 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
 
   constructor(private api: ApiService, private zone: NgZone) {}
 
-  ngOnInit(): void { this.loadData(); }
+  ngOnInit(): void {
+    this.loadData();
+    this.api.getProdiExpCounts().subscribe({
+      next: r => { this.notifCount7m = r.count_7m; this.notifCount12m = r.count_12m; }
+    });
+  }
 
   ngAfterViewChecked(): void {
     if (!this.chartsRendered && this.chartData && this.jenjangChartRef) {

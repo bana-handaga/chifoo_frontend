@@ -67,21 +67,20 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
         </div>
 
         <!-- Notifikasi akreditasi kedaluarsa -->
-        <div *ngIf="prodiAkreditasiExpiring.length > 0" class="akr-expiry-notices">
-          <div *ngFor="let item of prodiAkreditasiExpiring"
-               class="akr-expiry-item"
-               [class.akr-red]="item.daysLeft <= 60"
-               [class.akr-yellow]="item.daysLeft > 60 && item.daysLeft <= 90"
-               style="cursor:pointer"
-               (click)="setProdiExpFilter(item.daysLeft <= 60 ? 'less_2m' : 'less_3m')">
+        <div *ngIf="prodiExpRed.length > 0 || prodiExpYellow.length > 0" class="akr-expiry-notices">
+          <div *ngIf="prodiExpRed.length > 0" class="akr-expiry-item akr-red" style="cursor:pointer"
+               (click)="setProdiExpFilter('less_7m')">
             <span class="akr-expiry-icon">&#9888;</span>
             <span class="akr-expiry-text">
-              <strong>{{ item.prodi.nama }}</strong>
-              ({{ item.prodi.jenjang_display }}) —
-              akreditasi kedaluarsa
-              <ng-container *ngIf="item.daysLeft > 0">dalam {{ item.daysLeft }} hari</ng-container>
-              <ng-container *ngIf="item.daysLeft <= 0">sudah kedaluarsa</ng-container>
-              ({{ item.prodi.tanggal_kedaluarsa_akreditasi | date:'d MMM yyyy' }})
+              <strong>{{ prodiExpRed.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 7 bulan</strong>
+            </span>
+            <span class="akr-expiry-action">Lihat →</span>
+          </div>
+          <div *ngIf="prodiExpYellow.length > 0" class="akr-expiry-item akr-yellow" style="cursor:pointer"
+               (click)="setProdiExpFilter('less_12m')">
+            <span class="akr-expiry-icon">&#9888;</span>
+            <span class="akr-expiry-text">
+              <strong>{{ prodiExpYellow.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>7 – 12 bulan</strong>
             </span>
             <span class="akr-expiry-action">Lihat →</span>
           </div>
@@ -109,9 +108,8 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
             <label class="filter-label">Kedaluarsa:</label>
             <select [(ngModel)]="filterProdiExp" class="filter-select filter-select-exp">
               <option value="">Semua</option>
-              <option value="less_3m">Kurang dari 3 bulan</option>
-              <option value="less_2m">Kurang dari 2 bulan</option>
-              <option value="less_1m">Kurang dari 1 bulan</option>
+              <option value="less_12m">Kurang dari 12 bulan</option>
+              <option value="less_7m">Kurang dari 7 bulan</option>
             </select>
             <span class="filter-reset" *ngIf="filterProdiExp" (click)="filterProdiExp=''">✕</span>
           </div>
@@ -1353,16 +1351,23 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     return Array.from(s).sort();
   }
 
-  get prodiAkreditasiExpiring(): { prodi: ProgramStudi; daysLeft: number }[] {
+  get prodiExpRed(): ProgramStudi[] {
     const now = new Date();
-    const result: { prodi: ProgramStudi; daysLeft: number }[] = [];
-    for (const p of this.pt?.program_studi || []) {
-      if (!p.tanggal_kedaluarsa_akreditasi) continue;
-      const exp = new Date(p.tanggal_kedaluarsa_akreditasi);
-      const daysLeft = Math.ceil((exp.getTime() - now.getTime()) / 86400000);
-      if (daysLeft <= 90) result.push({ prodi: p, daysLeft });
-    }
-    return result.sort((a, b) => a.daysLeft - b.daysLeft);
+    const limit = new Date(now); limit.setMonth(limit.getMonth() + 7);
+    return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
+      p.tanggal_kedaluarsa_akreditasi && new Date(p.tanggal_kedaluarsa_akreditasi) <= limit
+    );
+  }
+
+  get prodiExpYellow(): ProgramStudi[] {
+    const now = new Date();
+    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
+    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
+    return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
+      p.tanggal_kedaluarsa_akreditasi &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) > limit7m &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) <= limit12m
+    );
   }
 
   setProdiExpFilter(val: string) { this.filterProdiExp = val; }
@@ -1374,9 +1379,8 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
       if (this.filterProdiAkreditasi && p.akreditasi_display !== this.filterProdiAkreditasi) return false;
       if (this.filterProdiExp && p.tanggal_kedaluarsa_akreditasi) {
         const days = Math.ceil((new Date(p.tanggal_kedaluarsa_akreditasi).getTime() - now.getTime()) / 86400000);
-        if (this.filterProdiExp === 'less_1m' && days > 30)  return false;
-        if (this.filterProdiExp === 'less_2m' && days > 60)  return false;
-        if (this.filterProdiExp === 'less_3m' && days > 90)  return false;
+        if (this.filterProdiExp === 'less_7m'  && days > 210) return false;
+        if (this.filterProdiExp === 'less_12m' && days > 365) return false;
       } else if (this.filterProdiExp) {
         return false; // tidak ada tanggal exp → tidak masuk filter kedaluarsa
       }
@@ -1909,9 +1913,10 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     if (!tgl) return '';
     const now = new Date();
     const exp = new Date(tgl);
-    const diffDays = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays < 60)  return 'red';
-    if (diffDays < 90)  return 'yellow';
+    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
+    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
+    if (exp <= limit7m)  return 'red';
+    if (exp <= limit12m) return 'yellow';
     return 'green';
   }
 }
