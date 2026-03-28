@@ -2120,14 +2120,16 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; font-size: 10.5px; margin: 0; padding: 20px; color: #1e293b; }
-  .letterhead { display: flex; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 3px solid #1a237e; margin-bottom: 4px; }
-  .letterhead img { height: 72px; width: auto; flex-shrink: 0; }
+  .letterhead { display: flex; align-items: flex-start; gap: 16px; padding-bottom: 12px; border-bottom: 3px solid #1a237e; margin-bottom: 4px; }
+  .letterhead img { height: 76px; width: auto; flex-shrink: 0; object-fit: contain; }
   .letterhead-text { flex: 1; }
-  .letterhead-text .org { font-size: 11px; font-weight: 700; color: #78350f; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
-  .letterhead-text .divisi { font-size: 10px; color: #64748b; margin-bottom: 6px; }
-  .letterhead-text h1 { font-size: 17px; color: #1a237e; font-weight: 700; margin: 0 0 3px; line-height: 1.2; }
-  .letterhead-text .sub { font-size: 11px; color: #475569; }
-  .badges { margin-top: 6px; }
+  .letterhead-text h1 { font-size: 18px; color: #1a237e; font-weight: 700; margin: 0 0 3px; line-height: 1.2; }
+  .letterhead-text .sub { font-size: 10.5px; color: #475569; margin-bottom: 4px; }
+  .letterhead-text .akr-row { font-size: 10px; color: #475569; margin-bottom: 4px; }
+  .letterhead-text .address { font-size: 10px; color: #64748b; margin-bottom: 3px; }
+  .letterhead-text .contacts { font-size: 10px; color: #64748b; }
+  .letterhead-text .contacts a { color: #1a237e; text-decoration: none; }
+  .badges { margin-bottom: 5px; }
   .badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-right: 4px; }
   .badge-unggul{background:#d1fae5;color:#065f46} .badge-baik_sekali{background:#e0f2fe;color:#075985}
   .badge-baik{background:#fef9c3;color:#713f12} .badge-c{background:#fee2e2;color:#991b1b}
@@ -2159,14 +2161,15 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
 <div class="letterhead">
   ${logoBase64 ? `<img src="${logoBase64}" alt="Logo">` : ''}
   <div class="letterhead-text">
-    <div class="org">Pimpinan Pusat Muhammadiyah &mdash; Majelis Diktilitbang</div>
-    <div class="divisi">Sistem Informasi Perguruan Tinggi Muhammadiyah &amp; Aisyiyah</div>
-    <h1>${pt.nama}</h1>
-    <div class="sub">${pt.kode_pt} &nbsp;·&nbsp; ${pt.jenis||''} &nbsp;·&nbsp; ${pt.kota}, ${pt.provinsi}</div>
     <div class="badges">
       <span class="badge badge-${pt.organisasi_induk}">${(pt.organisasi_induk||'').replace('_',' ')}</span>
       <span class="badge badge-${pt.akreditasi_institusi}">${akrLabel[pt.akreditasi_institusi]||pt.akreditasi_institusi||'Belum'}</span>
     </div>
+    <h1>${pt.nama}</h1>
+    <div class="sub">${pt.kode_pt} &nbsp;·&nbsp; ${pt.jenis||''} &nbsp;·&nbsp; ${pt.kota}, ${pt.provinsi}</div>
+    ${(pt.nomor_sk_akreditasi || pt.tanggal_kadaluarsa_akreditasi) ? `<div class="akr-row">${pt.nomor_sk_akreditasi ? `No. SK: <strong>${pt.nomor_sk_akreditasi}</strong>` : ''}${pt.nomor_sk_akreditasi && pt.tanggal_kadaluarsa_akreditasi ? ' &nbsp;·&nbsp; ' : ''}${pt.tanggal_kadaluarsa_akreditasi ? `Berlaku s/d: <strong>${fmtDate(pt.tanggal_kadaluarsa_akreditasi)}</strong>` : ''}</div>` : ''}
+    ${pt.alamat ? `<div class="address">📍 ${pt.alamat}, ${pt.kota}, ${pt.provinsi}</div>` : ''}
+    <div class="contacts">${[pt.website ? `<a href="${pt.website}">${pt.website}</a>` : '', pt.email ? `📧 ${pt.email}` : '', pt.telepon ? `📞 ${pt.telepon}` : ''].filter(Boolean).join(' &nbsp;·&nbsp; ')}</div>
   </div>
 </div>
 <div class="tagline">Profil Perguruan Tinggi &mdash; Digenerate: ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
@@ -2209,7 +2212,10 @@ ${dsnRows ? `<div class="section-title">Tren Data Dosen per Semester</div>
 <table><thead><tr><th>Semester</th><th class="num">Tetap</th><th class="num">Tdk Tetap</th><th class="num">S3</th><th class="num">S2</th><th class="num">S1</th><th class="num">Guru Besar</th><th class="num">Bersertifikat</th></tr></thead>
 <tbody>${dsnRows}</tbody></table>` : ''}
 
-<div class="sources">Sumber data: <a href="https://pddikti.kemdiktisaintek.go.id/">PDDikti</a> &nbsp;·&nbsp; <a href="https://www.banpt.or.id/">BAN-PT</a> &nbsp;·&nbsp; LAM Terkait</div>
+<div class="sources">
+  <strong>PP Muhammadiyah &mdash; Majelis Diktilitbang</strong> &nbsp;·&nbsp; Sistem Informasi Perguruan Tinggi Muhammadiyah &amp; Aisyiyah<br>
+  Sumber data: <a href="https://pddikti.kemdiktisaintek.go.id/">PDDikti</a> &nbsp;·&nbsp; <a href="https://www.banpt.or.id/">BAN-PT</a> &nbsp;·&nbsp; LAM Terkait
+</div>
 <script>window.onload=function(){window.print();window.close();}</script>
 </body></html>`;
 
