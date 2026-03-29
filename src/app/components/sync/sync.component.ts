@@ -372,7 +372,7 @@ export class SyncComponent implements OnInit {
 
   loadJadwal() {
     this.loading = true;
-    this.http.get<any[]>(`${API}/universities/sync/jadwal/`).subscribe({
+    this.http.get<any[]>(`${API}/sync/jadwal/`).subscribe({
       next: data => { this.jadwals = data; this.loading = false; },
       error: () => { this.loading = false; }
     });
@@ -380,7 +380,7 @@ export class SyncComponent implements OnInit {
 
   loadPtList() {
     this.ptLoading = true;
-    this.http.get<any[]>(`${API}/universities/sync/pt-list/`).subscribe({
+    this.http.get<any[]>(`${API}/sync/pt-list/`).subscribe({
       next: data => { this.ptList = data; this.ptLoading = false; },
       error: () => { this.ptLoading = false; },
     });
@@ -398,8 +398,8 @@ export class SyncComponent implements OnInit {
     };
 
     const req = this.editId
-      ? this.http.put(`${API}/universities/sync/jadwal/${this.editId}/`, payload)
-      : this.http.post(`${API}/universities/sync/jadwal/`, payload);
+      ? this.http.put(`${API}/sync/jadwal/${this.editId}/`, payload)
+      : this.http.post(`${API}/sync/jadwal/`, payload);
 
     req.subscribe({
       next: () => {
@@ -435,7 +435,7 @@ export class SyncComponent implements OnInit {
 
   hapusJadwal(id: number) {
     if (!confirm('Hapus jadwal ini?')) return;
-    this.http.delete(`${API}/universities/sync/jadwal/${id}/`).subscribe({
+    this.http.delete(`${API}/sync/jadwal/${id}/`).subscribe({
       next: () => this.loadJadwal(),
       error: (err: any) => alert(err?.error?.detail || 'Gagal menghapus.'),
     });
@@ -443,7 +443,7 @@ export class SyncComponent implements OnInit {
 
   toggleAktif(j: any, event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
-    this.http.put(`${API}/universities/sync/jadwal/${j.id}/`, { ...j, is_active: checked, pt_ids: j.pt_list.map((p:any) => p.id) }).subscribe({
+    this.http.put(`${API}/sync/jadwal/${j.id}/`, { ...j, is_active: checked, pt_ids: j.pt_list.map((p:any) => p.id) }).subscribe({
       next: () => { j.is_active = checked; },
       error: () => { (event.target as HTMLInputElement).checked = !checked; }
     });
