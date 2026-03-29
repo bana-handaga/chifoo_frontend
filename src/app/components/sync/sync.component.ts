@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment.prod';
 
 const API = environment.apiUrl;
@@ -43,12 +43,13 @@ const HARI = [
           <th>Jadwal</th>
           <th>Waktu</th>
           <th>Status</th>
+          <th>Log Terakhir</th>
           <th>Terakhir Dijalankan</th>
           <th>Aksi</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let j of jadwals" [class.inactive]="!j.is_active">
+        <tr *ngFor="let j of jadwals" [class.inactive]="!j.is_active" [class.running]="j.status_terakhir==='berjalan'">
           <td>
             <span class="badge" [class.badge-blue]="j.tipe_sync==='prodi_dosen'" [class.badge-purple]="j.tipe_sync==='detail_dosen'">
               {{ j.tipe_sync_label }}
@@ -59,7 +60,7 @@ const HARI = [
             <span *ngIf="j.mode_pt==='pilihan'">
               {{ j.pt_list.length }} PT dipilih
               <div class="pt-tooltip" *ngIf="j.pt_list.length > 0">
-                <span class="pt-tag" *ngFor="let p of j.pt_list">{{ p.singkatan }}</span>
+                <span class="pt-tag" *ngFor="let p of j.pt_list">{{ p.singkatan || p.kode_pt }}</span>
               </div>
             </span>
           </td>
@@ -71,8 +72,10 @@ const HARI = [
           </td>
           <td>
             <span class="status-badge" [ngClass]="'status-'+j.status_terakhir">
+              <span *ngIf="j.status_terakhir==='berjalan'" class="spinner"></span>
               {{ statusLabel(j.status_terakhir) }}
             </span>
+            <div *ngIf="j.status_terakhir==='berjalan' && j.pid" class="pid-info">PID {{ j.pid }}</div>
             <div class="toggle-wrap">
               <label class="toggle-switch">
                 <input type="checkbox" [checked]="j.is_active" (change)="toggleAktif(j, $event)">
@@ -80,8 +83,14 @@ const HARI = [
               </label>
             </div>
           </td>
+          <td class="log-cell">
+            <span class="log-text" *ngIf="j.pesan_terakhir">{{ j.pesan_terakhir }}</span>
+            <span class="text-muted" *ngIf="!j.pesan_terakhir">-</span>
+          </td>
           <td class="text-muted">{{ j.last_run ? formatDate(j.last_run) : '-' }}</td>
           <td class="aksi-cell">
+            <button class="btn-run" (click)="jalankan(j)" *ngIf="j.status_terakhir !== 'berjalan'" title="Jalankan sekarang">▶</button>
+            <button class="btn-stop" (click)="hentikan(j)" *ngIf="j.status_terakhir === 'berjalan'" title="Hentikan">■</button>
             <button class="btn-icon btn-edit" (click)="editJadwal(j)" title="Edit">✏️</button>
             <button class="btn-icon btn-del" (click)="hapusJadwal(j.id)" title="Hapus">🗑️</button>
           </td>
@@ -265,6 +274,25 @@ const HARI = [
 
     .aksi-cell { white-space: nowrap; }
     .aksi-cell button { margin-right: 4px; }
+    .btn-run { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 14px; font-weight: 700; }
+    .btn-run:hover { background: #bbf7d0; }
+    .btn-stop { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 14px; font-weight: 700; }
+    .btn-stop:hover { background: #fecaca; }
+
+    .log-cell { max-width: 260px; }
+    .log-text { font-size: 11px; color: #374151; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+
+    .pid-info { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+
+    tr.running { background: #fffbeb; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block; width: 10px; height: 10px;
+      border: 2px solid currentColor; border-top-color: transparent;
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: 4px;
+    }
     .text-muted { color: #9ca3af; font-size: 12px; }
 
     .pt-tooltip { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
@@ -305,7 +333,7 @@ const HARI = [
     .info-box ul { margin: 0; padding-left: 20px; color: #374151; font-size: 13px; line-height: 1.8; }
   `]
 })
-export class SyncComponent implements OnInit {
+export class SyncComponent implements OnInit, OnDestroy {
   jadwals: any[] = [];
   ptList: any[]  = [];
   hariList = HARI;
@@ -319,6 +347,7 @@ export class SyncComponent implements OnInit {
   selectedPtIds: number[] = [];
   ptSearch = '';
   ptLoading = false;
+  private pollInterval: any = null;
 
   constructor(private fb: FormBuilder, private http: HttpClient) {}
 
@@ -326,6 +355,59 @@ export class SyncComponent implements OnInit {
     this.loadJadwal();
     this.loadPtList();
     this.initForm();
+  }
+
+  ngOnDestroy() {
+    this.stopPolling();
+  }
+
+  private startPolling() {
+    if (this.pollInterval) return;
+    this.pollInterval = setInterval(() => this.pollRunningJadwals(), 5000);
+  }
+
+  private stopPolling() {
+    if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
+  }
+
+  private pollRunningJadwals() {
+    const running = this.jadwals.filter(j => j.status_terakhir === 'berjalan');
+    if (running.length === 0) { this.stopPolling(); return; }
+    running.forEach(j => {
+      this.http.get<any>(`${API}/sync/jadwal/${j.id}/status/`).subscribe({
+        next: s => {
+          j.status_terakhir = s.status_terakhir;
+          j.pesan_terakhir  = s.pesan_terakhir;
+          j.pid             = s.pid;
+          j.last_run        = s.last_run;
+        }
+      });
+    });
+  }
+
+  jalankan(j: any) {
+    if (!confirm(`Jalankan sync "${j.tipe_sync_label}" sekarang?`)) return;
+    this.http.post(`${API}/sync/jadwal/${j.id}/jalankan/`, {}).subscribe({
+      next: (res: any) => {
+        j.status_terakhir = 'berjalan';
+        j.pesan_terakhir  = 'Proses dimulai...';
+        j.pid = res.pid;
+        this.startPolling();
+      },
+      error: (err: any) => alert(err?.error?.detail || 'Gagal menjalankan sync.'),
+    });
+  }
+
+  hentikan(j: any) {
+    if (!confirm('Hentikan proses sync yang sedang berjalan?')) return;
+    this.http.post(`${API}/sync/jadwal/${j.id}/hentikan/`, {}).subscribe({
+      next: () => {
+        j.status_terakhir = 'error';
+        j.pesan_terakhir  = 'Proses dihentikan manual.';
+        j.pid = null;
+      },
+      error: (err: any) => alert(err?.error?.detail || 'Gagal menghentikan.'),
+    });
   }
 
   initForm() {
@@ -373,7 +455,11 @@ export class SyncComponent implements OnInit {
   loadJadwal() {
     this.loading = true;
     this.http.get<any[]>(`${API}/sync/jadwal/`).subscribe({
-      next: data => { this.jadwals = data; this.loading = false; },
+      next: data => {
+        this.jadwals = data;
+        this.loading = false;
+        if (data.some(j => j.status_terakhir === 'berjalan')) this.startPolling();
+      },
       error: () => { this.loading = false; }
     });
   }
