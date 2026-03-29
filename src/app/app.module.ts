@@ -18,6 +18,9 @@ import { LoginComponent } from './components/auth/login.component';
 import { ProfileComponent } from './components/auth/profile.component';
 import { ForgotPasswordComponent } from './components/auth/forgot-password.component';
 import { ResetPasswordComponent } from './components/auth/reset-password.component';
+import { LandingComponent } from './components/landing/landing.component';
+import { RegisterComponent } from './components/auth/register.component';
+import { SyncComponent } from './components/sync/sync.component';
 import { LayoutComponent } from './components/layout/layout.component';
 import { StatistikComponent } from './components/statistik/statistik.component';
 import { ProgramStudiListComponent } from './components/program-studi/list.component';
@@ -44,7 +47,9 @@ import { AuthInterceptor } from './services/auth.interceptor';
 import { AuthGuard } from './services/auth.guard';
 
 const routes: Routes = [
+  { path: '', component: LandingComponent, pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   {
@@ -75,6 +80,7 @@ const routes: Routes = [
       { path: 'sinta/cluster',    component: SintaClusterComponent },
       { path: 'network-x',        component: SintaKolaboasiComponent },
       { path: 'profile',          component: ProfileComponent },
+      { path: 'sync',             component: SyncComponent },
     ]
   },
   { path: '**', redirectTo: '' }
@@ -94,6 +100,8 @@ const routes: Routes = [
     ProfileComponent,
     ForgotPasswordComponent,
     ResetPasswordComponent,
+    LandingComponent,
+    RegisterComponent,
     LayoutComponent,
     StatistikComponent,
     SintaComponent,
@@ -107,6 +115,7 @@ const routes: Routes = [
     SintaKolaboasiComponent,
     IssnPipe, TitleCaseIdPipe,
     MahasiswaTrenComponent,
+    SyncComponent,
   ],
   imports: [
     BrowserModule,

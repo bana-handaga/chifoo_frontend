@@ -49,6 +49,7 @@ import { AuthService } from '../../services/auth.service';
           </form>
           <button class="btn-back" (click)="backToLogin()">&#8592; Kembali</button>
         </ng-container>
+        <div class="register-link">Belum punya akun? <a routerLink="/register">Daftar di sini</a></div>
       </div>
     </div>
   `,
@@ -78,6 +79,8 @@ import { AuthService } from '../../services/auth.service';
     .forgot-link { text-align:right; margin-top:10px; }
     .forgot-link a { font-size:12px; color:#1a237e; text-decoration:none; }
     .forgot-link a:hover { text-decoration:underline; }
+    .register-link { text-align:center; margin-top:18px; font-size:13px; color:#5f6368; }
+    .register-link a { color:#1a237e; font-weight:600; }
   `]
 })
 export class LoginComponent {

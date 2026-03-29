@@ -78,6 +78,7 @@ import { AuthService } from '../../services/auth.service';
             <div class="user-menu" *ngIf="showUserMenu" (click)="$event.stopPropagation()">
               <div class="user-menu-name">{{ currentUser.first_name || currentUser.username }}</div>
               <div class="user-menu-email">{{ currentUser.email || '-' }}</div>
+              <div class="user-menu-item user-menu-link" *ngIf="currentUser?.role === 'superadmin'" (click)="goSync()">Sinkronisasi Data</div>
               <div class="user-menu-item user-menu-link" (click)="goProfile()">Profil &amp; Keamanan</div>
               <div class="user-menu-divider"></div>
               <div class="user-menu-item">
@@ -339,6 +340,11 @@ export class LayoutComponent implements OnInit {
   goProfile() {
     this.showUserMenu = false;
     this.router.navigate(['/profile']);
+  }
+
+  goSync() {
+    this.showUserMenu = false;
+    this.router.navigate(['/sync']);
   }
 
   onToggleMfa(event: Event) {
