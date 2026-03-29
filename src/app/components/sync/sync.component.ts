@@ -130,13 +130,14 @@ const HARI = [
               placeholder="Cari nama PT..." class="pt-search-input">
           </div>
           <div class="pt-selector">
+            <div class="pt-loading" *ngIf="ptLoading">Memuat daftar PT...</div>
             <label class="pt-check" *ngFor="let pt of filteredPtList">
               <input type="checkbox" [checked]="selectedPtIds.includes(pt.id)"
                 (change)="togglePt(pt.id, $event)">
-              <span class="pt-name">{{ pt.singkatan }}</span>
+              <span class="pt-name">{{ pt.singkatan || pt.kode_pt }}</span>
               <span class="pt-full">{{ pt.nama }}</span>
             </label>
-            <div class="empty-state" *ngIf="filteredPtList.length === 0">Tidak ada PT ditemukan.</div>
+            <div class="empty-state" *ngIf="!ptLoading && filteredPtList.length === 0 && ptList.length > 0">Tidak ada PT ditemukan.</div>
           </div>
         </div>
       </div>
@@ -289,6 +290,7 @@ const HARI = [
     .pt-search-input { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; outline: none; box-sizing: border-box; }
     .pt-search-input:focus { border-color: #1a237e; }
     .pt-selector { max-height: 240px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 4px 0; }
+    .pt-loading { padding: 12px; color: #6b7280; font-size: 13px; text-align: center; }
     .pt-check { display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
     .pt-check:hover { background: #f9fafb; }
     .pt-check input { cursor: pointer; flex-shrink: 0; }
@@ -316,6 +318,7 @@ export class SyncComponent implements OnInit {
   form!: FormGroup;
   selectedPtIds: number[] = [];
   ptSearch = '';
+  ptLoading = false;
 
   constructor(private fb: FormBuilder, private http: HttpClient) {}
 
@@ -349,10 +352,12 @@ export class SyncComponent implements OnInit {
   }
 
   get filteredPtList() {
-    if (!this.ptSearch) return this.ptList;
+    if (!this.ptSearch.trim()) return this.ptList;
     const q = this.ptSearch.toLowerCase();
     return this.ptList.filter(p =>
-      p.nama.toLowerCase().includes(q) || p.singkatan.toLowerCase().includes(q)
+      (p.nama || '').toLowerCase().includes(q) ||
+      (p.singkatan || '').toLowerCase().includes(q) ||
+      (p.kode_pt || '').toLowerCase().includes(q)
     );
   }
 
@@ -374,8 +379,10 @@ export class SyncComponent implements OnInit {
   }
 
   loadPtList() {
+    this.ptLoading = true;
     this.http.get<any[]>(`${API}/universities/sync/pt-list/`).subscribe({
-      next: data => this.ptList = data,
+      next: data => { this.ptList = data; this.ptLoading = false; },
+      error: () => { this.ptLoading = false; },
     });
   }
 
