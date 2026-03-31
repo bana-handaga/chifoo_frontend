@@ -1847,6 +1847,7 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadStats();
+    this.loadPtOptions();
     this.loadAuthors();
   }
 
@@ -1897,22 +1898,17 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
           this.authors    = res.results;
           this.totalCount = res.count;
           this.totalPages = Math.ceil(res.count / this.pageSize);
-          this.buildPtOptions(res.results);
         },
         error: err => console.error('Author list error', err)
       });
   }
 
-  private buildPtOptions(authors: AuthorList[]): void {
-    if (this.ptOptions.length) { return; }
-    const seen = new Set<string>();
-    authors.forEach(a => {
-      if (a.pt_kode && !seen.has(a.pt_kode)) {
-        seen.add(a.pt_kode);
-        this.ptOptions.push({ kode: a.pt_kode, singkatan: a.pt_singkatan });
-      }
-    });
-    this.ptOptions.sort((a, b) => a.singkatan.localeCompare(b.singkatan));
+  private loadPtOptions(): void {
+    this.http.get<any[]>(`${API}/sinta-author/pt-options/`)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: res => { this.ptOptions = res; }
+      });
   }
 
   // ── Events ─────────────────────────────────────────────────────────────────
@@ -2163,51 +2159,58 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
     const d = this.detail;
     if (!d) return;
 
+    const { jsPDF } = await import('jspdf');
     const fmtNum = (n: any) => (n != null ? Number(n).toLocaleString('id') : '—');
-    const fmtDate = (s: string) => s ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const fmtDate = (s: string) => s
+      ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '—';
 
-    // Load foto via backend proxy (bypass CORS dari URL eksternal SINTA)
-    const fotoBase64: string = d.foto_url
+    // ── 1. Load foto → clip ke lingkaran via canvas ────────────────
+    const rawFoto: string = d.foto_url
       ? await fetch(`${API}/proxy-image/?url=${encodeURIComponent(d.foto_url)}`)
-          .then(r => r.json())
-          .catch(() => '')
+          .then(r => r.json()).catch(() => '')
+      : '';
+    const fotoImg: string = rawFoto
+      ? await new Promise<string>(res => {
+          const img = new Image();
+          img.onload = () => {
+            const c = document.createElement('canvas'); c.width = c.height = 120;
+            const ctx = c.getContext('2d')!;
+            ctx.beginPath(); ctx.arc(60, 60, 60, 0, Math.PI * 2); ctx.clip();
+            ctx.drawImage(img, 0, 0, 120, 120);
+            res(c.toDataURL('image/png'));
+          };
+          img.onerror = () => res('');
+          img.src = rawFoto;
+        })
       : '';
 
-    // ── Render tren chart off-screen (Chart.js bar) ────────────────
-    const mkCanvas = (w: number, h: number) => {
-      const c = document.createElement('canvas'); c.width = w; c.height = h; return c;
-    };
+    // ── 2. Tren chart (Chart.js → canvas → PNG) ───────────────────
+    const CHART_W = 720, CHART_H = 200;
     const trenSeries = [
-      { label: 'Scopus',           color: '#0891b2', jenis: 'scopus' },
-      { label: 'Penelitian',       color: '#22c55e', jenis: 'research' },
-      { label: 'Pengabdian',       color: '#f97316', jenis: 'service' },
-      { label: 'GScholar Pub',     color: '#6366f1', jenis: 'gscholar_pub' },
-      { label: 'GScholar Sitasi',  color: '#a855f7', jenis: 'gscholar_cite' },
+      { label: 'Scopus',          color: '#0891b2', jenis: 'scopus' },
+      { label: 'Penelitian',      color: '#22c55e', jenis: 'research' },
+      { label: 'Pengabdian',      color: '#f97316', jenis: 'service' },
+      { label: 'GScholar Pub',    color: '#6366f1', jenis: 'gscholar_pub' },
+      { label: 'GScholar Sitasi', color: '#a855f7', jenis: 'gscholar_cite' },
     ].filter(s => this.getTrend(d.trend || [], s.jenis).length > 0);
-
-    // Kumpulkan semua tahun unik, sorted
     const allYears = [...new Set((d.trend || []).map((t: TrendItem) => t.tahun))].sort();
-
     const trenImg = (() => {
       if (!trenSeries.length || !allYears.length) return '';
       const datasets = trenSeries.map(s => ({
         label: s.label,
         data: allYears.map(y => {
-          const found = (d.trend || []).find((t: TrendItem) => t.jenis === s.jenis && t.tahun === y);
-          return found ? found.jumlah : 0;
+          const f = (d.trend || []).find((t: TrendItem) => t.jenis === s.jenis && t.tahun === y);
+          return f ? f.jumlah : 0;
         }),
-        backgroundColor: s.color + 'cc',
-        borderColor: s.color,
-        borderWidth: 1,
-        borderRadius: 3,
+        backgroundColor: s.color + 'cc', borderColor: s.color, borderWidth: 1, borderRadius: 3,
       }));
-      const c = mkCanvas(720, 260);
+      const c = document.createElement('canvas'); c.width = CHART_W; c.height = CHART_H;
       const ch = new Chart(c, {
-        type: 'bar',
-        data: { labels: allYears.map(String), datasets },
+        type: 'bar', data: { labels: allYears.map(String), datasets },
         options: {
           animation: false, responsive: false,
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 12, padding: 8 } } },
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 12, padding: 6 } } },
           scales: {
             x: { ticks: { font: { size: 9 } }, grid: { display: false } },
             y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: (v: any) => Number(v).toLocaleString('id') } }
@@ -2217,9 +2220,11 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
       const img = c.toDataURL('image/png'); ch.destroy(); return img;
     })();
 
-    // Kuartil bar HTML
+    // ── 3. Kuartil bar (canvas → PNG) ─────────────────────────────
     const kuartilTotal = d.scopus_q1 + d.scopus_q2 + d.scopus_q3 + d.scopus_q4 + d.scopus_noq;
-    const kuartilHtml = kuartilTotal > 0 ? (() => {
+    const KQ_W = 720, KQ_H = 70;
+    const kuartilImg = (() => {
+      if (!kuartilTotal) return '';
       const qs = [
         { key: 'Q1', val: d.scopus_q1, c: '#22c55e' },
         { key: 'Q2', val: d.scopus_q2, c: '#84cc16' },
@@ -2227,155 +2232,266 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
         { key: 'Q4', val: d.scopus_q4, c: '#f97316' },
         { key: 'NoQ', val: d.scopus_noq, c: '#94a3b8' },
       ].filter(q => q.val > 0);
-      const bars = qs.map(q => {
-        const pct = Math.round(q.val / kuartilTotal * 100);
-        return `<div class="kq" style="flex:${q.val};background:${q.c};min-width:${pct < 8 ? 28 : 0}px" title="${q.key}: ${q.val}">
-          <span>${q.key}</span>
-        </div>`;
-      }).join('');
-      const legend = qs.map(q => `<span class="kleg-item"><span class="kleg-dot" style="background:${q.c}"></span>${q.key}: ${q.val}</span>`).join('');
-      return `<div class="kuartil-bar">${bars}</div><div class="kleg">${legend}</div>`;
-    })() : '';
+      const c = document.createElement('canvas'); c.width = KQ_W; c.height = KQ_H;
+      const ctx = c.getContext('2d')!;
+      ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, KQ_W, KQ_H);
+      let bx = 0;
+      for (const q of qs) {
+        const bw = Math.round(KQ_W * q.val / kuartilTotal);
+        ctx.fillStyle = q.c; ctx.fillRect(bx, 0, bw, 44);
+        if (bw > 28) {
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Arial';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(q.key, bx + bw / 2, 22);
+        }
+        bx += bw;
+      }
+      let lx = 4; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      for (const q of qs) {
+        ctx.fillStyle = q.c; ctx.fillRect(lx, 50, 12, 12);
+        ctx.fillStyle = '#374151'; ctx.font = '11px Arial';
+        ctx.fillText(`${q.key}: ${q.val}`, lx + 16, 56);
+        lx += ctx.measureText(`${q.key}: ${q.val}`).width + 30;
+      }
+      return c.toDataURL('image/png');
+    })();
 
-    // Scopus artikel HTML
-    const qColor: Record<string,string> = { Q1:'#16a34a', Q2:'#65a30d', Q3:'#ca8a04', Q4:'#ea580c', NoQ:'#6b7280' };
-    const artikelHtml = this.scopusArtikels.map(a => `
-      <div class="art-item">
-        <div class="art-top">
-          <span class="art-q" style="color:${qColor[a.kuartil||'NoQ']||'#6b7280'};background:${qColor[a.kuartil||'NoQ']||'#6b7280'}22">${a.kuartil||'NoQ'}</span>
-          <span style="font-size:10px;color:#64748b">${a.tahun}</span>
-          ${a.sitasi > 0 ? `<span style="font-size:10px;color:#64748b">Sitasi: ${a.sitasi}</span>` : ''}
-          ${a.urutan_penulis ? `<span style="font-size:10px;color:#94a3b8">Penulis ${a.urutan_penulis}/${a.total_penulis}</span>` : ''}
-        </div>
-        <div class="art-title">${a.judul}</div>
-        ${a.jurnal_nama ? `<div class="art-journal">${a.jurnal_nama}</div>` : ''}
-      </div>`).join('');
+    // ── 4. Hitung skala autoscale 1-halaman A4 ────────────────────
+    const MRG = 12, CW = 186;  // margin & content width (mm)
+    const FOTO_D = 22;
+    const H_HEADER   = 27;   // foto(22) + sep + gap
+    const H_TAGLINE  = 8;
+    const H_SCORES   = 24;   // 4 kartu + gap
+    const H_STATSTBL = 48;   // judul(6) + header-row(5.5) + 6-rows(33) + gap(3.5)
+    const H_KUARTIL  = kuartilImg ? (6 + CW * KQ_H   / KQ_W   + 3) : 0;
+    const H_TREN     = trenImg    ? (6 + CW * CHART_H / CHART_W + 3) : 0;
+    const N_ART      = this.scopusArtikels.length;
+    const H_ARTIKEL  = N_ART > 0 ? (6 + N_ART * 16 + 2) : 0;
+    const H_SOURCES  = 10;
+    const totalH = MRG + H_HEADER + H_TAGLINE + H_SCORES + H_STATSTBL
+                 + H_KUARTIL + H_TREN + H_ARTIKEL + H_SOURCES + MRG;
+    const scale  = Math.min(1, 297 / totalH);
+    const s      = (v: number) => +(v * scale).toFixed(3);
 
-    const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">
-<title>Profil Author — ${d.nama}</title>
-<style>
-  * { box-sizing: border-box; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  body { font-family: Arial, sans-serif; font-size: 10.5px; margin: 0; padding: 20px; color: #1e293b; }
-  .header { display: flex; gap: 16px; align-items: flex-start; border-bottom: 3px solid #0891b2; padding-bottom: 14px; margin-bottom: 4px; }
-  .photo-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; gap: 4px; }
-  .photo-col img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #e0f7fa; }
-  .photo-initials { width:80px;height:80px;border-radius:50%;background:#0891b2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800; }
-  .header-info { flex: 1; }
-  .header-info h1 { font-size: 18px; color: #0c4a6e; margin: 0 0 4px; font-weight: 800; }
-  .header-info .affil { font-size: 11px; color: #475569; margin-bottom: 4px; }
-  .header-info .sinta-link { font-size: 10px; color: #0891b2; margin-bottom: 6px; display: block; }
-  .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-  .tag { background: #e0f7fa; color: #0e7490; font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
-  .tagline { font-size: 9px; color: #94a3b8; text-align: right; margin-bottom: 12px; }
-  .scores { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
-  .sc { border-radius: 10px; padding: 10px 8px; text-align: center; color: #fff;
-        print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  .sc-1 { background: #0891b2; } .sc-2 { background: #0e7490; }
-  .sc-3 { background: #7c3aed; } .sc-4 { background: #059669; }
-  .sc .val { font-size: 22px; font-weight: 800; line-height: 1; }
-  .sc .lbl { font-size: 9px; opacity: .9; margin-top: 4px; line-height: 1.3; }
-  .section-title { font-size: 12px; font-weight: 700; color: #0c4a6e; border-left: 3px solid #0891b2; padding-left: 8px; margin: 14px 0 8px; }
-  .stats-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 14px; }
-  .stats-table th, .stats-table td { padding: 5px 9px; border: 1px solid #e2e8f0; }
-  .stats-table thead th { font-weight: 700; text-align: center; }
-  .th-metric { background: #f8fafc; color: #374151; }
-  .th-scopus { background: #e0f7fa; color: #0891b2; }
-  .th-gs { background: #fce7f3; color: #be185d; }
-  .th-wos { background: #eff6ff; color: #1d4ed8; }
-  .stats-table tbody td:first-child { font-weight: 600; color: #64748b; background: #f8fafc; }
-  .stats-table tbody td:not(:first-child) { text-align: right; font-weight: 700; }
-  .stats-table tbody tr:nth-child(even) td:not(:first-child) { background: #fafafa; }
-  .tren-row { display: flex; gap: 14px; flex-wrap: wrap; background: #f8fafc; border-radius: 8px; padding: 10px; margin-bottom: 14px; }
-  .tren-panel { flex: 1; min-width: 120px; }
-  .tren-title { font-size: 10px; font-weight: 700; color: #374151; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px solid #e2e8f0; }
-  .kuartil-bar { display: flex; height: 26px; border-radius: 6px; overflow: hidden; margin-bottom: 7px; }
-  .kq { display: flex; align-items: center; justify-content: center; }
-  .kq span { font-size: 9px; color: #fff; font-weight: 700; }
-  .kleg { display: flex; flex-wrap: wrap; gap: 6px; }
-  .kleg-item { font-size: 9px; display: flex; align-items: center; gap: 3px; }
-  .kleg-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-  .art-item { padding: 6px 0; border-bottom: 1px solid #e2e8f0; }
-  .art-top { display: flex; gap: 8px; align-items: center; margin-bottom: 2px; }
-  .art-q { font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
-  .art-title { font-size: 10px; font-weight: 600; color: #1e293b; margin-bottom: 2px; }
-  .art-journal { font-size: 9px; color: #64748b; }
-  .sources { font-size: 9.5px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px; line-height: 1.7; }
-  .sources a { color: #0891b2; }
-  @media print { @page { size: A4 portrait; margin: 12mm 12mm; } body { padding: 0; } }
-</style></head><body>
+    // ── 5. Setup dokumen & helper ─────────────────────────────────
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-<div class="header">
-  <div class="photo-col">
-    ${fotoBase64 ? `<img src="${fotoBase64}" alt="${d.nama}">` : `<div class="photo-initials">${(d.nama||'?').split(' ').slice(0,2).map((w:string)=>w[0]).join('').toUpperCase()}</div>`}
-  </div>
-  <div class="header-info">
-    <h1>${d.nama}</h1>
-    <div class="affil">${d.pt_singkatan||''}${d.dept_nama ? ` &nbsp;·&nbsp; ${d.dept_nama}${d.dept_jenjang ? ` (${d.dept_jenjang})` : ''}` : ''}</div>
-    ${d.url_profil ? `<a class="sinta-link" href="${d.url_profil}">🔗 ${d.url_profil}</a>` : ''}
-    ${d.bidang_keilmuan?.length ? `<div class="tags">${d.bidang_keilmuan.map((b: string) => `<span class="tag">${b}</span>`).join('')}</div>` : ''}
-  </div>
-</div>
-<div class="tagline">Profil Author SINTA &mdash; Digenerate: ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+    // set font size (pt), return approx line-height mm
+    const font = (pt: number, style: 'bold'|'normal'|'italic' = 'normal'): number => {
+      doc.setFontSize(pt * scale);
+      doc.setFont('helvetica', style);
+      return pt * 0.3528 * scale * 1.15;
+    };
+    const hexRgb = (h: string): [number, number, number] =>
+      [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+    const rgb  = (h: string) => doc.setTextColor(...hexRgb(h));
+    const fill = (h: string) => doc.setFillColor(...hexRgb(h));
+    const strk = (h: string) => doc.setDrawColor(...hexRgb(h));
 
-<div class="scores">
-  <div class="sc sc-1"><div class="val">${fmtNum(d.sinta_score_overall)}</div><div class="lbl">Skor SINTA Overall</div></div>
-  <div class="sc sc-2"><div class="val">${fmtNum(d.sinta_score_3year)}</div><div class="lbl">Skor SINTA 3 Tahun</div></div>
-  <div class="sc sc-3"><div class="val">${fmtNum(d.affil_score)}</div><div class="lbl">Skor Afiliasi</div></div>
-  <div class="sc sc-4"><div class="val">${fmtNum(d.affil_score_3year)}</div><div class="lbl">Afiliasi 3 Tahun</div></div>
-</div>
+    let y = s(MRG);
 
-<div class="section-title">Statistik Publikasi</div>
-<table class="stats-table">
-  <thead><tr>
-    <th class="th-metric">Metrik</th>
-    <th class="th-scopus">Scopus</th>
-    <th class="th-gs">Google Scholar</th>
-    <th class="th-wos">Web of Science</th>
-  </tr></thead>
-  <tbody>
-    <tr><td>Artikel</td><td>${fmtNum(d.scopus_artikel)}</td><td>${fmtNum(d.gscholar_artikel)}</td><td>${fmtNum(d.wos_artikel)}</td></tr>
-    <tr><td>Sitasi</td><td>${fmtNum(d.scopus_sitasi)}</td><td>${fmtNum(d.gscholar_sitasi)}</td><td>${fmtNum(d.wos_sitasi)}</td></tr>
-    <tr><td>Cited Doc</td><td>${fmtNum(d.scopus_cited_doc)}</td><td>${fmtNum(d.gscholar_cited_doc)}</td><td>${fmtNum(d.wos_cited_doc)}</td></tr>
-    <tr><td>H-Index</td><td>${fmtNum(d.scopus_h_index)}</td><td>${fmtNum(d.gscholar_h_index)}</td><td>${fmtNum(d.wos_h_index)}</td></tr>
-    <tr><td>i10-Index</td><td>${fmtNum(d.scopus_i10_index)}</td><td>${fmtNum(d.gscholar_i10_index)}</td><td>—</td></tr>
-    <tr><td>G-Index</td><td>${fmtNum(d.scopus_g_index)}</td><td>${fmtNum(d.gscholar_g_index)}</td><td>—</td></tr>
-  </tbody>
-</table>
+    // helper: section title dengan bar kiri
+    const sectionTitle = (title: string) => {
+      fill('#0891b2'); doc.rect(s(MRG), y, s(2.5), s(5), 'F');
+      const lh = font(9.5, 'bold'); rgb('#0c4a6e');
+      doc.text(title, s(MRG + 4), y, { baseline: 'top' });
+      y += lh + s(2);
+    };
 
-${kuartilHtml ? `<div class="section-title">Distribusi Kuartil Scopus</div><div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:14px">${kuartilHtml}</div>` : ''}
+    // ── HEADER ───────────────────────────────────────────────────
+    const fotoR  = s(FOTO_D / 2);
+    const fotoCx = s(MRG + FOTO_D / 2);
+    const fotoCy = y + fotoR;
+    if (fotoImg) {
+      doc.addImage(fotoImg, 'PNG', s(MRG), y, s(FOTO_D), s(FOTO_D));
+      strk('#0891b2'); doc.setLineWidth(s(0.4));
+      doc.circle(fotoCx, fotoCy, fotoR, 'S');
+    } else {
+      fill('#0891b2'); doc.circle(fotoCx, fotoCy, fotoR, 'F');
+      const initials = (d.nama || '?').split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
+      font(12, 'bold'); doc.setTextColor(255, 255, 255);
+      doc.text(initials, fotoCx, fotoCy, { align: 'center', baseline: 'middle' });
+    }
 
-${trenImg ? `<div class="section-title">Tren Publikasi per Tahun</div>
-<div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:14px;text-align:center">
-  <img src="${trenImg}" style="width:100%;max-width:720px;height:auto">
-</div>` : ''}
+    const txtX = s(MRG + FOTO_D + 3);
+    const txtW = s(CW - FOTO_D - 3);
+    let ty = y;
 
-${artikelHtml ? `<div class="section-title">Daftar Artikel Scopus (${this.scopusArtikels.length} ditampilkan${this.scopusTotal > this.scopusArtikels.length ? ` dari ${this.scopusTotal}` : ''})</div>
-<div style="margin-bottom:14px">${artikelHtml}</div>` : ''}
+    let lh = font(13, 'bold'); rgb('#0c4a6e');
+    doc.text(doc.splitTextToSize(d.nama || '', txtW)[0], txtX, ty, { baseline: 'top' });
+    ty += lh;
 
-<div class="sources">
-  <strong>Sumber data:</strong><br>
-  &bull; SINTA Kemdiktisaintek: <a href="https://sinta.kemdiktisaintek.go.id/">https://sinta.kemdiktisaintek.go.id/</a><br>
-  &bull; Scopus: <a href="https://www.scopus.com/">https://www.scopus.com/</a><br>
-  &bull; Google Scholar &nbsp;&bull;&nbsp; Web of Science<br>
-  ${d.scraped_at ? `<span style="color:#94a3b8">Data diperbarui: ${fmtDate(d.scraped_at)}</span>` : ''}
-</div>
-<script>
-window.onload = function() {
-  var A4H = 1090;
-  var h = document.body.scrollHeight;
-  if (h > A4H) {
-    var z = (A4H / h).toFixed(4);
-    document.body.style.zoom = z;
-    document.body.style.transformOrigin = 'top left';
-  }
-  window.print();
-  window.close();
-};
-</script>
-</body></html>`;
+    const affilStr = [d.pt_singkatan, d.dept_nama
+      ? `${d.dept_nama}${d.dept_jenjang ? ` (${d.dept_jenjang})` : ''}`
+      : ''].filter(Boolean).join('  ·  ');
+    if (affilStr) {
+      lh = font(8.5, 'normal'); rgb('#475569');
+      doc.text(affilStr, txtX, ty, { baseline: 'top', maxWidth: txtW }); ty += lh;
+    }
+    if (d.url_profil) {
+      lh = font(7.5, 'normal'); rgb('#0891b2');
+      doc.text(d.url_profil, txtX, ty, { baseline: 'top', maxWidth: txtW }); ty += lh;
+    }
+    if (d.bidang_keilmuan?.length) {
+      font(7, 'bold'); fill('#e0f7fa'); rgb('#0e7490');
+      let tx = txtX;
+      for (const tag of (d.bidang_keilmuan as string[]).slice(0, 6)) {
+        const tw = doc.getTextWidth(tag) + s(4);
+        if (tx + tw > s(MRG + CW)) break;
+        doc.roundedRect(tx, ty, tw, s(4.5), s(1.5), s(1.5), 'F');
+        doc.text(tag, tx + s(2), ty + s(0.5), { baseline: 'top' });
+        tx += tw + s(2);
+      }
+      ty += s(6);
+    }
 
-    const w = window.open('', '_blank');
-    if (w) { w.document.write(html); w.document.close(); }
+    y = Math.max(ty, y + s(FOTO_D)) + s(2);
+    strk('#0891b2'); doc.setLineWidth(s(0.6));
+    doc.line(s(MRG), y, s(MRG + CW), y); y += s(2);
+
+    // ── TAGLINE ──────────────────────────────────────────────────
+    lh = font(7, 'italic'); rgb('#94a3b8');
+    doc.text(
+      `Profil Author SINTA — Digenerate: ${new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' })}`,
+      s(MRG + CW), y, { align: 'right', baseline: 'top' }
+    );
+    y += lh + s(3);
+
+    // ── SCORE CARDS ──────────────────────────────────────────────
+    const scoreData = [
+      { val: fmtNum(d.sinta_score_overall), lbl: 'Skor SINTA Overall', bg: '#0891b2' },
+      { val: fmtNum(d.sinta_score_3year),   lbl: 'Skor SINTA 3 Tahun', bg: '#0e7490' },
+      { val: fmtNum(d.affil_score),         lbl: 'Skor Afiliasi',      bg: '#7c3aed' },
+      { val: fmtNum(d.affil_score_3year),   lbl: 'Afiliasi 3 Tahun',   bg: '#059669' },
+    ];
+    const cW = s((CW - 4.5) / 4), cH = s(20);
+    let cx = s(MRG);
+    for (const sc of scoreData) {
+      fill(sc.bg); doc.roundedRect(cx, y, cW, cH, s(2), s(2), 'F');
+      doc.setTextColor(255, 255, 255);
+      font(12, 'bold'); doc.text(sc.val, cx + cW / 2, y + s(4), { align: 'center', baseline: 'top' });
+      font(7,  'normal'); doc.text(sc.lbl, cx + cW / 2, y + s(13), { align: 'center', baseline: 'top', maxWidth: cW - s(2) });
+      cx += cW + s(1.5);
+    }
+    y += cH + s(4);
+
+    // ── TABEL STATISTIK ──────────────────────────────────────────
+    sectionTitle('Statistik Publikasi');
+    const colW = [s(CW * 0.32), s(CW * 0.23), s(CW * 0.23), s(CW * 0.22)];
+    const colX = [s(MRG), s(MRG) + colW[0], s(MRG) + colW[0] + colW[1], s(MRG) + colW[0] + colW[1] + colW[2]];
+    const rowH = s(5.5);
+    const tblHeaders  = ['Metrik', 'Scopus', 'Google Scholar', 'Web of Science'];
+    const tblHdrBg    = ['#f8fafc', '#e0f7fa', '#fce7f3', '#eff6ff'];
+    const tblHdrFg    = ['#374151', '#0891b2', '#be185d', '#1d4ed8'];
+    for (let i = 0; i < 4; i++) {
+      fill(tblHdrBg[i]); doc.rect(colX[i], y, colW[i], rowH, 'F');
+      rgb(tblHdrFg[i]); font(7.5, 'bold');
+      doc.text(tblHeaders[i], colX[i] + colW[i] / 2, y + s(1), { align: 'center', baseline: 'top' });
+    }
+    strk('#e2e8f0'); doc.setLineWidth(s(0.2));
+    doc.rect(s(MRG), y, s(CW), rowH, 'S');
+    for (let i = 1; i < 4; i++) doc.line(colX[i], y, colX[i], y + rowH);
+    y += rowH;
+
+    const tblRows = [
+      ['Artikel',   fmtNum(d.scopus_artikel),  fmtNum(d.gscholar_artikel),  fmtNum(d.wos_artikel)],
+      ['Sitasi',    fmtNum(d.scopus_sitasi),    fmtNum(d.gscholar_sitasi),   fmtNum(d.wos_sitasi)],
+      ['Cited Doc', fmtNum(d.scopus_cited_doc), fmtNum(d.gscholar_cited_doc),fmtNum(d.wos_cited_doc)],
+      ['H-Index',   fmtNum(d.scopus_h_index),   fmtNum(d.gscholar_h_index),  fmtNum(d.wos_h_index)],
+      ['i10-Index', fmtNum(d.scopus_i10_index),  fmtNum(d.gscholar_i10_index),'—'],
+      ['G-Index',   fmtNum(d.scopus_g_index),    fmtNum(d.gscholar_g_index),  '—'],
+    ];
+    for (let ri = 0; ri < tblRows.length; ri++) {
+      if (ri % 2 === 0) { fill('#fafafa'); doc.rect(s(MRG), y, s(CW), rowH, 'F'); }
+      for (let ci = 0; ci < 4; ci++) {
+        if (ci === 0) { rgb('#64748b'); font(8, 'normal'); doc.text(tblRows[ri][ci], colX[0] + s(2), y + s(1), { baseline: 'top' }); }
+        else          { rgb('#1e293b'); font(8, 'bold');   doc.text(tblRows[ri][ci], colX[ci] + colW[ci] - s(2), y + s(1), { align: 'right', baseline: 'top' }); }
+      }
+      strk('#e2e8f0'); doc.setLineWidth(s(0.2));
+      doc.rect(s(MRG), y, s(CW), rowH, 'S');
+      for (let i = 1; i < 4; i++) doc.line(colX[i], y, colX[i], y + rowH);
+      y += rowH;
+    }
+    y += s(3);
+
+    // ── KUARTIL ──────────────────────────────────────────────────
+    if (kuartilImg) {
+      sectionTitle('Distribusi Kuartil Scopus');
+      const kH = s(CW * KQ_H / KQ_W);
+      fill('#f8fafc'); doc.roundedRect(s(MRG), y, s(CW), kH, s(1.5), s(1.5), 'F');
+      doc.addImage(kuartilImg, 'PNG', s(MRG + 1), y + s(0.5), s(CW - 2), kH - s(1));
+      y += kH + s(3);
+    }
+
+    // ── TREN CHART ───────────────────────────────────────────────
+    if (trenImg) {
+      sectionTitle('Tren Publikasi per Tahun');
+      const tH = s(CW * CHART_H / CHART_W);
+      fill('#f8fafc'); doc.roundedRect(s(MRG), y, s(CW), tH, s(1.5), s(1.5), 'F');
+      doc.addImage(trenImg, 'PNG', s(MRG + 1), y + s(0.5), s(CW - 2), tH - s(1));
+      y += tH + s(3);
+    }
+
+    // ── DAFTAR ARTIKEL SCOPUS ─────────────────────────────────────
+    if (N_ART > 0) {
+      const totalLabel = this.scopusTotal > N_ART ? ` dari ${this.scopusTotal}` : '';
+      sectionTitle(`Daftar Artikel Scopus (${N_ART}${totalLabel})`);
+      const qFgColor: Record<string, [number,number,number]> = {
+        Q1:[22,163,74], Q2:[101,163,13], Q3:[202,138,4], Q4:[234,88,12], NoQ:[107,114,128]
+      };
+      const qBgColor: Record<string, [number,number,number]> = {
+        Q1:[220,252,231], Q2:[236,252,203], Q3:[254,249,195], Q4:[255,237,213], NoQ:[241,245,249]
+      };
+      for (const a of this.scopusArtikels) {
+        const qKey = (a.kuartil || 'NoQ') as string;
+        const qFg = qFgColor[qKey] || qFgColor['NoQ'];
+        const qBg = qBgColor[qKey] || qBgColor['NoQ'];
+        // Q badge
+        doc.setFillColor(...qBg); doc.roundedRect(s(MRG), y, s(7.5), s(4), s(1), s(1), 'F');
+        doc.setTextColor(...qFg); font(6.5, 'bold');
+        doc.text(qKey, s(MRG + 3.75), y + s(0.5), { align: 'center', baseline: 'top' });
+        // Meta (tahun, sitasi, urutan penulis)
+        rgb('#64748b'); font(7, 'normal');
+        let mx = s(MRG + 9.5);
+        doc.text(String(a.tahun ?? ''), mx, y + s(0.5), { baseline: 'top' }); mx += s(11);
+        if (a.sitasi > 0) { doc.text(`Sitasi: ${a.sitasi}`, mx, y + s(0.5), { baseline: 'top' }); mx += s(17); }
+        if (a.urutan_penulis) { doc.text(`Penulis ${a.urutan_penulis}/${a.total_penulis}`, mx, y + s(0.5), { baseline: 'top' }); }
+        y += s(5);
+        // Judul (maks 2 baris)
+        rgb('#1e293b');
+        const titleLines = doc.splitTextToSize(a.judul || '', s(CW));
+        const titleLH = font(7.5, 'bold');
+        const shownLines = titleLines.slice(0, 2);
+        doc.text(shownLines, s(MRG), y, { baseline: 'top' });
+        y += titleLH * shownLines.length;
+        // Jurnal
+        if (a.jurnal_nama) {
+          rgb('#64748b');
+          const jLH = font(7, 'italic');
+          doc.text(a.jurnal_nama, s(MRG), y, { baseline: 'top', maxWidth: s(CW) });
+          y += jLH;
+        }
+        // Separator
+        strk('#e2e8f0'); doc.setLineWidth(s(0.15));
+        doc.line(s(MRG), y + s(1), s(MRG + CW), y + s(1));
+        y += s(3);
+      }
+    }
+
+    // ── SUMBER DATA ──────────────────────────────────────────────
+    strk('#e2e8f0'); doc.setLineWidth(s(0.2));
+    doc.line(s(MRG), y, s(MRG + CW), y); y += s(2);
+    rgb('#64748b');
+    font(7.5, 'bold'); doc.text('Sumber data:', s(MRG), y, { baseline: 'top' });
+    font(7.5, 'normal'); doc.text('SINTA Kemdiktisaintek · Scopus · Google Scholar · Web of Science', s(MRG + 23), y, { baseline: 'top' });
+    if (d.scraped_at) {
+      y += s(5); rgb('#94a3b8');
+      font(6.5, 'italic'); doc.text(`Data diperbarui: ${fmtDate(d.scraped_at)}`, s(MRG), y, { baseline: 'top' });
+    }
+
+    // ── SIMPAN FILE ───────────────────────────────────────────────
+    const safeName = (d.nama || 'author').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-').toLowerCase();
+    doc.save(`author-sinta-${safeName}-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
   getTrend(trend: TrendItem[], jenis: string): TrendItem[] {

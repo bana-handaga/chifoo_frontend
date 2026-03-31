@@ -40,6 +40,20 @@ Chart.register(...registerables);
           <input type="text" [(ngModel)]="searchForm.nama" placeholder="Ketik nama dosen..." (keyup.enter)="runSearch()">
         </div>
         <div class="dsf">
+          <label>Perguruan Tinggi</label>
+          <select [(ngModel)]="searchForm.pt_kode" (ngModelChange)="onPtChange()">
+            <option value="">— Semua PT —</option>
+            <option *ngFor="let pt of ptList" [value]="pt.kode_pt">{{ pt.singkatan }} — {{ pt.nama }}</option>
+          </select>
+        </div>
+        <div class="dsf">
+          <label>Program Studi</label>
+          <select [(ngModel)]="searchForm.prodi_kode" [disabled]="!searchForm.pt_kode">
+            <option value="">— {{ searchForm.pt_kode ? 'Semua Prodi' : 'Pilih PT dulu' }} —</option>
+            <option *ngFor="let p of prodiList" [value]="p.kode_prodi">{{ p.nama }} ({{ p.jenjang }})</option>
+          </select>
+        </div>
+        <div class="dsf">
           <label>Jabatan Fungsional</label>
           <select [(ngModel)]="searchForm.jabatan">
             <option value="">— Semua —</option>
@@ -82,10 +96,15 @@ Chart.register(...registerables);
         <div class="ds-results__header">
           <div class="ds-results__info">
             Ditemukan <strong>{{ searchTotal | number }}</strong> dosen
-            <span *ngIf="searchTotalPages > 1"> — halaman {{ searchPage }} / {{ searchTotalPages }}</span>
+            <span *ngIf="searchTotalPages > 1 && !showAll"> — halaman {{ searchPage }} / {{ searchTotalPages }}</span>
+            <span *ngIf="showAll"> — semua ditampilkan</span>
+            <button *ngIf="searchTotal > 0 && searchTotal < 100 && !showAll"
+              class="ds-btn-showall" (click)="tampilkanSemua()" [disabled]="searching">
+              Tampilkan Semua
+            </button>
           </div>
           <div class="ds-actions">
-            <div class="ds-pagination" *ngIf="searchTotalPages > 1">
+            <div class="ds-pagination" *ngIf="searchTotalPages > 1 && !showAll">
               <button [disabled]="searchPage===1" (click)="goPage(searchPage-1)">‹ Prev</button>
               <span>{{ searchPage }} / {{ searchTotalPages }}</span>
               <button [disabled]="searchPage===searchTotalPages" (click)="goPage(searchPage+1)">Next ›</button>
@@ -136,7 +155,7 @@ Chart.register(...registerables);
             </tbody>
           </table>
         </div>
-        <div class="ds-pagination ds-pagination--bottom" *ngIf="searchTotalPages > 1">
+        <div class="ds-pagination ds-pagination--bottom" *ngIf="searchTotalPages > 1 && !showAll">
           <button [disabled]="searchPage===1" (click)="goPage(searchPage-1)">‹ Prev</button>
           <span>{{ searchPage }} / {{ searchTotalPages }}</span>
           <button [disabled]="searchPage===searchTotalPages" (click)="goPage(searchPage+1)">Next ›</button>
@@ -343,6 +362,14 @@ Chart.register(...registerables);
       border: 1px solid #93c5fd; border-radius: 8px; font-size: .875rem; cursor: pointer;
     }
     .ds-btn-reset:hover { background: #dbeafe; }
+    .ds-btn-showall {
+      margin-left: .75rem; padding: .25rem .75rem;
+      background: #f0fdf4; color: #166534;
+      border: 1px solid #86efac; border-radius: 6px;
+      font-size: .8rem; font-weight: 600; cursor: pointer; vertical-align: middle;
+    }
+    .ds-btn-showall:hover:not(:disabled) { background: #dcfce7; }
+    .ds-btn-showall:disabled { opacity: .5; cursor: not-allowed; }
 
     /* Results */
     .ds-results { margin-top: .5rem; }
@@ -514,16 +541,23 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
   searchPage    = 1;
   searchTotalPages = 1;
   searchResults: any[] = [];
-  searchForm = { nama: '', jabatan: '', pendidikan: '', status: '' };
+  searchForm = { nama: '', pt_kode: '', prodi_kode: '', jabatan: '', pendidikan: '', status: '' };
   sortField = 'nama';
   sortDir   = 'asc';
+  showAll   = false;
 
-  private chartJk:      Chart | null = null;
-  private chartPend:    Chart | null = null;
-  private chartStatus:  Chart | null = null;
-  private chartJabatan: Chart | null = null;
-  private chartWilayah: Chart | null = null;
-  private chartPt:      Chart | null = null;
+  // Dropdown PT & Prodi
+  ptList:    { id: number; kode_pt: string; nama: string; singkatan: string }[] = [];
+  prodiList: { kode_prodi: string; nama: string; jenjang: string }[] = [];
+  loadingPt    = false;
+  loadingProdi = false;
+
+  private chartJk:      Chart<any> | null = null;
+  private chartPend:    Chart<any> | null = null;
+  private chartStatus:  Chart<any> | null = null;
+  private chartJabatan: Chart<any> | null = null;
+  private chartWilayah: Chart<any> | null = null;
+  private chartPt:      Chart<any> | null = null;
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
@@ -539,6 +573,22 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.api.getDosenStats().subscribe({
       next: (data) => { this.stats = data; this.loading = false; this.cdr.detectChanges(); },
       error: () => { this.loading = false; }
+    });
+    this.loadingPt = true;
+    this.api.getDosenDropdown().subscribe({
+      next: (res) => { this.ptList = res.pt || []; this.loadingPt = false; },
+      error: () => { this.loadingPt = false; }
+    });
+  }
+
+  onPtChange() {
+    this.searchForm.prodi_kode = '';
+    this.prodiList = [];
+    if (!this.searchForm.pt_kode) return;
+    this.loadingProdi = true;
+    this.api.getDosenDropdown(this.searchForm.pt_kode).subscribe({
+      next: (res) => { this.prodiList = res.prodi || []; this.loadingProdi = false; },
+      error: () => { this.loadingProdi = false; }
     });
   }
 
@@ -569,14 +619,35 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
   runSearch(page = 1) {
     this.searching = true;
     this.searchPage = page;
+    this.showAll = false;
     const params = { ...this.searchForm, page: String(page), ordering: (this.sortDir === 'desc' ? '-' : '') + this.sortField };
     this.api.dosenSearch(params).subscribe({
       next: (res: any) => {
-        this.searchResults   = res.results;
-        this.searchTotal     = res.total;
+        this.searchResults    = res.results;
+        this.searchTotal      = res.total;
         this.searchTotalPages = Math.ceil(res.total / res.page_size);
-        this.searchDone      = true;
-        this.searching       = false;
+        this.searchDone       = true;
+        this.searching        = false;
+      },
+      error: () => { this.searching = false; }
+    });
+  }
+
+  tampilkanSemua() {
+    this.searching = true;
+    const params = {
+      ...this.searchForm,
+      page: '1',
+      page_size: String(this.searchTotal),
+      ordering: (this.sortDir === 'desc' ? '-' : '') + this.sortField,
+    };
+    this.api.dosenSearch(params).subscribe({
+      next: (res: any) => {
+        this.searchResults    = res.results;
+        this.searchTotalPages = 1;
+        this.searchPage       = 1;
+        this.showAll          = true;
+        this.searching        = false;
       },
       error: () => { this.searching = false; }
     });
@@ -585,11 +656,13 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
   goPage(p: number) { this.runSearch(p); }
 
   resetSearch() {
-    this.searchForm   = { nama: '', jabatan: '', pendidikan: '', status: '' };
+    this.searchForm   = { nama: '', pt_kode: '', prodi_kode: '', jabatan: '', pendidikan: '', status: '' };
+    this.prodiList    = [];
     this.searchDone   = false;
     this.searchResults = [];
     this.searchTotal   = 0;
     this.searchPage    = 1;
+    this.showAll       = false;
     this.sortField     = 'nama';
     this.sortDir       = 'asc';
   }
@@ -707,8 +780,8 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '62%',
         plugins: { legend: legendRight, tooltip: tooltipPct(jkTotal) }
-      }
-    });
+      } as unknown as any
+    }) as unknown as Chart<any>;
 
     // 2. Pendidikan — doughnut single-hue (hijau)
     const pendVals   = s.per_pendidikan.map((r: any) => r.total);
@@ -724,8 +797,8 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '62%',
         plugins: { legend: legendRight, tooltip: tooltipPct(pendTotal) }
-      }
-    });
+      } as unknown as any
+    }) as unknown as Chart<any>;
 
     // 3. Status — doughnut single-hue (oranye)
     const statusVals   = s.per_status.map((r: any) => r.total);
@@ -741,8 +814,8 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '62%',
         plugins: { legend: legendRight, tooltip: tooltipPct(statusTotal) }
-      }
-    });
+      } as unknown as any
+    }) as unknown as Chart<any>;
 
     // 4. Jabatan Fungsional — horizontal bar single-hue (biru)
     const jabVals   = s.per_jabatan.map((r: any) => r.total);

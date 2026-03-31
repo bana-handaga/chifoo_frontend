@@ -166,8 +166,8 @@ export class ApiService {
     return this.http.get<any[]>(`${this.baseUrl}/program-studi/pt_list/`, { params });
   }
 
-  getProdiExpCounts(): Observable<{ count_7m: number; count_12m: number }> {
-    return this.http.get<{ count_7m: number; count_12m: number }>(`${this.baseUrl}/program-studi/exp_counts/`);
+  getProdiExpCounts(): Observable<{ count_1m: number; count_2m: number; count_3m: number; count_5m: number; count_7m: number; count_12m: number }> {
+    return this.http.get<{ count_1m: number; count_2m: number; count_3m: number; count_5m: number; count_7m: number; count_12m: number }>(`${this.baseUrl}/program-studi/exp_counts/`);
   }
 
   getProdiDetailPopup(id: number): Observable<any> {
@@ -176,6 +176,12 @@ export class ApiService {
 
   getDosenStats(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/dosen-stats/`);
+  }
+
+  getDosenDropdown(ptKode?: string): Observable<{ pt: any[]; prodi: any[] }> {
+    let params = new HttpParams();
+    if (ptKode) params = params.set('pt_kode', ptKode);
+    return this.http.get<{ pt: any[]; prodi: any[] }>(`${this.baseUrl}/dosen-dropdown/`, { params });
   }
 
   dosenSearch(params: any): Observable<any> {

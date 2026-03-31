@@ -251,8 +251,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   loading = true;
   private viewReady = false;
   private mhsChartInst:   Chart | null = null;
-  private prodiChartInst: Chart | null = null;
-  private dosenChartInst: Chart | null = null;
+  private prodiChartInst: Chart<any> | null = null;
+  private dosenChartInst: Chart<any> | null = null;
 
   @ViewChild('mhsChart')               mhsChartRef!:   ElementRef<HTMLCanvasElement>;
   @ViewChild('prodiChart')             prodiChartRef!: ElementRef<HTMLCanvasElement>;
@@ -264,7 +264,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   trenError = '';
   ptList: any[] = [];
   selectedPtIds: number[] = [];
-  private trenChartInst: Chart | null = null;
+  private trenChartInst: Chart<any> | null = null;
   private activePeriodeIdx = -1;
   private lastTrenData: any = null;
 
@@ -515,9 +515,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   private buildChart(
     ref: ElementRef<HTMLCanvasElement>,
-    existing: Chart | null,
+    existing: Chart<any> | null,
     labels: string[], values: number[], hue: number
-  ): Chart {
+  ): Chart<any> {
     existing?.destroy();
     return new Chart(ref.nativeElement.getContext('2d')!, {
       type: 'doughnut',
@@ -547,9 +547,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             }
           }
         }
-      },
+      } as unknown as any,
       plugins: [this.outsideLabelPlugin()]
-    });
+    }) as unknown as Chart<any>;
   }
 
   private buildCharts() {

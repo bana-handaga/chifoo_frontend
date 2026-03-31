@@ -108,14 +108,34 @@ const HARI = [
       <div class="form-row">
         <div class="form-group">
           <label>Tipe Sinkronisasi</label>
-          <select formControlName="tipe_sync">
+          <select formControlName="tipe_sync" (change)="onTipeSyncChange()">
             <option value="prodi_dosen">Prodi + Dosen + Mahasiswa</option>
             <option value="detail_dosen">Detail Dosen</option>
+            <option value="sinta_author">SINTA — Author</option>
           </select>
         </div>
       </div>
 
-      <!-- Pilih PT -->
+      <!-- Opsi khusus SINTA Author -->
+      <div class="form-row" *ngIf="form.get('tipe_sync')?.value === 'sinta_author'">
+        <div class="form-group">
+          <label>Scrape ulang jika data lebih dari</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="number" formControlName="sinta_days" min="0" max="365" style="width:80px">
+            <span style="font-size:13px;color:#6b7280">hari (0 = semua author)</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Maks. author per run</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="number" formControlName="sinta_limit" min="0" style="width:100px">
+            <span style="font-size:13px;color:#6b7280">0 = tidak dibatasi</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pilih PT (tersembunyi untuk SINTA Author) -->
+      <div *ngIf="form.get('tipe_sync')?.value !== 'sinta_author'">
       <div class="form-row">
         <div class="form-group full">
           <label>Cakupan PT</label>
@@ -150,6 +170,7 @@ const HARI = [
           </div>
         </div>
       </div>
+      </div><!-- /non-sinta wrapper -->
 
       <!-- Tipe Jadwal -->
       <div class="form-row">
@@ -216,6 +237,7 @@ const HARI = [
     <ul>
       <li><strong>Prodi + Dosen + Mahasiswa</strong>: Sync data prodi, jumlah dosen, dan data mahasiswa per semester dari tabel utama PDDikti.</li>
       <li><strong>Detail Dosen</strong>: Sync profil lengkap dan riwayat pendidikan individu dosen dari halaman detail PDDikti.</li>
+      <li><strong>SINTA — Author</strong>: Scrape ulang profil author dari SINTA (skor, statistik, kuartil, tren). Tidak terikat PT — bekerja pada semua author. Gunakan <em>Maks. author per run</em> untuk membatasi jumlah per eksekusi (~3 detik/author).</li>
       <li>Jadwal ini dicatat di sistem — eksekusi otomatis memerlukan cron job di server.</li>
       <li>Rentang waktu <strong>Hari Mulai s/d Hari Selesai</strong> menentukan window sync yang diperbolehkan berjalan.</li>
     </ul>
@@ -420,17 +442,26 @@ export class SyncComponent implements OnInit, OnDestroy {
       hari_selesai: [6],
       jam_selesai:  ['05:00', Validators.required],
       is_active:    [true],
+      sinta_days:   [30],
+      sinta_limit:  [500],
     });
   }
 
   resetForm() {
     this.form.reset({
       tipe_sync: 'prodi_dosen', mode_pt: 'semua', tipe_jadwal: 'harian',
-      hari_mulai: 0, jam_mulai: '23:00', hari_selesai: 6, jam_selesai: '05:00', is_active: true,
+      hari_mulai: 0, jam_mulai: '23:00', hari_selesai: 6, jam_selesai: '05:00',
+      is_active: true, sinta_days: 30, sinta_limit: 500,
     });
     this.selectedPtIds = [];
     this.ptSearch = '';
     this.errorMsg = '';
+  }
+
+  onTipeSyncChange() {
+    if (this.form.get('tipe_sync')?.value === 'sinta_author') {
+      this.form.patchValue({ mode_pt: 'semua' });
+    }
   }
 
   get filteredPtList() {
@@ -476,11 +507,14 @@ export class SyncComponent implements OnInit, OnDestroy {
     if (this.form.invalid) return;
     this.saving = true;
     this.errorMsg = '';
+    const v = this.form.value;
     const payload = {
-      ...this.form.value,
-      hari_mulai:   Number(this.form.value.hari_mulai),
-      hari_selesai: Number(this.form.value.hari_selesai),
-      pt_ids: this.form.value.mode_pt === 'pilihan' ? this.selectedPtIds : [],
+      ...v,
+      hari_mulai:   Number(v.hari_mulai),
+      hari_selesai: Number(v.hari_selesai),
+      pt_ids:       v.mode_pt === 'pilihan' ? this.selectedPtIds : [],
+      sinta_days:   Number(v.sinta_days  ?? 30),
+      sinta_limit:  Number(v.sinta_limit ?? 0),
     };
 
     const req = this.editId
@@ -513,6 +547,8 @@ export class SyncComponent implements OnInit, OnDestroy {
       hari_selesai: j.hari_selesai,
       jam_selesai:  j.jam_selesai,
       is_active:    j.is_active,
+      sinta_days:   j.sinta_days ?? 30,
+      sinta_limit:  j.sinta_limit ?? 500,
     });
     this.selectedPtIds = j.pt_list.map((p: any) => p.id);
     this.errorMsg = '';

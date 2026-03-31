@@ -75,20 +75,52 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
         </div>
 
         <!-- Notifikasi akreditasi kedaluarsa -->
-        <div *ngIf="prodiExpRed.length > 0 || prodiExpYellow.length > 0" class="akr-expiry-notices">
-          <div *ngIf="prodiExpRed.length > 0" class="akr-expiry-item akr-red" style="cursor:pointer"
-               (click)="setProdiExpFilter('less_7m')">
-            <span class="akr-expiry-icon">&#9888;</span>
+        <div *ngIf="prodiExp1m.length > 0 || prodiExp2m.length > 0 || prodiExp3m.length > 0 || prodiExp5m.length > 0 || prodiExp7m.length > 0 || prodiExp12m.length > 0" class="akr-expiry-notices">
+          <div *ngIf="prodiExp1m.length > 0" class="akr-expiry-item akr-1m" style="cursor:pointer"
+               (click)="setProdiExpFilter('less_1m')">
+            <span class="akr-expiry-icon">⛔</span>
             <span class="akr-expiry-text">
-              <strong>{{ prodiExpRed.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 7 bulan</strong>
+              <strong>{{ prodiExp1m.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>&lt; 1 bulan</strong>
             </span>
             <span class="akr-expiry-action">Lihat →</span>
           </div>
-          <div *ngIf="prodiExpYellow.length > 0" class="akr-expiry-item akr-yellow" style="cursor:pointer"
-               (click)="setProdiExpFilter('less_12m')">
-            <span class="akr-expiry-icon">&#9888;</span>
+          <div *ngIf="prodiExp2m.length > 0" class="akr-expiry-item akr-2m" style="cursor:pointer"
+               (click)="setProdiExpFilter('less_2m')">
+            <span class="akr-expiry-icon">🔴</span>
             <span class="akr-expiry-text">
-              <strong>{{ prodiExpYellow.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>7 – 12 bulan</strong>
+              <strong>{{ prodiExp2m.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>1 – 2 bulan</strong>
+            </span>
+            <span class="akr-expiry-action">Lihat →</span>
+          </div>
+          <div *ngIf="prodiExp3m.length > 0" class="akr-expiry-item akr-3m" style="cursor:pointer"
+               (click)="setProdiExpFilter('less_3m')">
+            <span class="akr-expiry-icon">🟠</span>
+            <span class="akr-expiry-text">
+              <strong>{{ prodiExp3m.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>2 – 3 bulan</strong>
+            </span>
+            <span class="akr-expiry-action">Lihat →</span>
+          </div>
+          <div *ngIf="prodiExp5m.length > 0" class="akr-expiry-item akr-5m" style="cursor:pointer"
+               (click)="setProdiExpFilter('less_5m')">
+            <span class="akr-expiry-icon">🟡</span>
+            <span class="akr-expiry-text">
+              <strong>{{ prodiExp5m.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>3 – 5 bulan</strong>
+            </span>
+            <span class="akr-expiry-action">Lihat →</span>
+          </div>
+          <div *ngIf="prodiExp7m.length > 0" class="akr-expiry-item akr-7m" style="cursor:pointer"
+               (click)="setProdiExpFilter('less_7m')">
+            <span class="akr-expiry-icon">🔵</span>
+            <span class="akr-expiry-text">
+              <strong>{{ prodiExp7m.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>5 – 7 bulan</strong>
+            </span>
+            <span class="akr-expiry-action">Lihat →</span>
+          </div>
+          <div *ngIf="prodiExp12m.length > 0" class="akr-expiry-item akr-12m" style="cursor:pointer"
+               (click)="setProdiExpFilter('less_12m')">
+            <span class="akr-expiry-icon">🟢</span>
+            <span class="akr-expiry-text">
+              <strong>{{ prodiExp12m.length }} prodi</strong> akreditasinya kedaluarsa dalam <strong>7 – 12 bulan</strong>
             </span>
             <span class="akr-expiry-action">Lihat →</span>
           </div>
@@ -116,8 +148,12 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
             <label class="filter-label">Kedaluarsa:</label>
             <select [(ngModel)]="filterProdiExp" class="filter-select filter-select-exp">
               <option value="">Semua</option>
-              <option value="less_12m">Kurang dari 12 bulan</option>
+              <option value="less_1m">Kurang dari 1 bulan</option>
+              <option value="less_2m">Kurang dari 2 bulan</option>
+              <option value="less_3m">Kurang dari 3 bulan</option>
+              <option value="less_5m">Kurang dari 5 bulan</option>
               <option value="less_7m">Kurang dari 7 bulan</option>
+              <option value="less_12m">Kurang dari 12 bulan</option>
             </select>
             <span class="filter-reset" *ngIf="filterProdiExp" (click)="filterProdiExp=''">✕</span>
           </div>
@@ -653,8 +689,13 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
       font-weight: 700; color: #111; font-size: 12px;
     }
     .exp-green  { background: #d4edda; }
-    .exp-yellow { background: #fff3cd; }
-    .exp-red    { background: #f8d7da; }
+    .exp-expired { background: #e2e8f0; color: #475569; text-decoration: line-through; }
+    .exp-1m      { background: #7f1d1d; color: #fff; }
+    .exp-2m      { background: #dc2626; color: #fff; }
+    .exp-3m      { background: #ea580c; color: #fff; }
+    .exp-5m      { background: #d97706; color: #fff; }
+    .exp-7m      { background: #2563eb; color: #fff; }
+    .exp-12m     { background: #16a34a; color: #fff; }
 
     .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     .mb-16 { margin-bottom: 16px; }
@@ -759,8 +800,12 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
     .akr-expiry-notices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
     .akr-expiry-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; border-radius: 6px; font-size: 13px; border-left: 4px solid; transition: filter .15s; }
     .akr-expiry-item:hover { filter: brightness(.96); }
-    .akr-red    { background: #fff0f0; border-color: #e53e3e; color: #7b1a1a; }
-    .akr-yellow { background: #fffbea; border-color: #d69e2e; color: #7b5a00; }
+    .akr-1m { background: #fff0f0; border-color: #7f1d1d; color: #7f1d1d; }
+    .akr-2m { background: #fff4f2; border-color: #dc2626; color: #991b1b; }
+    .akr-3m { background: #fff7ed; border-color: #ea580c; color: #7c2d12; }
+    .akr-5m  { background: #fffbea; border-color: #d69e2e; color: #7b5a00; }
+    .akr-7m  { background: #eff6ff; border-color: #93c5fd; color: #1e3a8a; }
+    .akr-12m { background: #f0fdf4; border-color: #86efac; color: #14532d; }
     .akr-expiry-icon { font-size: 16px; line-height: 1.4; flex-shrink: 0; }
     .akr-expiry-text { line-height: 1.5; flex: 1; }
     .akr-expiry-action { font-weight: 600; white-space: nowrap; opacity: .7; align-self: center; }
@@ -1367,22 +1412,54 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     return Array.from(s).sort();
   }
 
-  get prodiExpRed(): ProgramStudi[] {
-    const now = new Date();
-    const limit = new Date(now); limit.setMonth(limit.getMonth() + 7);
-    return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
-      p.tanggal_kedaluarsa_akreditasi && new Date(p.tanggal_kedaluarsa_akreditasi) <= limit
-    );
+  private _addMonths(m: number): Date {
+    const d = new Date(); d.setMonth(d.getMonth() + m); return d;
   }
 
-  get prodiExpYellow(): ProgramStudi[] {
-    const now = new Date();
-    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
-    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
+  get prodiExp1m(): ProgramStudi[] {
+    const lim = this._addMonths(1);
+    return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
+      p.tanggal_kedaluarsa_akreditasi && new Date(p.tanggal_kedaluarsa_akreditasi) <= lim
+    );
+  }
+  get prodiExp2m(): ProgramStudi[] {
+    const l1 = this._addMonths(1), l2 = this._addMonths(2);
     return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
       p.tanggal_kedaluarsa_akreditasi &&
-      new Date(p.tanggal_kedaluarsa_akreditasi) > limit7m &&
-      new Date(p.tanggal_kedaluarsa_akreditasi) <= limit12m
+      new Date(p.tanggal_kedaluarsa_akreditasi) > l1 &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) <= l2
+    );
+  }
+  get prodiExp3m(): ProgramStudi[] {
+    const l2 = this._addMonths(2), l3 = this._addMonths(3);
+    return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
+      p.tanggal_kedaluarsa_akreditasi &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) > l2 &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) <= l3
+    );
+  }
+  get prodiExp5m(): ProgramStudi[] {
+    const l3 = this._addMonths(3), l5 = this._addMonths(5);
+    return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
+      p.tanggal_kedaluarsa_akreditasi &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) > l3 &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) <= l5
+    );
+  }
+  get prodiExp7m(): ProgramStudi[] {
+    const l5 = this._addMonths(5), l7 = this._addMonths(7);
+    return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
+      p.tanggal_kedaluarsa_akreditasi &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) > l5 &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) <= l7
+    );
+  }
+  get prodiExp12m(): ProgramStudi[] {
+    const l7 = this._addMonths(7), l12 = this._addMonths(12);
+    return (this.pt?.program_studi || []).filter((p: ProgramStudi) =>
+      p.tanggal_kedaluarsa_akreditasi &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) > l7 &&
+      new Date(p.tanggal_kedaluarsa_akreditasi) <= l12
     );
   }
 
@@ -1395,8 +1472,9 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
       if (this.filterProdiAkreditasi && p.akreditasi_display !== this.filterProdiAkreditasi) return false;
       if (this.filterProdiExp && p.tanggal_kedaluarsa_akreditasi) {
         const days = Math.ceil((new Date(p.tanggal_kedaluarsa_akreditasi).getTime() - now.getTime()) / 86400000);
-        if (this.filterProdiExp === 'less_7m'  && days > 210) return false;
-        if (this.filterProdiExp === 'less_12m' && days > 365) return false;
+        const mMap: any = { less_1m: 30, less_2m: 60, less_3m: 92, less_5m: 153, less_7m: 214, less_12m: 366 };
+        const maxDays = mMap[this.filterProdiExp];
+        if (maxDays !== undefined && days > maxDays) return false;
       } else if (this.filterProdiExp) {
         return false; // tidak ada tanggal exp → tidak masuk filter kedaluarsa
       }
@@ -1430,12 +1508,12 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     setTimeout(() => this.rerenderAllDosenCharts(), 0);
   }
   private dosenCharts = new Map<number, Chart>();
-  private chart: Chart | null = null;
+  private chart: Chart<any> | null = null;
   private chartRendered = false;
-  private prodiJenjangChart: Chart | null = null;
-  private prodiAkrChart: Chart | null = null;
-  private prodiMhsChart: Chart | null = null;
-  private prodiMhsLineChart: Chart | null = null;
+  private prodiJenjangChart: Chart<any> | null = null;
+  private prodiAkrChart: Chart<any> | null = null;
+  private prodiMhsChart: Chart<any> | null = null;
+  private prodiMhsLineChart: Chart<any> | null = null;
   private prodiMhsLineChartReady = false;
 
   // Data chart prodi — dihitung sekali saat data load, tidak dipengaruhi filter
@@ -1929,10 +2007,14 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
     if (!tgl) return '';
     const now = new Date();
     const exp = new Date(tgl);
-    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
-    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
-    if (exp <= limit7m)  return 'red';
-    if (exp <= limit12m) return 'yellow';
+    if (exp < now) return 'expired';
+    const add = (m: number) => { const d = new Date(now); d.setMonth(d.getMonth() + m); return d; };
+    if (exp <= add(1)) return '1m';
+    if (exp <= add(2)) return '2m';
+    if (exp <= add(3)) return '3m';
+    if (exp <= add(5))  return '5m';
+    if (exp <= add(7))  return '7m';
+    if (exp <= add(12)) return '12m';
     return 'green';
   }
 

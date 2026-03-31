@@ -21,14 +21,34 @@ Chart.register(...registerables);
       </div>
 
       <!-- Notifikasi kadaluarsa — paling atas -->
-      <div class="notif-bar" *ngIf="count7m > 0 || count12m > count7m">
-        <div class="notif-item notif-red" *ngIf="count7m > 0" (click)="setExpFilter('less_7m')">
-          <span class="notif-icon">🔴</span>
-          <span><strong>{{ count7m }} PT</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 7 bulan</strong></span>
+      <div class="notif-bar" *ngIf="count12m > 0">
+        <div class="notif-item notif-1m"  *ngIf="count1m > 0"               (click)="setExpFilter('less_1m')">
+          <span class="notif-icon">⛔</span>
+          <span><strong>{{ count1m }} PT</strong> akreditasinya kedaluarsa dalam <strong>&lt; 1 bulan</strong></span>
           <span class="notif-action">Lihat →</span>
         </div>
-        <div class="notif-item notif-yellow" *ngIf="count12m > count7m" (click)="setExpFilter('less_12m')">
+        <div class="notif-item notif-2m"  *ngIf="count2m > count1m"         (click)="setExpFilter('less_2m')">
+          <span class="notif-icon">🔴</span>
+          <span><strong>{{ count2m - count1m }} PT</strong> akreditasinya kedaluarsa dalam <strong>1 – 2 bulan</strong></span>
+          <span class="notif-action">Lihat →</span>
+        </div>
+        <div class="notif-item notif-3m"  *ngIf="count3m > count2m"         (click)="setExpFilter('less_3m')">
+          <span class="notif-icon">🟠</span>
+          <span><strong>{{ count3m - count2m }} PT</strong> akreditasinya kedaluarsa dalam <strong>2 – 3 bulan</strong></span>
+          <span class="notif-action">Lihat →</span>
+        </div>
+        <div class="notif-item notif-5m"  *ngIf="count5m > count3m"         (click)="setExpFilter('less_5m')">
           <span class="notif-icon">🟡</span>
+          <span><strong>{{ count5m - count3m }} PT</strong> akreditasinya kedaluarsa dalam <strong>3 – 5 bulan</strong></span>
+          <span class="notif-action">Lihat →</span>
+        </div>
+        <div class="notif-item notif-7m"  *ngIf="count7m > count5m"         (click)="setExpFilter('less_7m')">
+          <span class="notif-icon">🔵</span>
+          <span><strong>{{ count7m - count5m }} PT</strong> akreditasinya kedaluarsa dalam <strong>5 – 7 bulan</strong></span>
+          <span class="notif-action">Lihat →</span>
+        </div>
+        <div class="notif-item notif-12m" *ngIf="count12m > count7m"        (click)="setExpFilter('less_12m')">
+          <span class="notif-icon">🟢</span>
           <span><strong>{{ count12m - count7m }} PT</strong> akreditasinya kedaluarsa dalam <strong>7 – 12 bulan</strong></span>
           <span class="notif-action">Lihat →</span>
         </div>
@@ -410,8 +430,12 @@ Chart.register(...registerables);
       border-radius: 10px; font-size: 12px; cursor: pointer; border: 1px solid transparent; transition: filter 0.15s;
     }
     .notif-item:hover { filter: brightness(0.96); }
-    .notif-red    { background: #fff0f0; border-color: #f5c6c6; color: #7f1d1d; }
-    .notif-yellow { background: #fffbec; border-color: #f5e08a; color: #713f12; }
+    .notif-1m  { background: #fff0f0; border-color: #fca5a5; color: #7f1d1d; }
+    .notif-2m  { background: #fff4f2; border-color: #fca5a5; color: #991b1b; }
+    .notif-3m  { background: #fff7ed; border-color: #fdba74; color: #7c2d12; }
+    .notif-5m  { background: #fffbec; border-color: #f5e08a; color: #713f12; }
+    .notif-7m  { background: #eff6ff; border-color: #93c5fd; color: #1e3a8a; }
+    .notif-12m { background: #f0fdf4; border-color: #86efac; color: #14532d; }
     .notif-icon { font-size: 14px; }
     .notif-action { margin-left: auto; font-weight: 600; white-space: nowrap; opacity: 0.7; }
 
@@ -439,8 +463,13 @@ Chart.register(...registerables);
     th.th-sort:hover { background: #eef0f3; color: #1e293b; }
     .si { font-size: .75rem; opacity: .55; margin-left: 3px; }
     td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-    tr.row-yellow   td { background: #fffbec; }
-    tr.row-red      td { background: #fff4f4; }
+    tr.row-expired td { background: #f1f5f9; }
+    tr.row-1m      td { background: #fff0f0; }
+    tr.row-2m      td { background: #fff4f2; }
+    tr.row-3m      td { background: #fff7ed; }
+    tr.row-5m      td { background: #fffbec; }
+    tr.row-7m      td { background: #eff6ff; }
+    tr.row-12m     td { background: #f0fdf4; }
     tr.row-inactive td { background: #fff0f0; }
     tr:hover td { background: #dbeafe !important; cursor: pointer; }
     .pt-link { text-decoration: none; color: inherit; }
@@ -465,9 +494,14 @@ Chart.register(...registerables);
       display: inline-block; padding: 3px 8px; border-radius: 6px;
       font-weight: 700; color: #111; font-size: 12px; white-space: nowrap;
     }
-    .exp-green  { background: #d4edda; }
-    .exp-yellow { background: #fff3cd; }
-    .exp-red    { background: #f8d7da; }
+    .exp-expired { background: #e2e8f0; color: #475569; text-decoration: line-through; }
+    .exp-1m      { background: #7f1d1d; color: #fff; }
+    .exp-2m      { background: #dc2626; color: #fff; }
+    .exp-3m      { background: #ea580c; color: #fff; }
+    .exp-5m      { background: #d97706; color: #fff; }
+    .exp-7m      { background: #2563eb; color: #fff; }
+    .exp-12m     { background: #16a34a; color: #fff; }
+    .exp-green   { background: #d4edda; }
 
     .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
     .pagination button { padding: 5px 10px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 12px; }
@@ -522,8 +556,12 @@ export class PerguruanTinggiListComponent implements OnInit {
   sortKey = 'mhs_sort';
   sortAsc = false;
   searchTimeout: any;
+  count1m  = 0;
+  count2m  = 0;
+  count3m  = 0;
+  count5m  = 0;
+  count7m  = 0;
   count12m = 0;
-  count7m = 0;
   statistik: any = null;
   chartJenis: any[] = [];
   chartAkreditasi: any[] = [];
@@ -532,8 +570,8 @@ export class PerguruanTinggiListComponent implements OnInit {
   wilayahList: any[] = [];
   filterOpen = false;
   searchDone = false;
-  private akrChartInstance: Chart | null = null;
-  private wilayahChartInstance: Chart | null = null;
+  private akrChartInstance: Chart<any> | null = null;
+  private wilayahChartInstance: Chart<any> | null = null;
   @ViewChild('akrChart')     akrChartRef!:     ElementRef<HTMLCanvasElement>;
   @ViewChild('wilayahChart') wilayahChartRef!: ElementRef<HTMLCanvasElement>;
 
@@ -573,11 +611,12 @@ export class PerguruanTinggiListComponent implements OnInit {
   }
 
   loadNotifCounts() {
-    this.api.getPerguruanTinggiList({ exp_filter: 'less_12m', page: 1 }).subscribe({
-      next: res => this.count12m = res.count || 0
-    });
-    this.api.getPerguruanTinggiList({ exp_filter: 'less_7m', page: 1 }).subscribe({
-      next: res => this.count7m = res.count || 0
+    const filters = ['less_1m','less_2m','less_3m','less_5m','less_7m','less_12m'] as const;
+    const props   = ['count1m','count2m','count3m','count5m','count7m','count12m'] as const;
+    filters.forEach((f, i) => {
+      this.api.getPerguruanTinggiList({ exp_filter: f, page: 1 }).subscribe({
+        next: res => (this as any)[props[i]] = res.count || 0
+      });
     });
   }
 
@@ -713,9 +752,9 @@ export class PerguruanTinggiListComponent implements OnInit {
           legend: { position: 'right' as const, labels: { font: { size: 11 }, padding: 10, boxWidth: 12 } },
           tooltip: { callbacks: { label: (c: any) => ` ${c.label}: ${c.parsed} PT` } }
         }
-      },
+      } as unknown as any,
       plugins: [outsideLabelPlugin]
-    });
+    }) as unknown as Chart<any>;
   }
 
   private renderWilayahChart() {
@@ -771,9 +810,9 @@ export class PerguruanTinggiListComponent implements OnInit {
           legend: { position: 'right' as const, labels: { font: { size: 11 }, padding: 10, boxWidth: 12 } },
           tooltip: { callbacks: { label: (c: any) => ` ${c.label}: ${c.parsed} PT` } }
         }
-      },
+      } as unknown as any,
       plugins: [outsideLabelPlugin]
-    });
+    }) as unknown as Chart<any>;
   }
 
   get totalPages() { return Math.ceil(this.totalCount / 10); }
@@ -881,10 +920,14 @@ export class PerguruanTinggiListComponent implements OnInit {
     if (!tgl) return '';
     const now = new Date();
     const exp = new Date(tgl);
-    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
-    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
-    if (exp <= limit7m)  return 'red';
-    if (exp <= limit12m) return 'yellow';
+    if (exp < now) return 'expired';
+    const add = (m: number) => { const d = new Date(now); d.setMonth(d.getMonth() + m); return d; };
+    if (exp <= add(1))  return '1m';
+    if (exp <= add(2))  return '2m';
+    if (exp <= add(3))  return '3m';
+    if (exp <= add(5))  return '5m';
+    if (exp <= add(7))  return '7m';
+    if (exp <= add(12)) return '12m';
     return 'green';
   }
 }

@@ -1,7 +1,7 @@
 {
   "/api": {
-    "target": "https://chifoo.biroti-ums.id",
-    "secure": true,
+    "target": "http://localhost:8000",
+    "secure": false,
     "changeOrigin": true
   }
 }

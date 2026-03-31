@@ -43,14 +43,34 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
   </div>
 
   <!-- Warning kedaluarsa (selalu tampil) -->
-  <div *ngIf="notifCount7m > 0 || notifCount12m > notifCount7m" class="ps-notif-bar ps-notif-bar--top">
-    <div *ngIf="notifCount7m > 0" class="ps-notif-item ps-notif-red" (click)="openPsWithExpFilter('7m')">
-      <span>&#9888;</span>
-      <span><strong>{{ notifCount7m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>kurang dari 7 bulan</strong></span>
+  <div *ngIf="notifCount12m > 0" class="ps-notif-bar ps-notif-bar--top">
+    <div *ngIf="notifCount1m > 0" class="ps-notif-item ps-notif-1m" (click)="openPsWithExpFilter('1m')">
+      <span>⛔</span>
+      <span><strong>{{ notifCount1m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>&lt; 1 bulan</strong></span>
       <span class="ps-notif-action">Lihat →</span>
     </div>
-    <div *ngIf="notifCount12m > notifCount7m" class="ps-notif-item ps-notif-yellow" (click)="openPsWithExpFilter('12m')">
-      <span>&#9888;</span>
+    <div *ngIf="notifCount2m > notifCount1m" class="ps-notif-item ps-notif-2m" (click)="openPsWithExpFilter('2m')">
+      <span>🔴</span>
+      <span><strong>{{ notifCount2m - notifCount1m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>1 – 2 bulan</strong></span>
+      <span class="ps-notif-action">Lihat →</span>
+    </div>
+    <div *ngIf="notifCount3m > notifCount2m" class="ps-notif-item ps-notif-3m" (click)="openPsWithExpFilter('3m')">
+      <span>🟠</span>
+      <span><strong>{{ notifCount3m - notifCount2m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>2 – 3 bulan</strong></span>
+      <span class="ps-notif-action">Lihat →</span>
+    </div>
+    <div *ngIf="notifCount5m > notifCount3m" class="ps-notif-item ps-notif-5m" (click)="openPsWithExpFilter('5m')">
+      <span>🟡</span>
+      <span><strong>{{ notifCount5m - notifCount3m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>3 – 5 bulan</strong></span>
+      <span class="ps-notif-action">Lihat →</span>
+    </div>
+    <div *ngIf="notifCount7m > notifCount5m" class="ps-notif-item ps-notif-7m" (click)="openPsWithExpFilter('7m')">
+      <span>🔵</span>
+      <span><strong>{{ notifCount7m - notifCount5m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>5 – 7 bulan</strong></span>
+      <span class="ps-notif-action">Lihat →</span>
+    </div>
+    <div *ngIf="notifCount12m > notifCount7m" class="ps-notif-item ps-notif-12m" (click)="openPsWithExpFilter('12m')">
+      <span>🟢</span>
       <span><strong>{{ notifCount12m - notifCount7m }} prodi</strong> akreditasinya kedaluarsa dalam <strong>7 – 12 bulan</strong></span>
       <span class="ps-notif-action">Lihat →</span>
     </div>
@@ -74,6 +94,10 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
           <label>Kedaluarsa Akreditasi</label>
           <select [(ngModel)]="psForm.kedaluarsa" (change)="applyPsFilter()">
             <option value="">— Semua —</option>
+            <option value="1m">&lt; 1 Bulan</option>
+            <option value="2m">&lt; 2 Bulan</option>
+            <option value="3m">&lt; 3 Bulan</option>
+            <option value="5m">&lt; 5 Bulan</option>
             <option value="7m">&lt; 7 Bulan</option>
             <option value="12m">&lt; 12 Bulan</option>
           </select>
@@ -650,8 +674,12 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
       display: flex; align-items: center; gap: 10px;
       padding: 10px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
     }
-    .ps-notif-red    { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-    .ps-notif-yellow { background: #fefce8; border: 1px solid #fde047; color: #854d0e; }
+    .ps-notif-1m { background: #fff0f0; border: 1px solid #fca5a5; color: #7f1d1d; }
+    .ps-notif-2m { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .ps-notif-3m { background: #fff7ed; border: 1px solid #fdba74; color: #7c2d12; }
+    .ps-notif-5m  { background: #fefce8; border: 1px solid #fde047; color: #854d0e; }
+    .ps-notif-7m  { background: #eff6ff; border: 1px solid #93c5fd; color: #1e3a8a; }
+    .ps-notif-12m { background: #f0fdf4; border: 1px solid #86efac; color: #14532d; }
     .ps-notif-item:hover { filter: brightness(0.96); }
     .ps-notif-action { margin-left: auto; font-weight: 700; white-space: nowrap; }
 
@@ -707,8 +735,12 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     .ps-sk-no { font-size: .72rem; color: #475569; font-family: monospace; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ps-exp-date { white-space: nowrap; font-size: .8rem; }
     .exp-badge   { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.72rem; font-weight:700; letter-spacing:.2px; }
-    .exp-red     { background:#dc2626; color:#fff; }
-    .exp-yellow  { background:#d97706; color:#fff; }
+    .exp-1m      { background:#7f1d1d; color:#fff; }
+    .exp-2m      { background:#dc2626; color:#fff; }
+    .exp-3m      { background:#ea580c; color:#fff; }
+    .exp-5m      { background:#d97706; color:#fff; }
+    .exp-7m      { background:#2563eb; color:#fff; }
+    .exp-12m     { background:#16a34a; color:#fff; }
     .exp-green   { background:#16a34a; color:#fff; }
     .exp-expired { background:#94a3b8; color:#fff; text-decoration:line-through; }
 
@@ -1056,15 +1088,15 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   };
 
   // Charts
-  private chartJenjang: Chart | null = null;
-  private chartPt:      Chart | null = null;
-  private chartMhs:     Chart | null = null;
-  private chartDsn:     Chart | null = null;
+  private chartJenjang: Chart<any> | null = null;
+  private chartPt:      Chart<any> | null = null;
+  private chartMhs:     Chart<any> | null = null;
+  private chartDsn:     Chart<any> | null = null;
   private chartsRendered = false;
 
   // Chart modal
   chartModal: { open: boolean; type: 'jenjang' | 'akreditasi' | 'mhs' | 'dosen' | '' } = { open: false, type: '' };
-  private modalChart: Chart | null = null;
+  private modalChart: Chart<any> | null = null;
   private modalChartReady = false;
 
   private akrSummary: { akreditasi: string; label: string; count: number }[] = [];
@@ -1091,7 +1123,11 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   ptSearchTimeout: any;
 
   // Notif counts (loaded on init)
-  notifCount7m  = 0;
+  notifCount1m = 0;
+  notifCount2m = 0;
+  notifCount3m = 0;
+  notifCount5m = 0;
+  notifCount7m = 0;
   notifCount12m = 0;
   psRawResults: any[] = [];
   psResults: any[] = [];
@@ -1128,7 +1164,8 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
       if (kdl) {
         if (!r.tgl_exp) return false;
         const exp = new Date(r.tgl_exp);
-        const limit = new Date(now); limit.setMonth(limit.getMonth() + (kdl === '7m' ? 7 : 12));
+        const mMap: any = { '1m': 1, '2m': 2, '3m': 3, '5m': 5, '7m': 7, '12m': 12 };
+        const limit = new Date(now); limit.setMonth(limit.getMonth() + (mMap[kdl] ?? 5));
         if (exp > limit) return false;
       }
       return true;
@@ -1142,10 +1179,13 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     const now = new Date();
     const exp = new Date(tgl);
     if (exp < now) return 'exp-expired';
-    const limit7m  = new Date(now); limit7m.setMonth(limit7m.getMonth() + 7);
-    const limit12m = new Date(now); limit12m.setMonth(limit12m.getMonth() + 12);
-    if (exp <= limit7m)  return 'exp-red';
-    if (exp <= limit12m) return 'exp-yellow';
+    const add = (m: number) => { const d = new Date(now); d.setMonth(d.getMonth() + m); return d; };
+    if (exp <= add(1)) return 'exp-1m';
+    if (exp <= add(2)) return 'exp-2m';
+    if (exp <= add(3)) return 'exp-3m';
+    if (exp <= add(5))  return 'exp-5m';
+    if (exp <= add(7))  return 'exp-7m';
+    if (exp <= add(12)) return 'exp-12m';
     return '';
   }
 
@@ -1324,7 +1364,9 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   ngOnInit(): void {
     this.loadData();
     this.api.getProdiExpCounts().subscribe({
-      next: r => { this.notifCount7m = r.count_7m; this.notifCount12m = r.count_12m; }
+      next: r => { this.notifCount1m = r.count_1m; this.notifCount2m = r.count_2m;
+                   this.notifCount3m = r.count_3m; this.notifCount5m = r.count_5m;
+                   this.notifCount7m = r.count_7m; this.notifCount12m = r.count_12m; }
     });
   }
 
@@ -1645,9 +1687,9 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
           labels: d.akrLabels,
           datasets: [{ data: d.akrData, backgroundColor: this.gradientColors(d.akrData, 170, 50), borderWidth: 2 }]
         },
-        options: doughnutOpts({ label: (c: any) => ` ${c.label}: ${c.parsed} prodi` }),
+        options: doughnutOpts({ label: (c: any) => ` ${c.label}: ${c.parsed} prodi` }) as unknown as any,
         plugins: [this.arcOutsideLabelPlugin(11)]
-      });
+      }) as unknown as Chart<any>;
     }, 50);
 
     setTimeout(() => {

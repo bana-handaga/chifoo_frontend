@@ -632,7 +632,7 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   error   = '';
   hasData = false;
 
-  private chart: Chart | null = null;
+  private chart: Chart<any> | null = null;
   private ptTimer: any;
   private prodiTimer: any;
 
