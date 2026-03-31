@@ -334,6 +334,30 @@ function initialsAvatar(name: string): string {
             +{{ a.bidang_keilmuan.length - 3 }}
           </span>
         </div>
+
+        <!-- Tombol sync (hanya lokal) -->
+        <div class="au-card__sync-row" *ngIf="isLocal">
+          <button
+            class="au-sync-btn"
+            [class.au-sync-btn--loading]="syncingAuthorId === a.id"
+            [disabled]="syncingAuthorId !== null"
+            (click)="syncAuthor(a, $event)"
+            title="Sinkron ulang data author dari SINTA"
+          >
+            <svg *ngIf="syncingAuthorId !== a.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+              <path d="M1 4v6h6M23 20v-6h-6"/>
+              <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+            </svg>
+            <svg *ngIf="syncingAuthorId === a.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" class="au-spin">
+              <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+              <path d="M12 2a10 10 0 0110 10" stroke-linecap="round"/>
+            </svg>
+            {{ syncingAuthorId === a.id ? 'Syncing…' : 'Sync' }}
+          </button>
+          <span *ngIf="syncResult?.id === a.id" class="au-sync-result" [class.au-sync-result--ok]="syncResult!.ok" [class.au-sync-result--err]="!syncResult!.ok">
+            {{ syncResult!.msg }}
+          </span>
+        </div>
       </div>
     </div>
   </div>
@@ -430,6 +454,25 @@ function initialsAvatar(name: string): string {
           <td class="au-td au-td--num">{{ a.scopus_h_index }}</td>
           <td class="au-td au-td--action">
             <span class="au-table-link">Detail →</span>
+            <button *ngIf="isLocal"
+              class="au-sync-btn au-sync-btn--sm"
+              [class.au-sync-btn--loading]="syncingAuthorId === a.id"
+              [disabled]="syncingAuthorId !== null"
+              (click)="syncAuthor(a, $event)"
+              title="Sinkron ulang dari SINTA"
+            >
+              <svg *ngIf="syncingAuthorId !== a.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                <path d="M1 4v6h6M23 20v-6h-6"/>
+                <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+              </svg>
+              <svg *ngIf="syncingAuthorId === a.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11" class="au-spin">
+                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                <path d="M12 2a10 10 0 0110 10" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <span *ngIf="syncResult?.id === a.id" class="au-sync-result" [class.au-sync-result--ok]="syncResult!.ok" [class.au-sync-result--err]="!syncResult!.ok">
+              {{ syncResult!.msg }}
+            </span>
           </td>
         </tr>
       </tbody>
@@ -1082,7 +1125,7 @@ function initialsAvatar(name: string): string {
     .au-td--pt { font-size: .78rem; font-weight: 600; color: #64748b; min-width: 70px; }
     .au-td--dept { font-size: .78rem; color: #64748b; min-width: 140px; white-space: normal; max-width: 200px; }
     .au-td--num { text-align: right; font-variant-numeric: tabular-nums; }
-    .au-td--action { width: 72px; text-align: right; }
+    .au-td--action { width: 140px; text-align: right; white-space: nowrap; }
     .au-td-author { display: flex; align-items: center; gap: .5rem; }
     .au-td-foto { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .au-td-jenjang { color: #94a3b8; }
@@ -1263,6 +1306,31 @@ function initialsAvatar(name: string): string {
       color: var(--au-muted);
       border-color: var(--au-border);
     }
+
+    /* ── Sync button ── */
+    .au-card__sync-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; margin-top: 8px; flex-wrap: wrap;
+    }
+    .au-sync-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; font-size: 11px; font-weight: 600;
+      border: 1px solid #bfdbfe; border-radius: 6px;
+      background: #eff6ff; color: #1d4ed8; cursor: pointer;
+      transition: background .15s, border-color .15s;
+      line-height: 1.4;
+    }
+    .au-sync-btn:hover:not(:disabled) { background: #dbeafe; border-color: #93c5fd; }
+    .au-sync-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .au-sync-btn--loading { background: #dbeafe; color: #1e40af; }
+    .au-sync-btn--sm { padding: 2px 7px; font-size: 10.5px; margin-left: 4px; }
+    .au-sync-result {
+      font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 5px;
+    }
+    .au-sync-result--ok { color: #166534; background: #dcfce7; }
+    .au-sync-result--err { color: #991b1b; background: #fee2e2; }
+    @keyframes au-spin { to { transform: rotate(360deg); } }
+    .au-spin { animation: au-spin .8s linear infinite; transform-origin: center; }
 
     /* ── Pagination ── */
     .au-pagination {
@@ -1829,6 +1897,11 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   viewMode: 'grid' | 'table' = 'grid';
   exporting = false;
 
+  // Sync per-author
+  isLocal = environment.isLocal;
+  syncingAuthorId: number | null = null;
+  syncResult: { id: number; ok: boolean; msg: string } | null = null;
+
   // Scopus artikel
   scopusArtikels:  ScopusArtikel[] = [];
   scopusTotal      = 0;
@@ -2076,6 +2149,26 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   }
 
   // ── Modal / Detail ─────────────────────────────────────────────────────────
+
+  syncAuthor(author: AuthorList, event: Event): void {
+    event.stopPropagation();
+    if (this.syncingAuthorId !== null) return;
+    this.syncingAuthorId = author.id;
+    this.syncResult = null;
+    this.http.post(`${API}/sinta-author/${author.id}/sync/`, {})
+      .pipe(finalize(() => { this.syncingAuthorId = null; }))
+      .subscribe({
+        next: (res: any) => {
+          this.syncResult = { id: author.id, ok: true, msg: res.detail || 'Sync berhasil.' };
+          this.loadAuthors();
+          setTimeout(() => { if (this.syncResult?.id === author.id) this.syncResult = null; }, 4000);
+        },
+        error: (err) => {
+          this.syncResult = { id: author.id, ok: false, msg: err.error?.detail || 'Sync gagal.' };
+          setTimeout(() => { if (this.syncResult?.id === author.id) this.syncResult = null; }, 5000);
+        }
+      });
+  }
 
   openDetail(author: AuthorList): void {
     this.selectedAuthor  = author;
