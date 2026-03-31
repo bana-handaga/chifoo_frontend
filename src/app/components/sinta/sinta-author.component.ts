@@ -66,6 +66,15 @@ interface AuthorDetail extends AuthorList {
   trend: TrendItem[];
 }
 
+interface GScholarArtikel {
+  judul: string;
+  url: string;
+  jurnal: string;
+  tahun: string;
+  sitasi: number;
+  authors: string;
+}
+
 interface ScopusArtikel {
   id: number;
   eid: string;
@@ -793,6 +802,41 @@ function initialsAvatar(name: string): string {
           <span class="au-scopus-page-info">{{ scopusPage }} / {{ scopusTotalPages() }}</span>
           <button class="au-scopus-page-btn" [disabled]="scopusPage >= scopusTotalPages()"
                   (click)="loadScopusArtikels(selectedAuthor!.id, false, scopusPage + 1)">›</button>
+        </div>
+      </div>
+
+      <!-- ── Google Scholar Artikel ── -->
+      <div class="au-gs-section" *ngIf="detail.gscholar_artikel > 0">
+        <div class="au-gs-header">
+          <div class="au-gs-title">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 3L1 9l4 2.18V17h2v-4.82L9 13.4V17c0 1.1 1.34 2 3 2s3-.9 3-2v-3.6l3-1.22V17h2v-5.82L23 9 12 3zm6.93 6L12 12.72 5.07 9 12 5.28 18.93 9z"/></svg>
+            Artikel Google Scholar Terbaru
+            <span class="au-gs-count">(10 terbaru dari {{ detail.gscholar_artikel | number }})</span>
+          </div>
+        </div>
+        <div class="au-gs-loading" *ngIf="gscholarLoading">
+          <div class="au-gs-spinner"></div> Memuat artikel…
+        </div>
+        <div *ngIf="!gscholarLoading && gscholarArtikels.length === 0 && gscholarLoaded" class="au-gs-empty">
+          Tidak ada artikel yang ditemukan.
+        </div>
+        <div class="au-gs-list" *ngIf="!gscholarLoading && gscholarArtikels.length > 0">
+          <div class="au-gs-item" *ngFor="let g of gscholarArtikels; let i = index">
+            <div class="au-gs-num">{{ i + 1 }}</div>
+            <div class="au-gs-body">
+              <a class="au-gs-judul" [href]="g.url" target="_blank" rel="noopener">{{ g.judul }}</a>
+              <div class="au-gs-meta">
+                <span class="au-gs-jurnal" *ngIf="g.jurnal">{{ g.jurnal }}</span>
+              </div>
+              <div class="au-gs-meta2">
+                <span class="au-gs-authors" *ngIf="g.authors">{{ g.authors }}</span>
+                <span class="au-gs-sep" *ngIf="g.authors && (g.tahun || g.sitasi)">·</span>
+                <span class="au-gs-tahun" *ngIf="g.tahun">{{ g.tahun }}</span>
+                <span class="au-gs-sep" *ngIf="g.tahun && g.sitasi">·</span>
+                <span class="au-gs-sitasi" *ngIf="g.sitasi">{{ g.sitasi }} sitasi</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1828,6 +1872,46 @@ function initialsAvatar(name: string): string {
     }
 
     /* Modal footer */
+    /* ── GScholar Artikel ── */
+    .au-gs-section { border-top: 1px solid #f1f5f9; padding-top: 1rem; margin-top: .5rem; }
+    .au-gs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+    .au-gs-title {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .82rem; font-weight: 700; color: #1e40af;
+    }
+    .au-gs-count { font-weight: 400; color: #64748b; font-size: .75rem; }
+    .au-gs-loading { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: #64748b; padding: .75rem 0; }
+    .au-gs-spinner {
+      width: 14px; height: 14px; border: 2px solid #e2e8f0;
+      border-top-color: #3b82f6; border-radius: 50%;
+      animation: au-spin .7s linear infinite;
+    }
+    .au-gs-empty { font-size: .8rem; color: #94a3b8; padding: .5rem 0; }
+    .au-gs-list { display: flex; flex-direction: column; gap: .6rem; }
+    .au-gs-item {
+      display: flex; gap: .6rem; align-items: flex-start;
+      padding: .55rem .65rem; border-radius: 7px;
+      background: #f8fafc; border: 1px solid #e2e8f0;
+      transition: background .12s;
+    }
+    .au-gs-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .au-gs-num {
+      flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+      background: #dbeafe; color: #1d4ed8; font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; margin-top: 2px;
+    }
+    .au-gs-body { flex: 1; min-width: 0; }
+    .au-gs-judul {
+      display: block; font-size: .8rem; font-weight: 600; color: #1e3a8a;
+      text-decoration: none; line-height: 1.4; margin-bottom: 3px;
+    }
+    .au-gs-judul:hover { text-decoration: underline; color: #1d4ed8; }
+    .au-gs-meta { font-size: .73rem; color: #475569; margin-bottom: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .au-gs-meta2 { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: .7rem; color: #94a3b8; }
+    .au-gs-sep { color: #cbd5e1; }
+    .au-gs-sitasi { color: #0891b2; font-weight: 600; }
+
     .au-modal__footer {
       border-top: 1px solid var(--au-border);
       padding-top: 12px;
@@ -1911,6 +1995,12 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
   scopusLoaded     = false;
   scopusFilterQ    = '';
   scopusOrdering   = '-sitasi';
+
+  // GScholar artikel
+  gscholarArtikels:  GScholarArtikel[] = [];
+  gscholarLoading  = false;
+  gscholarLoaded   = false;
+
   tableSortField = 'sinta_score_overall';
   tableSortDir: 'asc' | 'desc' = 'desc';
 
@@ -2176,12 +2266,14 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
     this.activeTab       = 'scopus';
     this.modalOpen       = true;
     this.detailLoading   = true;
-    this.scopusArtikels  = [];
-    this.scopusTotal     = 0;
-    this.scopusPage      = 1;
-    this.scopusLoaded    = false;
-    this.scopusFilterQ   = '';
-    this.scopusOrdering  = '-sitasi';
+    this.scopusArtikels    = [];
+    this.scopusTotal       = 0;
+    this.scopusPage        = 1;
+    this.scopusLoaded      = false;
+    this.scopusFilterQ     = '';
+    this.scopusOrdering    = '-sitasi';
+    this.gscholarArtikels  = [];
+    this.gscholarLoaded    = false;
     document.body.style.overflow = 'hidden';
 
     this.http.get<AuthorDetail>(`${API}/sinta-author/${author.id}/`)
@@ -2193,6 +2285,7 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
         next:  d => {
           this.detail = d;
           if (d.scopus_artikel > 0) this.loadScopusArtikels(author.id, true);
+          if (d.gscholar_artikel > 0) this.loadGScholarArtikels(author.id);
         },
         error: err => {
           console.error('Author detail error', err);
@@ -2223,6 +2316,16 @@ export class SintaAuthorComponent implements OnInit, OnDestroy {
 
   scopusTotalPages(): number {
     return Math.ceil(this.scopusTotal / this.scopusPageSize);
+  }
+
+  loadGScholarArtikels(authorId: number): void {
+    this.gscholarLoading = true;
+    this.http.get<GScholarArtikel[]>(`${API}/sinta-author/${authorId}/gscholar-articles/`)
+      .pipe(takeUntil(this.destroy$), finalize(() => { this.gscholarLoading = false; this.gscholarLoaded = true; }))
+      .subscribe({
+        next:  data => { this.gscholarArtikels = data; },
+        error: ()   => {}
+      });
   }
 
   closeModal(): void {
