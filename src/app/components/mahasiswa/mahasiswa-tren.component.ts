@@ -36,8 +36,7 @@ const COLORS = [
       <svg viewBox="0 0 24 24" fill="currentColor" class="page-tab-icon"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg>
       Estimasi Baru / Lulus
     </button>
-    <button class="page-tab page-tab--ringkasan" [class.active]="pageTab==='ringkasan'" (click)="switchPageTab('ringkasan')"
-      [title]="!canRingkasan ? 'Pilih tepat 1 PT atau 1 prodi untuk melihat ringkasan' : ''">
+    <button class="page-tab page-tab--ringkasan" [class.active]="pageTab==='ringkasan'" (click)="switchPageTab('ringkasan')">
       <svg viewBox="0 0 24 24" fill="currentColor" class="page-tab-icon"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
       Ringkasan
     </button>
@@ -304,6 +303,27 @@ const COLORS = [
       <span class="estimasi-note">*estimasi berdasarkan data aktif &amp; masa studi</span>
     </div>
 
+    <!-- Pilihan mode: Semua PTMA atau Pilih PT/Prodi -->
+    <div class="rks-mode-row">
+      <button class="rks-mode-btn" [class.active]="ringkasanMode==='semua'" (click)="setRingkasanMode('semua')">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+        Gabungan Seluruh PTMA
+      </button>
+      <button class="rks-mode-btn" [class.active]="ringkasanMode==='pilih'" (click)="setRingkasanMode('pilih')">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        Pilih PT / Prodi Tertentu
+      </button>
+    </div>
+
+    <!-- Deskripsi mode semua -->
+    <div class="rks-semua-info" *ngIf="ringkasanMode==='semua'">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="flex-shrink:0;color:#10b981"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      Menampilkan data gabungan <strong>seluruh PTMA</strong> — semua perguruan tinggi Muhammadiyah &amp; Aisyiyah.
+    </div>
+
+    <!-- Filter PT/Prodi — hanya tampil jika mode pilih -->
+    <ng-container *ngIf="ringkasanMode==='pilih'">
+
     <!-- Toggle profesi -->
     <div class="profesi-row">
       <label class="profesi-toggle" [class.active]="includeProfesi" (click)="toggleProfesi()"
@@ -392,8 +412,27 @@ const COLORS = [
       </div>
     </div>
 
+    <div *ngIf="!canRingkasan" class="ringkasan-warn" style="margin-top:.5rem">
+      Pilih tepat 1 PT atau 1 prodi untuk menampilkan ringkasan.
+    </div>
+
+    </ng-container><!-- /mode pilih -->
+
+    <!-- Toggle profesi untuk mode semua -->
+    <div class="profesi-row" *ngIf="ringkasanMode==='semua'">
+      <label class="profesi-toggle" [class.active]="includeProfesi" (click)="toggleProfesi()"
+        title="Profesi (PPG/Ners) = sertifikasi lanjutan, bukan mahasiswa baru masuk PT">
+        <span class="profesi-toggle-track">
+          <span class="profesi-toggle-thumb"></span>
+        </span>
+        <span class="profesi-toggle-label">Ikutkan jenjang <strong>Profesi</strong> (PPG, Ners, Apoteker)</span>
+      </label>
+      <span class="profesi-warn" *ngIf="includeProfesi">
+        ⚠ Profesi diikutkan — estimasi lebih tinggi karena PPG/Ners bukan mahasiswa baru PT
+      </span>
+    </div>
+
     <div class="mode-row">
-      <div *ngIf="!canRingkasan" class="ringkasan-warn">Pilih tepat 1 PT atau 1 prodi untuk menampilkan ringkasan.</div>
       <button class="load-btn" style="background:#10b981; margin-left:auto" (click)="loadData()"
         [disabled]="loading || !canRingkasan">
         {{loading ? 'Memuat...' : 'Tampilkan'}}
@@ -602,6 +641,20 @@ const COLORS = [
     .rleg-item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; }
     .rleg-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .ringkasan-warn { font-size: 13px; color: #f59e0b; font-weight: 600; }
+    .rks-mode-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .rks-mode-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 8px; border: 2px solid #e5e7eb;
+      background: #fff; cursor: pointer; font-size: 13px; font-weight: 600;
+      color: #6b7280; transition: all .15s;
+    }
+    .rks-mode-btn:hover { border-color: #10b981; color: #10b981; }
+    .rks-mode-btn.active { border-color: #10b981; background: #f0fdf4; color: #059669; }
+    .rks-semua-info {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;
+      padding: 10px 14px; font-size: 13px; color: #166534; margin-bottom: 2px;
+    }
   `]
 })
 export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
@@ -611,6 +664,7 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   metric:  'baru' | 'lulus' | 'kombinasi' = 'baru';
   activeTab: 'pt' | 'prodi' = 'pt';
   includeProfesi = false;
+  ringkasanMode: 'semua' | 'pilih' = 'semua';
 
   // PT filter
   ptSearch    = '';
@@ -644,6 +698,12 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   switchPageTab(tab: 'aktif' | 'estimasi' | 'ringkasan') {
     if (this.pageTab === tab) return;
     this.pageTab = tab;
+    this.clearChart();
+  }
+
+  setRingkasanMode(mode: 'semua' | 'pilih') {
+    if (this.ringkasanMode === mode) return;
+    this.ringkasanMode = mode;
     this.clearChart();
   }
 
@@ -745,10 +805,13 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
       .set('filter_by',       this.activeTab)
       .set('include_profesi', String(this.includeProfesi));
 
-    if (this.activeTab === 'pt') {
-      this.selectedPts.forEach(p => params = params.append('pt_id', String(p.id)));
-    } else {
-      this.selectedProdis.forEach(p => params = params.append('prodi_id', String(p.id)));
+    const skipFilter = this.pageTab === 'ringkasan' && this.ringkasanMode === 'semua';
+    if (!skipFilter) {
+      if (this.activeTab === 'pt') {
+        this.selectedPts.forEach(p => params = params.append('pt_id', String(p.id)));
+      } else {
+        this.selectedProdis.forEach(p => params = params.append('prodi_id', String(p.id)));
+      }
     }
 
     const isEstimasi = this.pageTab === 'estimasi';
@@ -826,6 +889,7 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   }
 
   get canRingkasan(): boolean {
+    if (this.ringkasanMode === 'semua') return true;
     if (this.activeTab === 'pt')    return this.selectedPts.length === 1;
     if (this.activeTab === 'prodi') return this.selectedProdis.length === 1;
     return false;
