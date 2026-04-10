@@ -109,8 +109,8 @@ Chart.register(...registerables);
                   <label>Organisasi</label>
                   <select [(ngModel)]="filterOrganisasi" (change)="applyFilter()">
                     <option value="">Semua</option>
-                    <option value="muhammadiyah">Muhammadiyah</option>
-                    <option value="aisyiyah">Aisyiyah</option>
+                    <option value="muhammadiyah">PTNBH</option>
+                    <option value="aisyiyah">Non-PTNBH</option>
                   </select>
                 </div>
                 <div class="ptf-field">
@@ -183,7 +183,7 @@ Chart.register(...registerables);
                     <td>{{ pt.wilayah_nama || '—' }}</td>
                     <td>{{ pt.jenis | titlecase }}</td>
                     <td><span [class]="'badge ' + (pt.organisasi_induk === 'muhammadiyah' ? 'badge-muh' : 'badge-ais')">
-                      {{ pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}
+                      {{ pt.organisasi_induk === 'muhammadiyah' ? 'PTNBH' : 'Non-PTNBH' }}
                     </span></td>
                     <td><span [class]="'badge badge-' + pt.akreditasi_institusi">
                       {{ formatAkreditasi(pt.akreditasi_institusi) }}
@@ -238,7 +238,7 @@ Chart.register(...registerables);
             </div>
             <div class="stat-card__val stat-card__val--dark">{{ statistik.total_muhammadiyah }}</div>
           </div>
-          <div class="stat-card__lbl stat-card__lbl--dark">Muhammadiyah</div>
+          <div class="stat-card__lbl stat-card__lbl--dark">PTNBH</div>
         </div>
         <div class="stat-card stat-card--light">
           <div class="stat-card__main">
@@ -247,7 +247,7 @@ Chart.register(...registerables);
             </div>
             <div class="stat-card__val stat-card__val--dark">{{ statistik.total_aisyiyah }}</div>
           </div>
-          <div class="stat-card__lbl stat-card__lbl--dark">Aisyiyah</div>
+          <div class="stat-card__lbl stat-card__lbl--dark">Non-PTNBH</div>
         </div>
         <div class="stat-card stat-card--light">
           <div class="stat-card__main">

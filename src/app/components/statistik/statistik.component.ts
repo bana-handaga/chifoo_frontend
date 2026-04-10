@@ -227,7 +227,7 @@ import * as XLSX from 'xlsx';
                     </td>
                     <td class="text-center">
                       <span class="org-badge" [class.org-badge--m]="r.pt_organisasi==='muhammadiyah'" [class.org-badge--a]="r.pt_organisasi==='aisyiyah'">
-                        {{ r.pt_organisasi === 'muhammadiyah' ? 'M' : r.pt_organisasi === 'aisyiyah' ? 'A' : '—' }}
+                        {{ r.pt_organisasi === 'muhammadiyah' ? 'P' : r.pt_organisasi === 'aisyiyah' ? 'N' : '—' }}
                       </span>
                     </td>
                     <td class="text-center snap-jenis">{{ fmtJenis(r.pt_jenis) }}</td>
@@ -1004,7 +1004,7 @@ import * as XLSX from 'xlsx';
               <div class="stat-card__val">{{ statistik.total_pt | number }}</div>
             </div>
             <div class="stat-card__lbl">Total Perguruan Tinggi</div>
-            <div class="stat-card__sub">{{ statistik.total_muhammadiyah }} Muhammadiyah · {{ statistik.total_aisyiyah }} Aisyiyah</div>
+            <div class="stat-card__sub">{{ statistik.total_muhammadiyah }} PTNBH · {{ statistik.total_aisyiyah }} Non-PTNBH</div>
           </div>
           <div class="stat-card stat-card--light">
             <div class="stat-card__main">
