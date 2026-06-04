@@ -17,7 +17,7 @@ Chart.register(...registerables);
   <div class="page-header">
     <div class="page-header__title">
       <h1>Data Dosen PTMA</h1>
-      <p class="page-header__sub">Profil dosen Perguruan Tinggi Muhammadiyah & Aisyiyah</p>
+      <p class="page-header__sub">Profil dosen PTMA (Muhammadiyah & Aisyiyah)</p>
       <div class="periode-badge" *ngIf="periodeLabel">
         <span class="periode-badge__dot"></span>
         Periode Pelaporan Aktif: <strong>{{ periodeLabel }}</strong>

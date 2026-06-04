@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Data statis cluster SINTA untuk PTMA (Perguruan Tinggi Muhammadiyah
-   dan Aisyiyah). Sumber referensi: sinta.kemdiktisaintek.go.id — data bersifat
+   Data statis cluster SINTA untuk PTMA (Muhammadiyah dan Aisyiyah).
+   Sumber referensi: sinta.kemdiktisaintek.go.id — data bersifat
    ilustratif dan perlu diperbarui secara berkala sesuai pembaruan SINTA.
    ────────────────────────────────────────────────────────────────────────── */
 export interface PtCluster {

@@ -21,7 +21,7 @@ const ID_KEEP_UPPER = new Set([
   // Jenjang pendidikan
   'SD','MI','SMP','MTS','SMA','SMK','MA','SLB','PAUD','TK','KB',
   // Perguruan tinggi & unit
-  'PT','PTS','PTN','PTMA','PTM','PTA','UM','UMS','UAD','UMM','UMSU',
+  'PT','PTS','PTMA','PTMA','PTM','PTA','UM','UMS','UAD','UMM','UMSU',
   'UMY','UMP','UMPO','UNMUH','UNISA','UNIMUS','UMB','UMGO','UMKO',
   'UMSB','UMSU','STIKES','POLTEK','POLMED','STMIK','STIEI','STIE',
   // Lembaga & program
@@ -163,7 +163,7 @@ interface PengabdianResponse {
     <div class="sp-header__icon">🤝</div>
     <div>
       <h1 class="sp-header__title">Pengabdian Masyarakat PTMA</h1>
-      <p class="sp-header__sub">Rekap kegiatan Community Services dosen Perguruan Tinggi Muhammadiyah–Aisyiyah di SINTA</p>
+      <p class="sp-header__sub">Rekap kegiatan Community Services dosen PTMA (Muhammadiyah–Aisyiyah) di SINTA</p>
     </div>
   </div>
 

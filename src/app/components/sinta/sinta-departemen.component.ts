@@ -143,7 +143,7 @@ function initialsAvatar(name: string, bg = '#0891b2'): string {
       <div class="dp-hero__badge">SINTA — Science and Technology Index</div>
       <h1 class="dp-hero__title">Departemen / Program Studi PTMA di SINTA</h1>
       <p class="dp-hero__desc">
-        Daftar program studi <strong>PTMA (Perguruan Tinggi Muhammadiyah &amp; Aisyiyah)</strong>
+        Daftar program studi <strong>PTMA (Muhammadiyah &amp; Aisyiyah)</strong>
         yang terdaftar di SINTA — lengkap dengan skor departemen, produktivitas riset,
         dan agregat publikasi berdasarkan data resmi Kemdiktisaintek.
       </p>

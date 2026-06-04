@@ -27,7 +27,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
             <div class="pt-meta">
               <span>{{ pt.kode_pt }}</span> ·
               <span>{{ pt.jenis | titlecase }}</span> ·
-              <span [class]="'badge badge-' + pt.organisasi_induk">{{ pt.organisasi_induk === 'muhammadiyah' ? 'PTNBH' : 'Non-PTNBH' }}</span> ·
+              <span [class]="'badge badge-' + pt.organisasi_induk">{{ pt.organisasi_induk === 'ptnbh' ? 'Muhammadiyah' : 'Aisyiyah' }}</span> ·
               <span [class]="'badge badge-akr-' + pt.akreditasi_institusi">{{ formatAkreditasi(pt.akreditasi_institusi) }}</span>
             </div>
             <div class="pt-akreditasi-detail" *ngIf="pt.nomor_sk_akreditasi || pt.tanggal_kadaluarsa_akreditasi">
@@ -2311,7 +2311,7 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
         <div class="contacts">${[pt.website ? `<a href="${pt.website}">${pt.website}</a>` : '', pt.email ? `📧 ${pt.email}` : '', pt.telepon ? `📞 ${pt.telepon}` : ''].filter(Boolean).join(' &nbsp;·&nbsp; ')}</div>
       </div>
       <div class="badges">
-        <span class="badge badge-${pt.organisasi_induk}">${pt.organisasi_induk === 'muhammadiyah' ? 'PTNBH' : 'Non-PTNBH'}</span>
+        <span class="badge badge-${pt.organisasi_induk}">${pt.organisasi_induk === 'ptnbh' ? 'Muhammadiyah' : 'Aisyiyah'}</span>
         <span class="badge badge-${pt.akreditasi_institusi}">${akrLabel[pt.akreditasi_institusi]||pt.akreditasi_institusi||'Belum'}</span>
       </div>
     </div>
@@ -2365,7 +2365,7 @@ ${dsnRows ? `<div class="section-title">Tren Data Dosen per Semester</div>
 <tbody>${dsnRows}</tbody></table>` : ''}
 
 <div class="sources">
-  <strong>PP Muhammadiyah &mdash; Majelis Diktilitbang</strong> &nbsp;·&nbsp; Sistem Informasi Perguruan Tinggi Muhammadiyah &amp; Aisyiyah<br>
+  <strong>PP Muhammadiyah &mdash; Majelis Diktilitbang</strong> &nbsp;·&nbsp; Sistem Informasi PTMA (Muhammadiyah &amp; Aisyiyah)<br>
   Sumber data: <a href="https://pddikti.kemdiktisaintek.go.id/">PDDikti</a> &nbsp;·&nbsp; <a href="https://www.banpt.or.id/">BAN-PT</a> &nbsp;·&nbsp; LAM Terkait
 </div>
 <script>window.onload=function(){var A4H=1090;var h=document.body.scrollHeight;if(h>A4H){var z=(A4H/h).toFixed(4);document.body.style.zoom=z;document.body.style.transformOrigin='top left';}window.print();window.close();};</script>

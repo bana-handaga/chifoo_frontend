@@ -155,7 +155,7 @@ function initialsAvatar(name: string): string {
       <div class="au-hero__badge">SINTA — Science and Technology Index</div>
       <h1 class="au-hero__title">Author / Penulis PTMA di SINTA</h1>
       <p class="au-hero__desc">
-        Daftar peneliti dan dosen <strong>PTMA (Perguruan Tinggi Muhammadiyah &amp; Aisyiyah)</strong>
+        Daftar peneliti dan dosen <strong>PTMA (Muhammadiyah &amp; Aisyiyah)</strong>
         yang terdaftar di SINTA — lengkap dengan skor riset, indeks Scopus, dan Google Scholar
         berdasarkan data resmi Kemdiktisaintek.
       </p>

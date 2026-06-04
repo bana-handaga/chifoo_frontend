@@ -16,7 +16,7 @@ import { Router } from '@angular/router';
     <div>
       <h1 class="sinta-header__title">PTMA di SINTA</h1>
       <p class="sinta-header__sub">
-        Data kinerja riset, publikasi, dan pengabdian Perguruan Tinggi Muhammadiyah &amp; Aisyiyah
+        Data kinerja riset, publikasi, dan pengabdian PTMA (Muhammadiyah &amp; Aisyiyah)
         berdasarkan platform <strong>SINTA</strong> — Science and Technology Index Kemdiktisaintek.
       </p>
     </div>

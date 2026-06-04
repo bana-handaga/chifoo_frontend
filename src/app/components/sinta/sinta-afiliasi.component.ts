@@ -120,7 +120,7 @@ const INDEX_TABS = [
       <div class="sa-hero__badge">SINTA — Science and Technology Index</div>
       <h1 class="sa-hero__title">Afiliasi Perguruan Tinggi PTMA</h1>
       <p class="sa-hero__desc">
-        Profil dan peringkat <strong>PTMA (Perguruan Tinggi Muhammadiyah & Aisyiyah)</strong>
+        Profil dan peringkat <strong>PTMA (Muhammadiyah &amp; Aisyiyah)</strong>
         di SINTA — menampilkan skor riset, produktivitas publikasi, dan posisi klaster
         berdasarkan data resmi Kemdiktisaintek.
       </p>

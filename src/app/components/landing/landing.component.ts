@@ -30,7 +30,7 @@ import { Router } from '@angular/router';
         <h1>Monitoring Perguruan Tinggi<br><span class="accent">Muhammadiyah &amp; Aisyiyah</span></h1>
         <p class="hero-desc">
           Platform terpadu untuk memantau data akademik, riset, dan perkembangan
-          Perguruan Tinggi Muhammadiyah-Aisyiyah (PTMA) di seluruh Indonesia secara
+          PTMA (Muhammadiyah & Aisyiyah) di seluruh Indonesia secara
           real-time dan komprehensif.
         </p>
         <div class="hero-actions">

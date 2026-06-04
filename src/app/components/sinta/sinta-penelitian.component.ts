@@ -85,7 +85,7 @@ interface PenelitianResponse {
     <div class="sp-header__icon">🔬</div>
     <div>
       <h1 class="sp-header__title">Penelitian PTMA</h1>
-      <p class="sp-header__sub">Rekap kegiatan Research dosen Perguruan Tinggi Muhammadiyah–Aisyiyah di SINTA</p>
+      <p class="sp-header__sub">Rekap kegiatan Research dosen PTMA (Muhammadiyah–Aisyiyah) di SINTA</p>
     </div>
   </div>
 

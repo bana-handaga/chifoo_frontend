@@ -14,7 +14,7 @@ import { Component } from '@angular/core';
     </div>
     <div>
       <h1 class="pt-header__title">Pendidikan Tinggi</h1>
-      <p class="pt-header__sub">Data kelembagaan, akademik, dan sumber daya manusia Perguruan Tinggi Muhammadiyah &amp; Aisyiyah</p>
+      <p class="pt-header__sub">Data kelembagaan, akademik, dan sumber daya manusia PTMA (Muhammadiyah &amp; Aisyiyah)</p>
     </div>
   </div>
 
@@ -37,7 +37,7 @@ import { Component } from '@angular/core';
         </div>
         <div class="pt-card__body">
           <div class="pt-card__name">Perguruan Tinggi</div>
-          <div class="pt-card__desc">Data dan profil perguruan tinggi Muhammadiyah &amp; Aisyiyah</div>
+          <div class="pt-card__desc">Data dan profil PTMA (Muhammadiyah &amp; Aisyiyah)</div>
         </div>
         <div class="pt-card__arrow">›</div>
       </a>

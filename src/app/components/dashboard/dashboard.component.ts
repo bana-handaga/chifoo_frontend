@@ -33,7 +33,7 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
             <div class="stat-card__val">{{ statistik.total_pt | number }}</div>
           </div>
           <div class="stat-card__lbl">Total Perguruan Tinggi</div>
-          <div class="stat-card__sub">{{ statistik.total_muhammadiyah }} PTNBH · {{ statistik.total_aisyiyah }} Non-PTNBH</div>
+          <div class="stat-card__sub">{{ statistik.total_muhammadiyah }} Muhammadiyah · {{ statistik.total_aisyiyah }} Aisyiyah</div>
         </div>
         <div class="stat-card stat-card--light" routerLink="/program-studi" style="cursor:pointer">
           <div class="stat-card__main">

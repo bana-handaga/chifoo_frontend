@@ -13,7 +13,7 @@ import * as XLSX from 'xlsx';
       <div class="page-header">
         <div class="page-header__title">
           <h1>Laporan Performa Perguruan Tinggi</h1>
-          <p class="page-header__sub">Analisis data dan performa perguruan tinggi Muhammadiyah &amp; Aisyiyah</p>
+          <p class="page-header__sub">Analisis data dan performa PTMA (Muhammadiyah &amp; Aisyiyah)</p>
         </div>
       </div>
 
@@ -1004,7 +1004,7 @@ import * as XLSX from 'xlsx';
               <div class="stat-card__val">{{ statistik.total_pt | number }}</div>
             </div>
             <div class="stat-card__lbl">Total Perguruan Tinggi</div>
-            <div class="stat-card__sub">{{ statistik.total_muhammadiyah }} PTNBH · {{ statistik.total_aisyiyah }} Non-PTNBH</div>
+            <div class="stat-card__sub">{{ statistik.total_muhammadiyah }} Muhammadiyah · {{ statistik.total_aisyiyah }} Aisyiyah</div>
           </div>
           <div class="stat-card stat-card--light">
             <div class="stat-card__main">

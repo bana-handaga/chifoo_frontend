@@ -81,7 +81,7 @@ interface ArtikelResponse { count: number; page: number; page_size: number; resu
     <div class="sa-header__icon">📄</div>
     <div>
       <h1 class="sa-header__title">Artikel Ilmiah PTMA</h1>
-      <p class="sa-header__sub">Publikasi Scopus & tren riset seluruh dosen Perguruan Tinggi Muhammadiyah–Aisyiyah</p>
+      <p class="sa-header__sub">Publikasi Scopus & tren riset seluruh dosen PTMA (Muhammadiyah–Aisyiyah)</p>
     </div>
   </div>
 

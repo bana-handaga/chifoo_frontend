@@ -39,7 +39,7 @@ import { ApiService } from '../../services/api.service';
               <tr *ngFor="let l of data">
                 <td><strong>{{ l.pt_singkatan }}</strong><br><small>{{ l.pt_nama }}</small></td>
                 <td><span [class]="'badge ' + (l.pt_organisasi==='muhammadiyah' ? 'badge-muh' : 'badge-ais')">
-                  {{ l.pt_organisasi === 'muhammadiyah' ? 'PTNBH' : 'Non-PTNBH' }}</span></td>
+                  {{ l.pt_organisasi === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}</span></td>
                 <td>{{ l.periode_nama }}</td>
                 <td><span [class]="'status-badge status-' + l.status">{{ l.status_display }}</span></td>
                 <td>
