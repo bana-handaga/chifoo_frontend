@@ -65,6 +65,38 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
         </div>
       </div>
 
+      <!-- Update Terakhir -->
+      <div class="update-strip" *ngIf="statistik?.update_info">
+        <span class="update-strip__label">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          Update terakhir:
+        </span>
+        <span class="update-item">
+          <span class="update-item__badge update-item__badge--blue">Mahasiswa</span>
+          <span class="update-item__val">{{ statistik.update_info.mahasiswa || '—' }}</span>
+        </span>
+        <span class="update-sep">·</span>
+        <span class="update-item">
+          <span class="update-item__badge update-item__badge--indigo">Dosen</span>
+          <span class="update-item__val">{{ statistik.update_info.dosen || '—' }}</span>
+        </span>
+        <span class="update-sep">·</span>
+        <span class="update-item">
+          <span class="update-item__badge update-item__badge--violet">Profil Dosen</span>
+          <span class="update-item__val">{{ statistik.update_info.profil_dosen || '—' }}</span>
+        </span>
+        <span class="update-sep">·</span>
+        <span class="update-item">
+          <span class="update-item__badge update-item__badge--teal">Prodi</span>
+          <span class="update-item__val">{{ statistik.update_info.program_studi || '—' }}</span>
+        </span>
+        <span class="update-sep">·</span>
+        <span class="update-item">
+          <span class="update-item__badge update-item__badge--slate">PT</span>
+          <span class="update-item__val">{{ statistik.update_info.perguruan_tinggi || '—' }}</span>
+        </span>
+      </div>
+
       <!-- Tren Mahasiswa Aktif -->
       <div class="chart-card chart-card--tren">
         <div class="tren-header">
@@ -188,6 +220,29 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
     .stat-card__sub { font-size: 11px; margin-top: 2px; }
     .stat-card--blue  .stat-card__sub { color: #9fa8da; }
     .stat-card__sub--dark { color: #94a3b8; }
+
+    /* ── Update strip ───────────────────────────────── */
+    .update-strip {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 9px 14px; margin-bottom: 20px; font-size: 12px;
+    }
+    .update-strip__label {
+      display: flex; align-items: center; gap: 4px;
+      color: #64748b; font-weight: 600; flex-shrink: 0;
+    }
+    .update-item { display: flex; align-items: center; gap: 5px; }
+    .update-item__badge {
+      padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700;
+      white-space: nowrap; letter-spacing: .02em;
+    }
+    .update-item__badge--blue   { background: #dbeafe; color: #1d4ed8; }
+    .update-item__badge--indigo { background: #e0e7ff; color: #3730a3; }
+    .update-item__badge--violet { background: #ede9fe; color: #5b21b6; }
+    .update-item__badge--teal   { background: #ccfbf1; color: #0f766e; }
+    .update-item__badge--slate  { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .update-item__val { color: #334155; font-weight: 500; white-space: nowrap; }
+    .update-sep { color: #cbd5e1; font-size: 14px; }
 
     /* ── Chart card ──────────────────────────────────── */
     .chart-card {
