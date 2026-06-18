@@ -27,7 +27,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
             <div class="pt-meta">
               <span>{{ pt.kode_pt }}</span> ·
               <span>{{ pt.jenis | titlecase }}</span> ·
-              <span [class]="'badge badge-' + pt.organisasi_induk">{{ pt.organisasi_induk === 'ptnbh' ? 'Muhammadiyah' : 'Aisyiyah' }}</span> ·
+              <span [class]="'badge badge-' + pt.organisasi_induk">{{ pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}</span> ·
               <span [class]="'badge badge-akr-' + pt.akreditasi_institusi">{{ formatAkreditasi(pt.akreditasi_institusi) }}</span>
             </div>
             <div class="pt-akreditasi-detail" *ngIf="pt.nomor_sk_akreditasi || pt.tanggal_kadaluarsa_akreditasi">
@@ -2311,7 +2311,7 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
         <div class="contacts">${[pt.website ? `<a href="${pt.website}">${pt.website}</a>` : '', pt.email ? `📧 ${pt.email}` : '', pt.telepon ? `📞 ${pt.telepon}` : ''].filter(Boolean).join(' &nbsp;·&nbsp; ')}</div>
       </div>
       <div class="badges">
-        <span class="badge badge-${pt.organisasi_induk}">${pt.organisasi_induk === 'ptnbh' ? 'Muhammadiyah' : 'Aisyiyah'}</span>
+        <span class="badge badge-${pt.organisasi_induk}">${pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah'}</span>
         <span class="badge badge-${pt.akreditasi_institusi}">${akrLabel[pt.akreditasi_institusi]||pt.akreditasi_institusi||'Belum'}</span>
       </div>
     </div>

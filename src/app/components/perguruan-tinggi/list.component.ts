@@ -183,7 +183,7 @@ Chart.register(...registerables);
                     <td>{{ pt.wilayah_nama || '—' }}</td>
                     <td>{{ pt.jenis | titlecase }}</td>
                     <td><span [class]="'badge ' + (pt.organisasi_induk === 'muhammadiyah' ? 'badge-muh' : 'badge-ais')">
-                      {{ pt.organisasi_induk === 'ptnbh' ? 'Muhammadiyah' : 'Aisyiyah' }}
+                      {{ pt.organisasi_induk === 'muhammadiyah' ? 'Muhammadiyah' : 'Aisyiyah' }}
                     </span></td>
                     <td><span [class]="'badge badge-' + pt.akreditasi_institusi">
                       {{ formatAkreditasi(pt.akreditasi_institusi) }}
