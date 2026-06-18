@@ -121,6 +121,11 @@ export class ApiService {
     for (const id of ptIds) params = params.append('pt_id', id.toString());
     return this.http.get(`${this.baseUrl}/perguruan-tinggi/tren_mahasiswa/`, { params });
   }
+  getTrenDosen(mode: string, ptIds: number[] = [], n = 5): Observable<any> {
+    let params = new HttpParams().set('mode', mode).set('n', n.toString());
+    for (const id of ptIds) params = params.append('pt_id', id.toString());
+    return this.http.get(`${this.baseUrl}/perguruan-tinggi/tren_dosen/`, { params });
+  }
   getWilayahList(): Observable<any> {
     return this.http.get(`${this.baseUrl}/wilayah/`);
   }
@@ -174,8 +179,11 @@ export class ApiService {
     return this.http.get<any>(`${this.baseUrl}/program-studi/${id}/detail_popup/`);
   }
 
-  getDosenStats(): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/dosen-stats/`);
+  getDosenStats(tahunAkademik?: string, semester?: string): Observable<any> {
+    let params = new HttpParams();
+    if (tahunAkademik) params = params.set('tahun_akademik', tahunAkademik);
+    if (semester)      params = params.set('semester', semester);
+    return this.http.get<any>(`${this.baseUrl}/dosen-stats/`, { params });
   }
 
   getDosenDropdown(ptKode?: string): Observable<{ pt: any[]; prodi: any[] }> {

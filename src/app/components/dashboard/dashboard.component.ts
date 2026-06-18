@@ -58,10 +58,20 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
             <div class="stat-card__icon stat-card__icon--dark">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/><circle cx="18" cy="18" r="5" fill="#22c55e"/><path d="M17 20.5l-2-2 .7-.7 1.3 1.3 2.8-2.8.7.7z" fill="white"/></svg>
             </div>
-            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_dosen | number }}</div>
+            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_dosen_tetap | number }}</div>
           </div>
           <div class="stat-card__lbl stat-card__lbl--dark">Dosen Tetap</div>
           <div class="stat-card__sub stat-card__sub--dark">data {{ statistik.tahun_dosen }}</div>
+        </div>
+        <div class="stat-card stat-card--light" routerLink="/dosen" style="cursor:pointer">
+          <div class="stat-card__main">
+            <div class="stat-card__icon stat-card__icon--dark">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            </div>
+            <div class="stat-card__val stat-card__val--dark">{{ statistik.total_dosen | number }}</div>
+          </div>
+          <div class="stat-card__lbl stat-card__lbl--dark">Total Dosen</div>
+          <div class="stat-card__sub stat-card__sub--dark">tetap + tidak tetap</div>
         </div>
       </div>
 
@@ -107,10 +117,29 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
               <button [class.active]="trenMode==='perbandingan'" (click)="setTrenMode('perbandingan')">Perbandingan</button>
             </div>
             <div class="pt-select-wrap" *ngIf="trenMode==='perbandingan'">
-              <select multiple class="pt-multi-select" (change)="onPtSelectChange($event)">
-                <option *ngFor="let pt of ptList" [value]="pt.id">{{ pt.singkatan || pt.nama }}</option>
-              </select>
-              <span class="pt-select-hint">Tahan Ctrl untuk pilih beberapa PT</span>
+              <div class="pt-search-row">
+                <input class="pt-search-input" [(ngModel)]="ptSearch"
+                       (ngModelChange)="onPtSearch()"
+                       (focus)="openPtPanel()"
+                       (blur)="closePtPanel()"
+                       placeholder="Cari PT..." autocomplete="off"/>
+                <button class="pt-clear-btn" *ngIf="selectedPtIds.length" (click)="clearPtSelection()">Hapus semua</button>
+              </div>
+              <div class="pt-panel" *ngIf="ptPanelOpen" (mousedown)="$event.preventDefault()">
+                <div class="pt-panel-empty" *ngIf="ptList.length===0 && !ptSearch">Memuat data PT...</div>
+                <div class="pt-panel-empty" *ngIf="ptList.length>0 && !ptFiltered.length">Tidak ditemukan</div>
+                <div class="pt-panel-item" *ngFor="let pt of ptFiltered"
+                     (mousedown)="togglePt(pt)"
+                     [class.pt-panel-item--on]="isPtSelected(pt)">
+                  <span class="pt-chk" [class.pt-chk--on]="isPtSelected(pt)">{{isPtSelected(pt)?'✓':''}}</span>
+                  <span>{{pt.singkatan || pt.nama}}</span>
+                </div>
+              </div>
+              <div class="pt-chips" *ngIf="selectedPtIds.length">
+                <span class="pt-chip" *ngFor="let id of selectedPtIds">
+                  {{getPtLabel(id)}}<button class="pt-chip-rm" (click)="removePt(id)">×</button>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -119,6 +148,49 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
         </div>
         <div class="tren-loading" *ngIf="trenLoading">Memuat data...</div>
         <div class="tren-error" *ngIf="trenError">{{ trenError }}</div>
+      </div>
+
+      <!-- Tren Dosen Tetap -->
+      <div class="chart-card chart-card--tren">
+        <div class="tren-header">
+          <div class="chart-card__title">Tren Dosen Tetap — 5 Semester Terakhir</div>
+          <div class="tren-controls">
+            <div class="mode-toggle">
+              <button [class.active]="trenDosenMode==='gabung'" (click)="setTrenDosenMode('gabung')">Gabung</button>
+              <button [class.active]="trenDosenMode==='perbandingan'" (click)="setTrenDosenMode('perbandingan')">Perbandingan</button>
+            </div>
+            <div class="pt-select-wrap" *ngIf="trenDosenMode==='perbandingan'">
+              <div class="pt-search-row">
+                <input class="pt-search-input" [(ngModel)]="ptDosenSearch"
+                       (ngModelChange)="onPtDosenSearch()"
+                       (focus)="openPtDosenPanel()"
+                       (blur)="closePtDosenPanel()"
+                       placeholder="Cari PT..." autocomplete="off"/>
+                <button class="pt-clear-btn" *ngIf="selectedPtDosenIds.length" (click)="clearPtDosenSelection()">Hapus semua</button>
+              </div>
+              <div class="pt-panel" *ngIf="ptDosenPanelOpen" (mousedown)="$event.preventDefault()">
+                <div class="pt-panel-empty" *ngIf="ptList.length===0 && !ptDosenSearch">Memuat data PT...</div>
+                <div class="pt-panel-empty" *ngIf="ptList.length>0 && !ptDosenFiltered.length">Tidak ditemukan</div>
+                <div class="pt-panel-item" *ngFor="let pt of ptDosenFiltered"
+                     (mousedown)="togglePtDosen(pt)"
+                     [class.pt-panel-item--on]="isPtDosenSelected(pt)">
+                  <span class="pt-chk" [class.pt-chk--on]="isPtDosenSelected(pt)">{{isPtDosenSelected(pt)?'✓':''}}</span>
+                  <span>{{pt.singkatan || pt.nama}}</span>
+                </div>
+              </div>
+              <div class="pt-chips" *ngIf="selectedPtDosenIds.length">
+                <span class="pt-chip" *ngFor="let id of selectedPtDosenIds">
+                  {{getPtLabel(id)}}<button class="pt-chip-rm" (click)="removePtDosen(id)">×</button>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-card__body chart-card__body--tren">
+          <canvas #trenDosenChart></canvas>
+        </div>
+        <div class="tren-loading" *ngIf="trenDosenLoading">Memuat data...</div>
+        <div class="tren-error" *ngIf="trenDosenError">{{ trenDosenError }}</div>
       </div>
 
       <!-- Row 1: Pie charts -->
@@ -270,12 +342,48 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
     }
     .mode-toggle button.active { background: #1a237e; color: #fff; font-weight: 600; }
     .mode-toggle button:not(.active):hover { background: #e2e8f0; }
-    .pt-select-wrap { display: flex; flex-direction: column; gap: 4px; }
-    .pt-multi-select {
-      padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 6px;
-      font-size: 12px; min-width: 200px; max-height: 100px; background: #fff;
+    .pt-select-wrap { position: relative; display: flex; flex-direction: column; gap: 4px; }
+    .pt-search-row { display: flex; align-items: center; gap: 6px; }
+    .pt-search-input {
+      flex: 1; padding: 5px 9px; border: 1px solid #e2e8f0; border-radius: 6px;
+      font-size: 12px; min-width: 160px; outline: none;
     }
-    .pt-select-hint { font-size: 11px; color: #94a3b8; }
+    .pt-search-input:focus { border-color: #1a237e; box-shadow: 0 0 0 2px rgba(26,35,126,0.12); }
+    .pt-clear-btn {
+      font-size: 11px; padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 6px;
+      background: #f8fafc; color: #64748b; cursor: pointer; white-space: nowrap;
+    }
+    .pt-clear-btn:hover { background: #e2e8f0; }
+    .pt-panel {
+      position: absolute; top: 100%; left: 0; z-index: 100;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      max-height: 240px; overflow-y: auto; width: 280px; margin-top: 4px;
+    }
+    .pt-panel-empty { padding: 12px 14px; font-size: 12px; color: #94a3b8; text-align: center; }
+    .pt-panel-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px; cursor: pointer; font-size: 12px;
+      border-bottom: 1px solid #f8fafc; transition: background 0.1s;
+    }
+    .pt-panel-item:hover { background: #f1f5f9; }
+    .pt-panel-item--on { background: #e8eaf6; }
+    .pt-chk {
+      width: 16px; height: 16px; flex-shrink: 0; border: 1.5px solid #d1d5db; border-radius: 3px;
+      display: flex; align-items: center; justify-content: center; font-size: 10px;
+    }
+    .pt-chk--on { background: #1a237e; border-color: #1a237e; color: #fff; }
+    .pt-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .pt-chip {
+      display: flex; align-items: center; gap: 3px;
+      padding: 2px 7px 2px 8px; border-radius: 12px; font-size: 11px;
+      background: #e8eaf6; color: #1a237e;
+    }
+    .pt-chip-rm {
+      border: none; background: none; cursor: pointer; color: #64748b;
+      padding: 0; font-size: 14px; line-height: 1;
+    }
+    .pt-chip-rm:hover { color: #dc2626; }
     .tren-loading { text-align: center; font-size: 13px; color: #94a3b8; padding: 8px; }
     .tren-error   { text-align: center; font-size: 13px; color: #dc2626; padding: 8px; }
 
@@ -312,16 +420,30 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   @ViewChild('mhsChart')               mhsChartRef!:   ElementRef<HTMLCanvasElement>;
   @ViewChild('prodiChart')             prodiChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('dosenChart')             dosenChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('trenChart', { static: true }) trenChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('trenChart',      { static: true }) trenChartRef!:      ElementRef<HTMLCanvasElement>;
+  @ViewChild('trenDosenChart', { static: true }) trenDosenChartRef!: ElementRef<HTMLCanvasElement>;
 
   trenMode: 'gabung' | 'perbandingan' = 'gabung';
   trenLoading = false;
   trenError = '';
   ptList: any[] = [];
   selectedPtIds: number[] = [];
+  ptSearch = '';
+  ptFiltered: any[] = [];
+  ptPanelOpen = false;
   private trenChartInst: Chart<any> | null = null;
   private activePeriodeIdx = -1;
-  private lastTrenData: any = null;
+  private lastTrenData: any     = null;
+  private lastTrenDosenData: any = null;
+
+  trenDosenMode: 'gabung' | 'perbandingan' = 'gabung';
+  trenDosenLoading = false;
+  trenDosenError = '';
+  selectedPtDosenIds: number[] = [];
+  ptDosenSearch = '';
+  ptDosenFiltered: any[] = [];
+  ptDosenPanelOpen = false;
+  private trenDosenChartInst: Chart<any> | null = null;
 
   constructor(private api: ApiService, private zone: NgZone) {}
 
@@ -338,6 +460,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         if (this.lastTrenData) {
           this.zone.runOutsideAngular(() => this.renderTren(this.lastTrenData));
         }
+        if (this.lastTrenDosenData) {
+          this.zone.runOutsideAngular(() => this.renderTrenDosen(this.lastTrenDosenData));
+        }
       },
       error: () => this.loading = false
     });
@@ -351,6 +476,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.viewReady = true;
     if (this.statistik) this.scheduleCharts();
     setTimeout(() => this.loadTren(), 200);
+    setTimeout(() => this.loadTrenDosen(), 300);
   }
 
   private scheduleCharts() {
@@ -359,14 +485,108 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   setTrenMode(mode: 'gabung' | 'perbandingan') {
     this.trenMode = mode;
-    if (mode === 'gabung') this.selectedPtIds = [];
+    if (mode === 'gabung') {
+      this.selectedPtIds = [];
+      this.ptSearch = '';
+      this.ptFiltered = [];
+      this.ptPanelOpen = false;
+    }
     this.loadTren();
   }
 
-  onPtSelectChange(event: Event) {
-    const sel = event.target as HTMLSelectElement;
-    this.selectedPtIds = Array.from(sel.selectedOptions).map(o => +o.value);
+  onPtSearch() {
+    const q = this.ptSearch.trim().toLowerCase();
+    this.ptFiltered = q
+      ? this.ptList.filter(pt =>
+          (pt.singkatan || '').toLowerCase().includes(q) ||
+          (pt.nama || '').toLowerCase().includes(q))
+      : this.ptList;
+  }
+
+  openPtPanel() {
+    if (!this.ptSearch.trim()) this.ptFiltered = this.ptList;
+    this.ptPanelOpen = true;
+  }
+
+  closePtPanel() {
+    setTimeout(() => { this.ptPanelOpen = false; }, 150);
+  }
+
+  isPtSelected(pt: any): boolean {
+    return this.selectedPtIds.includes(pt.id);
+  }
+
+  togglePt(pt: any) {
+    this.selectedPtIds = this.isPtSelected(pt)
+      ? this.selectedPtIds.filter(id => id !== pt.id)
+      : [...this.selectedPtIds, pt.id];
     this.loadTren();
+  }
+
+  clearPtSelection() {
+    this.selectedPtIds = [];
+    this.loadTren();
+  }
+
+  getPtLabel(id: number): string {
+    const pt = this.ptList.find(p => p.id === id);
+    return pt ? (pt.singkatan || pt.nama) : String(id);
+  }
+
+  removePt(id: number) {
+    this.selectedPtIds = this.selectedPtIds.filter(pid => pid !== id);
+    this.loadTren();
+  }
+
+  // ── Tren Dosen controls ──────────────────────────────────────────────────
+  setTrenDosenMode(mode: 'gabung' | 'perbandingan') {
+    this.trenDosenMode = mode;
+    if (mode === 'gabung') {
+      this.selectedPtDosenIds = [];
+      this.ptDosenSearch = '';
+      this.ptDosenFiltered = [];
+      this.ptDosenPanelOpen = false;
+    }
+    this.loadTrenDosen();
+  }
+
+  onPtDosenSearch() {
+    const q = this.ptDosenSearch.trim().toLowerCase();
+    this.ptDosenFiltered = q
+      ? this.ptList.filter(pt =>
+          (pt.singkatan || '').toLowerCase().includes(q) ||
+          (pt.nama || '').toLowerCase().includes(q))
+      : this.ptList;
+  }
+
+  openPtDosenPanel() {
+    if (!this.ptDosenSearch.trim()) this.ptDosenFiltered = this.ptList;
+    this.ptDosenPanelOpen = true;
+  }
+
+  closePtDosenPanel() {
+    setTimeout(() => { this.ptDosenPanelOpen = false; }, 150);
+  }
+
+  isPtDosenSelected(pt: any): boolean {
+    return this.selectedPtDosenIds.includes(pt.id);
+  }
+
+  togglePtDosen(pt: any) {
+    this.selectedPtDosenIds = this.isPtDosenSelected(pt)
+      ? this.selectedPtDosenIds.filter(id => id !== pt.id)
+      : [...this.selectedPtDosenIds, pt.id];
+    this.loadTrenDosen();
+  }
+
+  clearPtDosenSelection() {
+    this.selectedPtDosenIds = [];
+    this.loadTrenDosen();
+  }
+
+  removePtDosen(id: number) {
+    this.selectedPtDosenIds = this.selectedPtDosenIds.filter(pid => pid !== id);
+    this.loadTrenDosen();
   }
 
   private loadTren() {
@@ -385,6 +605,155 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           ? 'Endpoint tren_mahasiswa belum tersedia di server. Perlu deploy backend terbaru.'
           : `Gagal memuat data tren (error ${status ?? 'unknown'}).`;
       }
+    });
+  }
+
+  private loadTrenDosen() {
+    this.trenDosenLoading = true;
+    this.trenDosenError = '';
+    this.api.getTrenDosen(this.trenDosenMode, this.selectedPtDosenIds, 5).subscribe({
+      next: (d: any) => {
+        this.trenDosenLoading = false;
+        this.lastTrenDosenData = d;
+        this.zone.runOutsideAngular(() => this.renderTrenDosen(d));
+      },
+      error: (err: any) => {
+        this.trenDosenLoading = false;
+        const status = err?.status;
+        this.trenDosenError = status === 404
+          ? 'Endpoint tren_dosen belum tersedia di server. Perlu deploy backend terbaru.'
+          : `Gagal memuat data tren dosen (error ${status ?? 'unknown'}).`;
+      }
+    });
+  }
+
+  private activePeriodeDosenIdx = -1;
+
+  private renderTrenDosen(data: any) {
+    if (!this.trenDosenChartRef) return;
+    const lineColors = [
+      '#0f766e','#1a237e','#b45309','#6a1b9a','#0277bd','#137333','#bf360c'
+    ];
+
+    // Hitung index semester dilaporkan
+    let activeLabel = '';
+    if (this.periodeAktif?.tahun && this.periodeAktif?.semester) {
+      const p = this.periodeAktif;
+      const ta = p.semester === 'genap'
+        ? `${p.tahun - 1}/${p.tahun}`
+        : `${p.tahun}/${p.tahun + 1}`;
+      activeLabel = `${ta} ${p.semester.charAt(0).toUpperCase() + p.semester.slice(1)}`;
+    }
+    this.activePeriodeDosenIdx = activeLabel ? (data.labels as string[]).indexOf(activeLabel) : -1;
+    const ai = this.activePeriodeDosenIdx;
+    const n  = (data.labels as string[]).length;
+
+    const buildDatasets = (rawDatasets: any[]) => rawDatasets.map((ds: any, i: number) => {
+      const color = lineColors[i % lineColors.length];
+      return {
+        label: ds.label,
+        data: ds.data,
+        borderColor: color,
+        backgroundColor: color + '22',
+        fill: rawDatasets.length === 1,
+        tension: 0.35,
+        pointRadius:          Array.from({ length: n }, (_, j) => j === ai ? 9 : 4),
+        pointHoverRadius:     Array.from({ length: n }, (_, j) => j === ai ? 11 : 6),
+        pointBackgroundColor: Array.from({ length: n }, (_, j) => j === ai ? '#fff' : color),
+        pointBorderColor:     Array.from({ length: n }, (_, j) => j === ai ? '#f59e0b' : color),
+        pointBorderWidth:     Array.from({ length: n }, (_, j) => j === ai ? 3 : 1),
+        borderWidth: 2,
+      };
+    });
+
+    if (this.trenDosenChartInst) {
+      this.trenDosenChartInst.data.labels = data.labels;
+      this.trenDosenChartInst.data.datasets = buildDatasets(data.datasets);
+      this.trenDosenChartInst.update('none');
+      return;
+    }
+
+    // Plugin: garis vertikal dashed + badge "Semester Dilaporkan"
+    const self = this;
+    const activePeriodeBadgePlugin = {
+      id: 'activePeriodeDosenBadge',
+      afterDraw(chart: any) {
+        const idx = self.activePeriodeDosenIdx;
+        if (idx < 0) return;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta?.data?.[idx]) return;
+        const pt = meta.data[idx];
+        const ctx: CanvasRenderingContext2D = chart.ctx;
+        const yAxis = chart.scales['y'];
+
+        ctx.save();
+
+        // Garis vertikal dashed amber
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(pt.x, yAxis.top);
+        ctx.lineTo(pt.x, yAxis.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Badge "Semester Dilaporkan"
+        const text = 'Semester Dilaporkan';
+        ctx.font = 'bold 10px sans-serif';
+        const tw  = ctx.measureText(text).width;
+        const pad = 5;
+        const bw  = tw + pad * 2;
+        const bh  = 17;
+        const bx  = Math.min(Math.max(pt.x - bw / 2, chart.chartArea.left), chart.chartArea.right - bw);
+        const by  = yAxis.top + 2;
+        const r   = 3;
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(bx + r, by);
+        ctx.lineTo(bx + bw - r, by);
+        ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+        ctx.lineTo(bx + bw, by + bh - r);
+        ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+        ctx.lineTo(bx + r, by + bh);
+        ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+        ctx.lineTo(bx, by + r);
+        ctx.quadraticCurveTo(bx, by, bx + r, by);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, bx + bw / 2, by + bh / 2);
+
+        ctx.restore();
+      }
+    };
+
+    this.trenDosenChartInst = new Chart(this.trenDosenChartRef.nativeElement.getContext('2d')!, {
+      type: 'line',
+      data: { labels: data.labels, datasets: buildDatasets(data.datasets) },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { size: 12 }, padding: 12, boxWidth: 14 } },
+          tooltip: {
+            callbacks: {
+              label: (c: any) => ` ${c.dataset.label}: ${(c.parsed.y as number).toLocaleString('id-ID')} dosen`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } },
+          y: {
+            grid: { color: '#f0f0f0' },
+            ticks: { font: { size: 11 }, callback: (v: any) => Number(v).toLocaleString('id-ID') }
+          }
+        }
+      },
+      plugins: [activePeriodeBadgePlugin]
     });
   }
 
@@ -460,8 +829,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Badge "Periode Aktif"
-        const text = 'Periode Aktif';
+        // Badge "Semester Dilaporkan"
+        const text = 'Semester Dilaporkan';
         ctx.font = 'bold 10px sans-serif';
         const tw = ctx.measureText(text).width;
         const pad = 5;

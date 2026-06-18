@@ -176,8 +176,10 @@ Chart.register(...registerables);
         <div class="stat-card__icon">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
         </div>
-        <div class="stat-card__val">{{ stats.total_dosen | number }}</div>
-        <div class="stat-card__lbl">Total Dosen</div>
+        <div class="stat-card__val">{{ stats.total_dilaporkan | number }}</div>
+        <div class="stat-card__lbl">Total Dosen Dilaporkan</div>
+        <div class="stat-card__sub" *ngIf="stats.semester_aktif">{{ stats.semester_aktif }}</div>
+        <div class="stat-card__sub" *ngIf="stats.dosen_tanpa_profil > 0">{{ stats.dosen_tanpa_profil | number }} belum ada profil</div>
       </div>
       <div class="stat-card stat-card--light">
         <div class="stat-card__main">
@@ -478,6 +480,7 @@ Chart.register(...registerables);
     .stat-card__val--dark { color: #1e293b; }
     .stat-card__lbl  { font-size: .8rem; opacity: .88; }
     .stat-card__lbl--dark { color: #64748b; opacity: 1; }
+    .stat-card__sub  { font-size: .75rem; opacity: .75; margin-top: .15rem; }
     .stat-card__s3-detail { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.4rem; }
     .s3-chip { font-size:.72rem; font-weight:600; padding:2px 8px; border-radius:10px; white-space:nowrap; }
     .s3-chip--ln   { background:#dbeafe; color:#1e40af; }
@@ -562,17 +565,21 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.api.getPeriodeAktif().subscribe({
-      next: (p: any) => {
-        if (p?.tahun_akademik) {
-          const sem = p.semester === 'ganjil' ? 'Ganjil' : 'Genap';
-          this.periodeLabel = `${sem} ${p.tahun_akademik}`;
-        }
-      }
-    });
+    // Backend dosen_stats sudah default ke PeriodePelaporan aktif — langsung panggil tanpa param
     this.api.getDosenStats().subscribe({
       next: (data) => { this.stats = data; this.loading = false; this.cdr.detectChanges(); },
       error: () => { this.loading = false; }
+    });
+    this.api.getPeriodeAktif().subscribe({
+      next: (p: any) => {
+        if (p?.tahun) {
+          const tahunAkademik = p.semester === 'genap'
+            ? `${p.tahun - 1}/${p.tahun}`
+            : `${p.tahun}/${p.tahun + 1}`;
+          const sem = p.semester === 'ganjil' ? 'Ganjil' : 'Genap';
+          this.periodeLabel = `${sem} ${tahunAkademik}`;
+        }
+      }
     });
     this.loadingPt = true;
     this.api.getDosenDropdown().subscribe({

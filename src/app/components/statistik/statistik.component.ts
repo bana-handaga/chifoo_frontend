@@ -38,7 +38,11 @@ import * as XLSX from 'xlsx';
           <div class="gen-header" style="padding-top:.9rem;padding-bottom:.75rem">
             <div>
               <div class="gen-title">Generate Laporan Performa</div>
-              <div class="gen-desc">Hitung distribusi prodi, gender, jabatan, pendidikan, status, ikatan kerja dosen, dan tren mahasiswa 7 semester terakhir untuk seluruh PT.</div>
+              <div class="gen-desc">Hitung distribusi prodi, dosen, dan tren mahasiswa untuk seluruh PT berdasarkan <strong>semester yang dilaporkan</strong> (PeriodePelaporan aktif).</div>
+              <div class="gen-note">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="flex-shrink:0;margin-top:1px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <span><strong>Jumlah Prodi</strong> dihitung dari prodi yang melaporkan data dosen di semester aktif (sumber: DataDosen). <strong>Profil Dosen</strong> (gender, jabatan, pendidikan, status) hanya mencakup dosen yang tercatat aktif di semester yang dilaporkan.</span>
+              </div>
             </div>
             <button *ngIf="isAdmin" class="gen-btn" (click)="generateLaporan()" [disabled]="generating">
               <svg *ngIf="!generating" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
@@ -132,6 +136,11 @@ import * as XLSX from 'xlsx';
               <div class="snap-result-title">
                 Laporan {{ activeSnap.dibuat_pada | date:'dd MMM yyyy HH:mm' }}
                 <span class="snap-result-sub">{{ activeSnap.total_pt }} PT</span>
+              </div>
+              <div class="snap-result-meta" *ngIf="activeSnap.semester_dilaporkan">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="flex-shrink:0"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                Data profil dosen dan jumlah prodi aktif dihitung berdasarkan semester yang dilaporkan:
+                <strong>{{ activeSnap.semester_dilaporkan }}</strong>
               </div>
             </div>
             <div class="snap-search-row">
@@ -1325,6 +1334,7 @@ import * as XLSX from 'xlsx';
     .gen-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .gen-title { font-size: .95rem; font-weight: 700; color: #1e3a8a; margin-bottom: .25rem; }
     .gen-desc  { font-size: .8rem; color: #64748b; max-width: 560px; line-height: 1.5; }
+    .gen-note  { display:flex; align-items:flex-start; gap:.4rem; margin-top:.5rem; padding:.45rem .65rem; background:#eff6ff; border:1px solid #bfdbfe; border-radius:7px; font-size:.77rem; color:#1e40af; line-height:1.5; max-width:620px; }
     .gen-rule  { display:flex; align-items:flex-start; gap:.35rem; margin-top:.45rem; font-size:.76rem; color:#475569; line-height:1.5; max-width:560px; flex-wrap:wrap; }
     .gen-rule-warn { display:block; width:100%; color:#b45309; font-size:.74rem; margin-top:.15rem; }
     .gen-btn {
@@ -1402,9 +1412,10 @@ import * as XLSX from 'xlsx';
       0%   { transform: translateX(-100%); }
       100% { transform: translateX(350%); }
     }
-    .snap-result-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem; }
+    .snap-result-header { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .6rem; }
     .snap-result-title { font-size: .88rem; font-weight: 700; color: #1e3a8a; display: flex; align-items: center; gap: .5rem; }
     .snap-result-sub { font-size: .75rem; font-weight: 400; color: #64748b; }
+    .snap-result-meta { display:flex; align-items:flex-start; gap:.35rem; padding:.4rem .6rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:7px; font-size:.77rem; color:#166534; line-height:1.5; }
     .snap-result-actions { display: flex; gap: .35rem; }
     .snap-res-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
     .snap-res-info { font-size: .75rem; color: #64748b; }
