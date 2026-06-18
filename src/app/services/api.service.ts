@@ -121,7 +121,7 @@ export class ApiService {
     for (const id of ptIds) params = params.append('pt_id', id.toString());
     return this.http.get(`${this.baseUrl}/perguruan-tinggi/tren_mahasiswa/`, { params });
   }
-  getTrenDosen(mode: string, ptIds: number[] = [], n = 5): Observable<any> {
+  getTrenDosen(mode: string, ptIds: number[] = [], n = 6): Observable<any> {
     let params = new HttpParams().set('mode', mode).set('n', n.toString());
     for (const id of ptIds) params = params.append('pt_id', id.toString());
     return this.http.get(`${this.baseUrl}/perguruan-tinggi/tren_dosen/`, { params });

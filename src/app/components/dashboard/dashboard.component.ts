@@ -184,6 +184,10 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
                 </span>
               </div>
             </div>
+            <select *ngIf="trenDosenMode==='perbandingan'" class="tren-metric-sel"
+              [(ngModel)]="trenDosenMetric" (ngModelChange)="onTrenDosenMetricChange()">
+              <option *ngFor="let m of trenDosenMetrics" [value]="m.val">{{ m.lbl }}</option>
+            </select>
           </div>
         </div>
         <div class="chart-card__body chart-card__body--tren">
@@ -384,6 +388,12 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
       padding: 0; font-size: 14px; line-height: 1;
     }
     .pt-chip-rm:hover { color: #dc2626; }
+    .tren-metric-sel {
+      padding: .28rem .6rem; border-radius: 8px; font-size: .8rem; font-weight: 600;
+      border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; cursor: pointer; outline: none;
+      align-self: flex-start;
+    }
+    .tren-metric-sel:focus { border-color: #1a237e; }
     .tren-loading { text-align: center; font-size: 13px; color: #94a3b8; padding: 8px; }
     .tren-error   { text-align: center; font-size: 13px; color: #dc2626; padding: 8px; }
 
@@ -443,6 +453,15 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   ptDosenSearch = '';
   ptDosenFiltered: any[] = [];
   ptDosenPanelOpen = false;
+  trenDosenMetric = '';
+  trenDosenMetrics = [
+    { val: '',           lbl: 'Semua metrik' },
+    { val: 'Tetap',      lbl: 'Dosen Tetap' },
+    { val: 'Total',      lbl: 'Total Dosen' },
+    { val: 'Ada Profil', lbl: 'Ada Profil' },
+    { val: 'S3',         lbl: 'Pend. S3' },
+    { val: 'Profesor',   lbl: 'Profesor' },
+  ];
   private trenDosenChartInst: Chart<any> | null = null;
 
   constructor(private api: ApiService, private zone: NgZone) {}
@@ -546,8 +565,15 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       this.ptDosenSearch = '';
       this.ptDosenFiltered = [];
       this.ptDosenPanelOpen = false;
+      this.trenDosenMetric = '';
     }
     this.loadTrenDosen();
+  }
+
+  onTrenDosenMetricChange() {
+    if (this.lastTrenDosenData) {
+      this.zone.runOutsideAngular(() => this.renderTrenDosen(this.lastTrenDosenData));
+    }
   }
 
   onPtDosenSearch() {
@@ -611,7 +637,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private loadTrenDosen() {
     this.trenDosenLoading = true;
     this.trenDosenError = '';
-    this.api.getTrenDosen(this.trenDosenMode, this.selectedPtDosenIds, 5).subscribe({
+    this.api.getTrenDosen(this.trenDosenMode, this.selectedPtDosenIds, 6).subscribe({
       next: (d: any) => {
         this.trenDosenLoading = false;
         this.lastTrenDosenData = d;
@@ -632,7 +658,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private renderTrenDosen(data: any) {
     if (!this.trenDosenChartRef) return;
     const lineColors = [
-      '#0f766e','#1a237e','#b45309','#6a1b9a','#0277bd','#137333','#bf360c'
+      '#0f766e','#1a237e','#b45309','#6a1b9a','#0277bd','#137333','#bf360c',
+      '#c62828','#00695c','#4527a0','#e65100','#1565c0','#2e7d32','#ad1457'
     ];
 
     // Hitung index semester dilaporkan
@@ -647,6 +674,15 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.activePeriodeDosenIdx = activeLabel ? (data.labels as string[]).indexOf(activeLabel) : -1;
     const ai = this.activePeriodeDosenIdx;
     const n  = (data.labels as string[]).length;
+
+    // Filter dataset saat mode perbandingan + metric dipilih
+    const suffix = this.trenDosenMetric ? `— ${this.trenDosenMetric}` : '';
+    const activeDs: any[] = suffix
+      ? data.datasets.filter((d: any) => d.label.endsWith(suffix))
+      : data.datasets;
+    const displayDs = (suffix && activeDs.length > 0)
+      ? activeDs.map((d: any) => ({ ...d, label: d.label.replace(` ${suffix}`, '') }))
+      : activeDs;
 
     const buildDatasets = (rawDatasets: any[]) => rawDatasets.map((ds: any, i: number) => {
       const color = lineColors[i % lineColors.length];
@@ -668,7 +704,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
     if (this.trenDosenChartInst) {
       this.trenDosenChartInst.data.labels = data.labels;
-      this.trenDosenChartInst.data.datasets = buildDatasets(data.datasets);
+      this.trenDosenChartInst.data.datasets = buildDatasets(displayDs);
       this.trenDosenChartInst.update('none');
       return;
     }
@@ -734,7 +770,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
     this.trenDosenChartInst = new Chart(this.trenDosenChartRef.nativeElement.getContext('2d')!, {
       type: 'line',
-      data: { labels: data.labels, datasets: buildDatasets(data.datasets) },
+      data: { labels: data.labels, datasets: buildDatasets(displayDs) },
       options: {
         responsive: true, maintainAspectRatio: false, animation: false,
         plugins: {

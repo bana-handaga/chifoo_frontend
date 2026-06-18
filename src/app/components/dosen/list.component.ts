@@ -1,6 +1,6 @@
 import {
   Component, OnInit, OnDestroy,
-  ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef
+  ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef, NgZone
 } from '@angular/core';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { ApiService } from '../../services/api.service';
@@ -161,6 +161,53 @@ Chart.register(...registerables);
           <button [disabled]="searchPage===searchTotalPages" (click)="goPage(searchPage+1)">Next ›</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Tren Dosen per Semester -->
+  <div class="chart-card chart-card--full tren-card">
+    <div class="tren-header">
+      <div class="chart-card__title" style="margin-bottom:0">Tren Dosen per Semester</div>
+      <div class="tren-controls">
+        <div class="mode-toggle">
+          <button [class.active]="trenMode==='gabung'" (click)="setTrenMode('gabung')">Gabung</button>
+          <button [class.active]="trenMode==='perbandingan'" (click)="setTrenMode('perbandingan')">Perbandingan</button>
+        </div>
+        <div class="pt-select-wrap" *ngIf="trenMode==='perbandingan'">
+          <div class="pt-search-row">
+            <input class="pt-search-input" [(ngModel)]="trenPtSearch"
+                   (ngModelChange)="onTrenPtSearch()"
+                   (focus)="openTrenPtPanel()"
+                   (blur)="closeTrenPtPanel()"
+                   placeholder="Cari PT..." autocomplete="off"/>
+            <button class="pt-clear-btn" *ngIf="selectedTrenPtIds.length" (click)="clearTrenPtSelection()">Hapus semua</button>
+          </div>
+          <div class="pt-panel" *ngIf="trenPtPanelOpen" (mousedown)="$event.preventDefault()">
+            <div class="pt-panel-empty" *ngIf="ptList.length===0">Memuat data PT...</div>
+            <div class="pt-panel-empty" *ngIf="ptList.length>0 && !trenPtFiltered.length">Tidak ditemukan</div>
+            <div class="pt-panel-item" *ngFor="let pt of trenPtFiltered"
+                 (mousedown)="togglePtTren(pt)"
+                 [class.pt-panel-item--on]="isTrenPtSelected(pt)">
+              <span class="pt-chk" [class.pt-chk--on]="isTrenPtSelected(pt)">{{isTrenPtSelected(pt)?'✓':''}}</span>
+              <span>{{pt.singkatan || pt.nama}}</span>
+            </div>
+          </div>
+          <div class="pt-chips" *ngIf="selectedTrenPtIds.length">
+            <span class="pt-chip" *ngFor="let id of selectedTrenPtIds">
+              {{getTrenPtLabel(id)}}<button class="pt-chip-rm" (click)="removeTrenPt(id)">×</button>
+            </span>
+          </div>
+        </div>
+        <select *ngIf="trenMode==='perbandingan'" class="tren-metric-sel"
+          [(ngModel)]="trenMetric" (ngModelChange)="onTrenMetricChange()">
+          <option *ngFor="let m of trenMetrics" [value]="m.val">{{ m.lbl }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="tren-loading" *ngIf="trenLoading">Memuat data tren...</div>
+    <div class="tren-error"  *ngIf="trenError && !trenLoading">{{ trenError }}</div>
+    <div class="chart-card__body chart-card__body--line" *ngIf="!trenLoading && !trenError">
+      <canvas #trenDosenChart></canvas>
     </div>
   </div>
 
@@ -519,20 +566,84 @@ Chart.register(...registerables);
     .chart-card__body--pie { height: 200px; }
     .chart-card__body--bar-lg { height: 480px; }
 
-    .chart-card__body--pie { display: flex; align-items: center; }
+    .chart-card__body--pie  { display: flex; align-items: center; }
+    .chart-card__body--line { position: relative; height: 340px; }
+
+    .tren-card { margin-bottom: .75rem; }
+    .tren-header { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+    .tren-controls { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .mode-toggle { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .mode-toggle button {
+      padding: 6px 12px; border: none; background: #f8fafc; cursor: pointer;
+      font-size: 12px; color: #475569; transition: background .15s;
+    }
+    .mode-toggle button.active { background: #1a237e; color: #fff; font-weight: 600; }
+    .mode-toggle button:not(.active):hover { background: #e2e8f0; }
+    .pt-select-wrap { position: relative; display: flex; flex-direction: column; gap: 4px; }
+    .pt-search-row { display: flex; align-items: center; gap: 6px; }
+    .pt-search-input {
+      flex: 1; padding: 5px 9px; border: 1px solid #e2e8f0; border-radius: 6px;
+      font-size: 12px; min-width: 160px; outline: none;
+    }
+    .pt-search-input:focus { border-color: #1a237e; box-shadow: 0 0 0 2px rgba(26,35,126,0.12); }
+    .pt-clear-btn {
+      font-size: 11px; padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 6px;
+      background: #f8fafc; color: #64748b; cursor: pointer; white-space: nowrap;
+    }
+    .pt-clear-btn:hover { background: #e2e8f0; }
+    .pt-panel {
+      position: absolute; top: 100%; left: 0; z-index: 100;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      max-height: 240px; overflow-y: auto; width: 280px; margin-top: 4px;
+    }
+    .pt-panel-empty { padding: 12px 14px; font-size: 12px; color: #94a3b8; text-align: center; }
+    .pt-panel-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px; cursor: pointer; font-size: 12px;
+      border-bottom: 1px solid #f8fafc; transition: background 0.1s;
+    }
+    .pt-panel-item:hover { background: #f1f5f9; }
+    .pt-panel-item--on { background: #e8eaf6; }
+    .pt-chk {
+      width: 16px; height: 16px; flex-shrink: 0; border: 1.5px solid #d1d5db; border-radius: 3px;
+      display: flex; align-items: center; justify-content: center; font-size: 10px;
+    }
+    .pt-chk--on { background: #1a237e; border-color: #1a237e; color: #fff; }
+    .pt-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .pt-chip {
+      display: flex; align-items: center; gap: 3px;
+      padding: 2px 7px 2px 8px; border-radius: 12px; font-size: 11px;
+      background: #e8eaf6; color: #1a237e;
+    }
+    .pt-chip-rm {
+      border: none; background: none; cursor: pointer; color: #64748b;
+      padding: 0; font-size: 14px; line-height: 1;
+    }
+    .pt-chip-rm:hover { color: #dc2626; }
+    .tren-metric-sel {
+      padding: .28rem .6rem; border-radius: 8px; font-size: .8rem; font-weight: 600;
+      border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; cursor: pointer; outline: none;
+      align-self: flex-start;
+    }
+    .tren-metric-sel:focus { border-color: #1a237e; }
+    .tren-loading { text-align: center; font-size: 13px; color: #94a3b8; padding: 8px; }
+    .tren-error   { text-align: center; font-size: 13px; color: #dc2626; padding: 8px; }
   `]
 })
 export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
 
-  @ViewChild('jkChart')      jkChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('pendChart')    pendChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('statusChart')  statusChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('jabatanChart') jabatanChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('wilayahChart') wilayahChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('ptChart')      ptChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('jkChart')        jkChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('pendChart')      pendChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('statusChart')    statusChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('jabatanChart')   jabatanChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('wilayahChart')   wilayahChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('ptChart')        ptChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('trenDosenChart') trenDosenChartRef!: ElementRef<HTMLCanvasElement>;
 
   stats: any = null;
-  periodeLabel = '';
+  periodeLabel  = '';
+  periodeAktif: any = null;
   loading = true;
   private chartsRendered = false;
 
@@ -555,14 +666,34 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
   loadingPt    = false;
   loadingProdi = false;
 
-  private chartJk:      Chart<any> | null = null;
-  private chartPend:    Chart<any> | null = null;
-  private chartStatus:  Chart<any> | null = null;
-  private chartJabatan: Chart<any> | null = null;
-  private chartWilayah: Chart<any> | null = null;
-  private chartPt:      Chart<any> | null = null;
+  private chartJk:        Chart<any> | null = null;
+  private chartPend:      Chart<any> | null = null;
+  private chartStatus:    Chart<any> | null = null;
+  private chartJabatan:   Chart<any> | null = null;
+  private chartWilayah:   Chart<any> | null = null;
+  private chartPt:        Chart<any> | null = null;
+  private chartTrenDosen: Chart<any> | null = null;
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  trenLoading      = false;
+  trenError        = '';
+  trenMode: 'gabung' | 'perbandingan' = 'gabung';
+  trenPtSearch     = '';
+  trenPtFiltered:  any[] = [];
+  trenPtPanelOpen  = false;
+  selectedTrenPtIds: number[] = [];
+  trenMetric   = '';
+  trenMetrics  = [
+    { val: '',           lbl: 'Semua metrik' },
+    { val: 'Tetap',      lbl: 'Dosen Tetap' },
+    { val: 'Total',      lbl: 'Total Dosen' },
+    { val: 'Ada Profil', lbl: 'Ada Profil' },
+    { val: 'S3',         lbl: 'Pend. S3' },
+    { val: 'Profesor',   lbl: 'Profesor' },
+  ];
+  private lastTrenData: any = null;
+  private activeTrenIdx = -1;
+
+  constructor(private api: ApiService, private cdr: ChangeDetectorRef, private zone: NgZone) {}
 
   ngOnInit() {
     // Backend dosen_stats sudah default ke PeriodePelaporan aktif — langsung panggil tanpa param
@@ -578,9 +709,11 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
             : `${p.tahun}/${p.tahun + 1}`;
           const sem = p.semester === 'ganjil' ? 'Ganjil' : 'Genap';
           this.periodeLabel = `${sem} ${tahunAkademik}`;
+          this.periodeAktif = p;
         }
       }
     });
+    this.loadTrenDosen();
     this.loadingPt = true;
     this.api.getDosenDropdown().subscribe({
       next: (res) => { this.ptList = res.pt || []; this.loadingPt = false; },
@@ -744,9 +877,201 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
     return map[jabatan] || 'jabatan-chip';
   }
 
+  setTrenMode(mode: 'gabung' | 'perbandingan') {
+    this.trenMode = mode;
+    if (mode === 'gabung') {
+      this.selectedTrenPtIds = [];
+      this.trenPtSearch = '';
+      this.trenPtFiltered = [];
+      this.trenPtPanelOpen = false;
+      this.trenMetric = '';
+    }
+    this.chartTrenDosen?.destroy();
+    this.chartTrenDosen = null;
+    this.loadTrenDosen();
+  }
+
+  onTrenPtSearch() {
+    const q = this.trenPtSearch.trim().toLowerCase();
+    this.trenPtFiltered = q
+      ? this.ptList.filter(pt =>
+          (pt.singkatan || '').toLowerCase().includes(q) ||
+          (pt.nama || '').toLowerCase().includes(q))
+      : this.ptList;
+  }
+
+  openTrenPtPanel() {
+    if (!this.trenPtSearch.trim()) this.trenPtFiltered = this.ptList;
+    this.trenPtPanelOpen = true;
+  }
+
+  closeTrenPtPanel() {
+    setTimeout(() => { this.trenPtPanelOpen = false; }, 150);
+  }
+
+  isTrenPtSelected(pt: any): boolean {
+    return this.selectedTrenPtIds.includes(pt.id);
+  }
+
+  togglePtTren(pt: any) {
+    this.selectedTrenPtIds = this.isTrenPtSelected(pt)
+      ? this.selectedTrenPtIds.filter(id => id !== pt.id)
+      : [...this.selectedTrenPtIds, pt.id];
+    this.chartTrenDosen?.destroy();
+    this.chartTrenDosen = null;
+    this.loadTrenDosen();
+  }
+
+  clearTrenPtSelection() {
+    this.selectedTrenPtIds = [];
+    this.chartTrenDosen?.destroy();
+    this.chartTrenDosen = null;
+    this.loadTrenDosen();
+  }
+
+  removeTrenPt(id: number) {
+    this.selectedTrenPtIds = this.selectedTrenPtIds.filter(pid => pid !== id);
+    this.chartTrenDosen?.destroy();
+    this.chartTrenDosen = null;
+    this.loadTrenDosen();
+  }
+
+  getTrenPtLabel(id: number): string {
+    return this.ptList.find(p => p.id === id)?.singkatan ?? String(id);
+  }
+
+  onTrenMetricChange() {
+    if (this.lastTrenData) {
+      this.zone.runOutsideAngular(() => this.renderTrenDosen(this.lastTrenData));
+    }
+  }
+
+  loadTrenDosen() {
+    this.trenLoading = true;
+    this.trenError   = '';
+    this.api.getTrenDosen(this.trenMode, this.selectedTrenPtIds, 6).subscribe({
+      next: (d: any) => {
+        this.lastTrenData = d;
+        this.trenLoading  = false;
+        this.cdr.detectChanges();
+        this.zone.runOutsideAngular(() => setTimeout(() => this.renderTrenDosen(d), 0));
+      },
+      error: (err: any) => {
+        this.trenLoading = false;
+        this.trenError   = `Gagal memuat data tren dosen (error ${err?.status ?? 'unknown'}).`;
+      }
+    });
+  }
+
+  private renderTrenDosen(data: any) {
+    if (!this.trenDosenChartRef) return;
+    const lineColors = [
+      '#0f766e','#1a237e','#b45309','#6a1b9a','#0277bd','#137333','#bf360c',
+      '#c62828','#00695c','#4527a0','#e65100','#1565c0','#2e7d32','#ad1457'
+    ];
+    let activeLabel = '';
+    if (this.periodeAktif?.tahun && this.periodeAktif?.semester) {
+      const p = this.periodeAktif;
+      const ta = p.semester === 'genap' ? `${p.tahun - 1}/${p.tahun}` : `${p.tahun}/${p.tahun + 1}`;
+      activeLabel = `${ta} ${p.semester.charAt(0).toUpperCase() + p.semester.slice(1)}`;
+    }
+    this.activeTrenIdx = activeLabel ? (data.labels as string[]).indexOf(activeLabel) : -1;
+    const ai = this.activeTrenIdx;
+    const n  = (data.labels as string[]).length;
+
+    // Filter dataset saat mode perbandingan + metric dipilih
+    const suffix = this.trenMetric ? `— ${this.trenMetric}` : '';
+    const activeDs: any[] = suffix
+      ? data.datasets.filter((d: any) => d.label.endsWith(suffix))
+      : data.datasets;
+
+    // Saat perbandingan+metric, label cukup nama PT (tanpa suffix)
+    const displayDs = (suffix && activeDs.length > 0)
+      ? activeDs.map((d: any) => ({ ...d, label: d.label.replace(` ${suffix}`, '') }))
+      : activeDs;
+
+    const buildDs = (rawDs: any[]) => rawDs.map((ds: any, i: number) => {
+      const c = lineColors[i % lineColors.length];
+      return {
+        label: ds.label, data: ds.data,
+        borderColor: c, backgroundColor: c + '22',
+        fill: rawDs.length === 1, tension: 0.35, borderWidth: 2,
+        pointRadius:          Array.from({ length: n }, (_, j) => j === ai ? 9 : 4),
+        pointHoverRadius:     Array.from({ length: n }, (_, j) => j === ai ? 11 : 6),
+        pointBackgroundColor: Array.from({ length: n }, (_, j) => j === ai ? '#fff' : c),
+        pointBorderColor:     Array.from({ length: n }, (_, j) => j === ai ? '#f59e0b' : c),
+        pointBorderWidth:     Array.from({ length: n }, (_, j) => j === ai ? 3 : 1),
+      };
+    });
+
+    if (this.chartTrenDosen) {
+      this.chartTrenDosen.data.labels = data.labels;
+      this.chartTrenDosen.data.datasets = buildDs(displayDs);
+      this.chartTrenDosen.update('none');
+      return;
+    }
+
+    const self = this;
+    const badgePlugin = {
+      id: 'dosenTrenBadge',
+      afterDraw(chart: any) {
+        const idx = self.activeTrenIdx;
+        if (idx < 0) return;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta?.data?.[idx]) return;
+        const pt = meta.data[idx];
+        const ctx: CanvasRenderingContext2D = chart.ctx;
+        const yAxis = chart.scales['y'];
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(245,158,11,.55)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(pt.x, yAxis.top); ctx.lineTo(pt.x, yAxis.bottom); ctx.stroke();
+        ctx.setLineDash([]);
+        const text = 'Semester Dilaporkan';
+        ctx.font = 'bold 10px sans-serif';
+        const tw = ctx.measureText(text).width;
+        const pad = 5; const bw = tw + pad * 2; const bh = 17;
+        const bx = Math.min(Math.max(pt.x - bw / 2, chart.chartArea.left), chart.chartArea.right - bw);
+        const by = yAxis.top + 2; const r = 3;
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(bx + r, by); ctx.lineTo(bx + bw - r, by);
+        ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+        ctx.lineTo(bx + bw, by + bh - r);
+        ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+        ctx.lineTo(bx + r, by + bh);
+        ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+        ctx.lineTo(bx, by + r);
+        ctx.quadraticCurveTo(bx, by, bx + r, by);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(text, bx + bw / 2, by + bh / 2);
+        ctx.restore();
+      }
+    };
+
+    this.chartTrenDosen = new Chart(this.trenDosenChartRef.nativeElement.getContext('2d')!, {
+      type: 'line',
+      data: { labels: data.labels, datasets: buildDs(displayDs) },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { size: 12 }, padding: 12, boxWidth: 14 } },
+          tooltip: { callbacks: { label: (c: any) => ` ${c.dataset.label}: ${(c.parsed.y as number).toLocaleString('id-ID')} dosen` } }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } },
+          y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 }, callback: (v: any) => Number(v).toLocaleString('id-ID') } }
+        }
+      },
+      plugins: [badgePlugin]
+    });
+  }
+
   ngOnDestroy() {
     [this.chartJk, this.chartPend, this.chartStatus,
-     this.chartJabatan, this.chartWilayah, this.chartPt]
+     this.chartJabatan, this.chartWilayah, this.chartPt, this.chartTrenDosen]
       .forEach(c => c?.destroy());
   }
 
