@@ -198,7 +198,7 @@ Chart.register(...registerables);
             </span>
           </div>
         </div>
-        <select *ngIf="trenMode==='perbandingan'" class="tren-metric-sel"
+        <select class="tren-metric-sel"
           [(ngModel)]="trenMetric" (ngModelChange)="onTrenMetricChange()">
           <option *ngFor="let m of trenMetrics" [value]="m.val">{{ m.lbl }}</option>
         </select>
@@ -884,7 +884,6 @@ export class DosenListComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.trenPtSearch = '';
       this.trenPtFiltered = [];
       this.trenPtPanelOpen = false;
-      this.trenMetric = '';
     }
     this.chartTrenDosen?.destroy();
     this.chartTrenDosen = null;

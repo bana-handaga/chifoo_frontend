@@ -291,6 +291,47 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     </div>
   </div>
 
+  <!-- Tren Jumlah Prodi per Semester -->
+  <div class="tren-prodi-card" *ngIf="!loading">
+    <div class="tren-prodi-header">
+      <span class="tren-prodi-title">Tren Jumlah Program Studi per Semester</span>
+      <div class="tren-prodi-controls">
+        <div class="mode-toggle">
+          <button [class.active]="trenProdiMode==='gabung'" (click)="setTrenProdiMode('gabung')">Gabung</button>
+          <button [class.active]="trenProdiMode==='perbandingan'" (click)="setTrenProdiMode('perbandingan')">Perbandingan</button>
+        </div>
+        <div class="tp-pt-wrap" *ngIf="trenProdiMode==='perbandingan'">
+          <div class="tp-pt-search-row">
+            <input class="tp-pt-input" [(ngModel)]="trenProdiPtSearch"
+                   (ngModelChange)="onTrenProdiPtSearch()"
+                   (focus)="trenProdiPtPanelOpen=true"
+                   (blur)="closeTrenProdiPanel()"
+                   placeholder="Cari PT..." autocomplete="off"/>
+            <button class="tp-clear-btn" *ngIf="trenProdiPtIds.length" (click)="clearTrenProdiPts()">Hapus semua</button>
+          </div>
+          <div class="tp-pt-panel" *ngIf="trenProdiPtPanelOpen" (mousedown)="$event.preventDefault()">
+            <div class="tp-pt-empty" *ngIf="!trenProdiPtFiltered.length">Tidak ditemukan</div>
+            <div class="tp-pt-item" *ngFor="let pt of trenProdiPtFiltered"
+                 (mousedown)="toggleTrenProdiPt(pt)"
+                 [class.on]="isTrenProdiPtSelected(pt)">
+              <span class="tp-chk">{{isTrenProdiPtSelected(pt)?'✓':''}}</span>
+              <span>{{pt.singkatan || pt.nama}}</span>
+            </div>
+          </div>
+          <div class="tp-chips" *ngIf="trenProdiPtIds.length">
+            <span class="tp-chip" *ngFor="let id of trenProdiPtIds">
+              {{getTrenProdiPtLabel(id)}}<button class="tp-chip-rm" (click)="removeTrenProdiPt(id)">×</button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tren-prodi-loading" *ngIf="trenProdiLoading">Memuat data...</div>
+    <div class="tren-prodi-body" *ngIf="!trenProdiLoading">
+      <canvas #trenProdiChart></canvas>
+    </div>
+  </div>
+
   <!-- Filter bar -->
   <div class="filter-bar">
     <div class="search-wrap">
@@ -763,6 +804,64 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     .chart-card__body--pie { height: 200px; display: flex; align-items: center; }
     .chart-card__body--bar { height: auto; overflow-y: auto; }
 
+    /* ── Tren Prodi Card ── */
+    .tren-prodi-card {
+      background: #fff; border-radius: 12px; padding: 1rem 1.25rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07); margin-bottom: .75rem;
+    }
+    .tren-prodi-header {
+      display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: .75rem;
+    }
+    .tren-prodi-title {
+      font-size: .875rem; font-weight: 600; color: #334155; flex: 1; min-width: 200px;
+      padding-top: 4px;
+    }
+    .tren-prodi-controls { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .tren-prodi-body { position: relative; height: 280px; }
+    .tren-prodi-loading { text-align: center; color: #94a3b8; font-size: .85rem; padding: 2rem 0; }
+    .mode-toggle {
+      display: flex; gap: 0; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;
+    }
+    .mode-toggle button {
+      padding: 5px 14px; font-size: .8rem; border: none; background: #f8fafc;
+      cursor: pointer; color: #64748b; transition: all .15s;
+    }
+    .mode-toggle button.active { background: #6366f1; color: #fff; font-weight: 600; }
+    .tp-pt-wrap { display: flex; flex-direction: column; gap: 4px; position: relative; min-width: 200px; }
+    .tp-pt-search-row { display: flex; gap: 6px; align-items: center; }
+    .tp-pt-input {
+      padding: 5px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: .82rem;
+      outline: none; width: 160px;
+    }
+    .tp-pt-input:focus { border-color: #6366f1; }
+    .tp-clear-btn {
+      font-size: .75rem; color: #ef4444; background: none; border: none; cursor: pointer;
+      white-space: nowrap;
+    }
+    .tp-pt-panel {
+      position: absolute; top: 100%; left: 0; z-index: 50; background: #fff;
+      border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.12);
+      max-height: 200px; overflow-y: auto; min-width: 220px; margin-top: 2px;
+    }
+    .tp-pt-item {
+      padding: 6px 12px; font-size: .82rem; cursor: pointer; display: flex; gap: 8px;
+      align-items: center; transition: background .1s;
+    }
+    .tp-pt-item:hover { background: #f1f5f9; }
+    .tp-pt-item.on { background: #ede9fe; }
+    .tp-chk { width: 14px; color: #6366f1; font-weight: 700; text-align: center; }
+    .tp-pt-empty { padding: 8px 12px; font-size: .82rem; color: #94a3b8; }
+    .tp-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tp-chip {
+      display: flex; align-items: center; gap: 4px;
+      background: #ede9fe; color: #4c1d95; border-radius: 20px;
+      padding: 2px 8px; font-size: .75rem;
+    }
+    .tp-chip-rm {
+      background: none; border: none; cursor: pointer; color: #7c3aed;
+      font-size: .85rem; padding: 0; line-height: 1;
+    }
+
     .filter-bar {
       display: flex; align-items: center; gap: 12px;
       background: #fff; border-radius: 10px; padding: 12px 16px;
@@ -1047,6 +1146,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   @ViewChild('modalChart')   modalChartRef!:   ElementRef<HTMLCanvasElement>;
   @ViewChild('prodiMhsChart') prodiMhsChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('prodiDsnChart') prodiDsnChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('trenProdiChart') trenProdiChartRef!: ElementRef<HTMLCanvasElement>;
 
   rows:     ProdiGroup[] = [];
   filtered: ProdiGroup[] = [];
@@ -1109,6 +1209,20 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     dLabels: string[]; dData: number[]; dColors: string[];
     dAllLabels: string[]; dAllData: number[]; dAllColors: string[];
   } | null = null;
+
+  // ── Tren Prodi Chart ──
+  trenProdiMode: 'gabung' | 'perbandingan' = 'gabung';
+  trenProdiLoading = false;
+  trenProdiData: any = null;
+  private trenProdiChart: Chart<any> | null = null;
+  private trenProdiChartReady = false;
+
+  trenProdiPtSearch    = '';
+  trenProdiPtFiltered: any[] = [];
+  trenProdiPtPanelOpen = false;
+  trenProdiPtIds: number[] = [];
+  private trenProdiAllPts: any[] = [];
+  private trenProdiPtSearchTimeout: any;
 
   // ── Search Accordion Prodi ──
   psOpen       = false;
@@ -1363,6 +1477,13 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadTrenProdi();
+    this.api.getPerguruanTinggiList({ page_size: 200, ordering: 'nama' }).subscribe({
+      next: (res: any) => {
+        this.trenProdiAllPts = res.results || [];
+        this.trenProdiPtFiltered = [...this.trenProdiAllPts];
+      }
+    });
     this.api.getProdiExpCounts().subscribe({
       next: r => { this.notifCount1m = r.count_1m; this.notifCount2m = r.count_2m;
                    this.notifCount3m = r.count_3m; this.notifCount5m = r.count_5m;
@@ -1383,6 +1504,10 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
         && this.prodiMhsChartRef) {
       this.prodiModal.chartsReady = true;
       this.zone.runOutsideAngular(() => this.renderProdiCharts());
+    }
+    if (!this.trenProdiChartReady && this.trenProdiData && this.trenProdiChartRef && !this.trenProdiLoading) {
+      this.trenProdiChartReady = true;
+      this.zone.runOutsideAngular(() => this.renderTrenProdiChart());
     }
   }
 
@@ -1451,6 +1576,128 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
         });
       }
     }
+  }
+
+  // ── Tren Prodi Methods ──
+
+  loadTrenProdi(): void {
+    this.trenProdiLoading    = true;
+    this.trenProdiChartReady = false;
+    this.trenProdiChart?.destroy();
+    this.trenProdiChart = null;
+    this.api.getTrenProdi(this.trenProdiMode, this.trenProdiPtIds).subscribe({
+      next: (data: any) => {
+        this.trenProdiData    = data;
+        this.trenProdiLoading = false;
+      },
+      error: () => { this.trenProdiLoading = false; }
+    });
+  }
+
+  setTrenProdiMode(mode: 'gabung' | 'perbandingan'): void {
+    this.trenProdiMode = mode;
+    if (mode === 'gabung') this.trenProdiPtIds = [];
+    this.loadTrenProdi();
+  }
+
+  onTrenProdiPtSearch(): void {
+    clearTimeout(this.trenProdiPtSearchTimeout);
+    this.trenProdiPtSearchTimeout = setTimeout(() => {
+      const q = this.trenProdiPtSearch.trim().toLowerCase();
+      this.trenProdiPtFiltered = q
+        ? this.trenProdiAllPts.filter(pt =>
+            (pt.nama || '').toLowerCase().includes(q) ||
+            (pt.singkatan || '').toLowerCase().includes(q))
+        : [...this.trenProdiAllPts];
+    }, 200);
+  }
+
+  closeTrenProdiPanel(): void {
+    setTimeout(() => { this.trenProdiPtPanelOpen = false; }, 150);
+  }
+
+  toggleTrenProdiPt(pt: any): void {
+    const idx = this.trenProdiPtIds.indexOf(pt.id);
+    if (idx >= 0) {
+      this.trenProdiPtIds = this.trenProdiPtIds.filter(id => id !== pt.id);
+    } else {
+      if (this.trenProdiPtIds.length >= 8) return;
+      this.trenProdiPtIds = [...this.trenProdiPtIds, pt.id];
+    }
+    this.loadTrenProdi();
+  }
+
+  isTrenProdiPtSelected(pt: any): boolean {
+    return this.trenProdiPtIds.includes(pt.id);
+  }
+
+  getTrenProdiPtLabel(id: number): string {
+    const pt = this.trenProdiAllPts.find(p => p.id === id);
+    return pt ? (pt.singkatan || pt.nama) : `#${id}`;
+  }
+
+  removeTrenProdiPt(id: number): void {
+    this.trenProdiPtIds = this.trenProdiPtIds.filter(i => i !== id);
+    this.loadTrenProdi();
+  }
+
+  clearTrenProdiPts(): void {
+    this.trenProdiPtIds = [];
+    this.loadTrenProdi();
+  }
+
+  private renderTrenProdiChart(): void {
+    if (!this.trenProdiChartRef || !this.trenProdiData) return;
+    this.trenProdiChart?.destroy();
+    this.trenProdiChart = null;
+
+    const { labels, datasets } = this.trenProdiData;
+    if (!labels?.length || !datasets?.length) return;
+
+    const chartDatasets = datasets.map((ds: any) => ({
+      label: ds.label,
+      data: ds.data,
+      borderColor: ds.color,
+      backgroundColor: ds.color + '18',
+      pointBackgroundColor: ds.color,
+      tension: 0.3,
+      fill: datasets.length === 1,
+      borderWidth: 2,
+      pointRadius: 3,
+    }));
+
+    this.trenProdiChart = new Chart(this.trenProdiChartRef.nativeElement, {
+      type: 'line',
+      data: { labels, datasets: chartDatasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: { display: datasets.length > 1, position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+          tooltip: {
+            callbacks: {
+              label: (ctx: any) => ` ${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('id')} prodi`,
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10 }, maxRotation: 45 }
+          },
+          y: {
+            beginAtZero: false,
+            grace: '5%',
+            ticks: {
+              font: { size: 10 },
+              callback: (v: any) => Number(v).toLocaleString('id'),
+              stepSize: 50,
+            }
+          }
+        }
+      }
+    });
   }
 
   loadData(): void {

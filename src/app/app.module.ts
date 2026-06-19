@@ -40,6 +40,7 @@ import { SintaAfiliasiComponent }  from './components/sinta/sinta-afiliasi.compo
 import { SintaJurnalComponent, IssnPipe } from './components/sinta/sinta-jurnal.component';
 import { SintaAuthorComponent }    from './components/sinta/sinta-author.component';
 import { SintaKolaboasiComponent } from './components/sinta/sinta-kolaborasi.component';
+import { RankingComponent } from './components/ranking/ranking.component';
 
 import { AuthService } from './services/auth.service';
 import { ApiService } from './services/api.service';
@@ -81,6 +82,7 @@ const routes: Routes = [
       { path: 'network-x',        component: SintaKolaboasiComponent },
       { path: 'profile',          component: ProfileComponent },
       { path: 'sync',             component: SyncComponent },
+      { path: 'ranking',          component: RankingComponent },
     ]
   },
   { path: '**', redirectTo: '' }
@@ -116,6 +118,7 @@ const routes: Routes = [
     IssnPipe, TitleCaseIdPipe,
     MahasiswaTrenComponent,
     SyncComponent,
+    RankingComponent,
   ],
   imports: [
     BrowserModule,

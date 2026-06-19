@@ -62,6 +62,12 @@ import { environment } from '../../../environments/environment';
           </svg>
           <span class="nav-label">SINTA</span>
         </a>
+        <a routerLink="/ranking" routerLinkActive="active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/>
+          </svg>
+          <span class="nav-label">Ranking</span>
+        </a>
         <a routerLink="/network-x" routerLinkActive="active">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17 12a5 5 0 1 0-4.48 4.97V18h-2v2h2v1h2v-1h2v-2h-2v-1.03A5 5 0 0 0 17 12zm-5 3a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM4 6a2 2 0 1 1 4 0 2 2 0 0 1-4 0zm2-4a4 4 0 1 0 0 8A4 4 0 0 0 6 2zm14 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0-2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>

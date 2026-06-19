@@ -135,6 +135,14 @@ const COLORS = [
           <button class="toggle-btn" [class.active]="mode==='perbandingan'" (click)="setMode('perbandingan')">Bandingkan</button>
         </div>
       </div>
+      <div class="mode-group">
+        <span class="filter-label">Jenis:</span>
+        <div class="toggle-group">
+          <button class="toggle-btn" [class.active]="jenisMhs==='semua'"   (click)="setJenisMhs('semua')">Semua</button>
+          <button class="toggle-btn ppg-btn" [class.active]="jenisMhs==='ppg'"     (click)="setJenisMhs('ppg')">PPG</button>
+          <button class="toggle-btn" [class.active]="jenisMhs==='non_ppg'" (click)="setJenisMhs('non_ppg')">Non-PPG</button>
+        </div>
+      </div>
       <button class="load-btn" (click)="loadData()" [disabled]="loading">
         {{loading ? 'Memuat...' : 'Tampilkan'}}
       </button>
@@ -272,6 +280,14 @@ const COLORS = [
         <div class="toggle-group">
           <button class="toggle-btn" [class.active]="mode==='gabung'"       (click)="setMode('gabung')">Gabung</button>
           <button class="toggle-btn" [class.active]="mode==='perbandingan'" (click)="setMode('perbandingan')">Bandingkan</button>
+        </div>
+      </div>
+      <div class="mode-group">
+        <span class="filter-label">Jenis:</span>
+        <div class="toggle-group">
+          <button class="toggle-btn" [class.active]="jenisMhs==='semua'"   (click)="setJenisMhs('semua')">Semua</button>
+          <button class="toggle-btn ppg-btn" [class.active]="jenisMhs==='ppg'"     (click)="setJenisMhs('ppg')">PPG</button>
+          <button class="toggle-btn" [class.active]="jenisMhs==='non_ppg'" (click)="setJenisMhs('non_ppg')">Non-PPG</button>
         </div>
       </div>
       <button class="load-btn" style="background:#f97316" (click)="loadData()" [disabled]="loading">
@@ -433,6 +449,14 @@ const COLORS = [
     </div>
 
     <div class="mode-row">
+      <div class="mode-group">
+        <span class="filter-label">Jenis:</span>
+        <div class="toggle-group">
+          <button class="toggle-btn" [class.active]="jenisMhs==='semua'"   (click)="setJenisMhs('semua')">Semua</button>
+          <button class="toggle-btn ppg-btn" [class.active]="jenisMhs==='ppg'"     (click)="setJenisMhs('ppg')">PPG</button>
+          <button class="toggle-btn" [class.active]="jenisMhs==='non_ppg'" (click)="setJenisMhs('non_ppg')">Non-PPG</button>
+        </div>
+      </div>
       <button class="load-btn" style="background:#10b981; margin-left:auto" (click)="loadData()"
         [disabled]="loading || !canRingkasan">
         {{loading ? 'Memuat...' : 'Tampilkan'}}
@@ -593,6 +617,7 @@ const COLORS = [
     }
     .toggle-btn:last-child { border-right: none; }
     .toggle-btn.active { background: #6366f1; color: #fff; }
+    .toggle-btn.ppg-btn.active { background: #0891b2; color: #fff; }
 
     .load-btn {
       margin-left: auto;
@@ -664,6 +689,7 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   metric:  'baru' | 'lulus' | 'kombinasi' = 'baru';
   activeTab: 'pt' | 'prodi' = 'pt';
   includeProfesi = false;
+  jenisMhs: 'semua' | 'ppg' | 'non_ppg' = 'semua';
   ringkasanMode: 'semua' | 'pilih' = 'semua';
 
   // PT filter
@@ -803,7 +829,8 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
     let params = new HttpParams()
       .set('mode',            this.mode)
       .set('filter_by',       this.activeTab)
-      .set('include_profesi', String(this.includeProfesi));
+      .set('include_profesi', String(this.includeProfesi))
+      .set('jenis_mhs',       this.jenisMhs);
 
     const skipFilter = this.pageTab === 'ringkasan' && this.ringkasanMode === 'semua';
     if (!skipFilter) {
@@ -880,6 +907,10 @@ export class MahasiswaTrenComponent implements AfterViewInit, OnDestroy {
   toggleProfesi() {
     this.includeProfesi = !this.includeProfesi;
     this.clearChart();
+  }
+
+  setJenisMhs(j: 'semua' | 'ppg' | 'non_ppg') {
+    if (this.jenisMhs !== j) { this.jenisMhs = j; this.clearChart(); }
   }
 
   get canKombinasi(): boolean {

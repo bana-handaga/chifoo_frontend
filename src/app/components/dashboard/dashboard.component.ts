@@ -116,6 +116,11 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
               <button [class.active]="trenMode==='gabung'" (click)="setTrenMode('gabung')">Gabung</button>
               <button [class.active]="trenMode==='perbandingan'" (click)="setTrenMode('perbandingan')">Perbandingan</button>
             </div>
+            <div class="mode-toggle jenis-toggle">
+              <button [class.active]="jenisMhsTren==='semua'"   (click)="setJenisMhsTren('semua')">Semua</button>
+              <button [class.active]="jenisMhsTren==='ppg'"     (click)="setJenisMhsTren('ppg')">PPG</button>
+              <button [class.active]="jenisMhsTren==='non_ppg'" (click)="setJenisMhsTren('non_ppg')">Non-PPG</button>
+            </div>
             <div class="pt-select-wrap" *ngIf="trenMode==='perbandingan'">
               <div class="pt-search-row">
                 <input class="pt-search-input" [(ngModel)]="ptSearch"
@@ -153,7 +158,7 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
       <!-- Tren Dosen Tetap -->
       <div class="chart-card chart-card--tren">
         <div class="tren-header">
-          <div class="chart-card__title">Tren Dosen Tetap — 5 Semester Terakhir</div>
+          <div class="chart-card__title">Tren Dosen — 6 Semester Terakhir</div>
           <div class="tren-controls">
             <div class="mode-toggle">
               <button [class.active]="trenDosenMode==='gabung'" (click)="setTrenDosenMode('gabung')">Gabung</button>
@@ -184,7 +189,7 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
                 </span>
               </div>
             </div>
-            <select *ngIf="trenDosenMode==='perbandingan'" class="tren-metric-sel"
+            <select class="tren-metric-sel"
               [(ngModel)]="trenDosenMetric" (ngModelChange)="onTrenDosenMetricChange()">
               <option *ngFor="let m of trenDosenMetrics" [value]="m.val">{{ m.lbl }}</option>
             </select>
@@ -346,6 +351,8 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
     }
     .mode-toggle button.active { background: #1a237e; color: #fff; font-weight: 600; }
     .mode-toggle button:not(.active):hover { background: #e2e8f0; }
+    .jenis-toggle button:nth-child(2).active { background: #0891b2; }
+    .jenis-toggle button:nth-child(3).active { background: #0f766e; }
     .pt-select-wrap { position: relative; display: flex; flex-direction: column; gap: 4px; }
     .pt-search-row { display: flex; align-items: center; gap: 6px; }
     .pt-search-input {
@@ -434,6 +441,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   @ViewChild('trenDosenChart', { static: true }) trenDosenChartRef!: ElementRef<HTMLCanvasElement>;
 
   trenMode: 'gabung' | 'perbandingan' = 'gabung';
+  jenisMhsTren: 'semua' | 'ppg' | 'non_ppg' = 'semua';
   trenLoading = false;
   trenError = '';
   ptList: any[] = [];
@@ -513,6 +521,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.loadTren();
   }
 
+  setJenisMhsTren(j: 'semua' | 'ppg' | 'non_ppg') {
+    if (this.jenisMhsTren !== j) { this.jenisMhsTren = j; this.loadTren(); }
+  }
+
   onPtSearch() {
     const q = this.ptSearch.trim().toLowerCase();
     this.ptFiltered = q
@@ -565,7 +577,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       this.ptDosenSearch = '';
       this.ptDosenFiltered = [];
       this.ptDosenPanelOpen = false;
-      this.trenDosenMetric = '';
     }
     this.loadTrenDosen();
   }
@@ -618,7 +629,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private loadTren() {
     this.trenLoading = true;
     this.trenError = '';
-    this.api.getTrenMahasiswa(this.trenMode, this.selectedPtIds).subscribe({
+    this.api.getTrenMahasiswa(this.trenMode, this.selectedPtIds, this.jenisMhsTren).subscribe({
       next: (d: any) => {
         this.trenLoading = false;
         this.lastTrenData = d;

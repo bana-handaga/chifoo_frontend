@@ -116,8 +116,8 @@ export class ApiService {
   getSebaranPeta(): Observable<any> {
     return this.http.get(`${this.baseUrl}/perguruan-tinggi/sebaran_peta/`);
   }
-  getTrenMahasiswa(mode: string, ptIds: number[] = []): Observable<any> {
-    let params = new HttpParams().set('mode', mode);
+  getTrenMahasiswa(mode: string, ptIds: number[] = [], jenisMhs = 'semua'): Observable<any> {
+    let params = new HttpParams().set('mode', mode).set('jenis_mhs', jenisMhs);
     for (const id of ptIds) params = params.append('pt_id', id.toString());
     return this.http.get(`${this.baseUrl}/perguruan-tinggi/tren_mahasiswa/`, { params });
   }
@@ -125,6 +125,17 @@ export class ApiService {
     let params = new HttpParams().set('mode', mode).set('n', n.toString());
     for (const id of ptIds) params = params.append('pt_id', id.toString());
     return this.http.get(`${this.baseUrl}/perguruan-tinggi/tren_dosen/`, { params });
+  }
+  getTrenProdi(mode: string, ptIds: number[] = [], n = 10): Observable<any> {
+    let params = new HttpParams().set('mode', mode).set('n', n.toString());
+    for (const id of ptIds) params = params.append('pt_id', id.toString());
+    return this.http.get(`${this.baseUrl}/perguruan-tinggi/tren_prodi/`, { params });
+  }
+  getRankingPTMA(tahunAkademik?: string, semester?: string, jenisMhs = 'semua'): Observable<any> {
+    let params = new HttpParams().set('jenis_mhs', jenisMhs);
+    if (tahunAkademik) params = params.set('tahun_akademik', tahunAkademik);
+    if (semester)      params = params.set('semester', semester);
+    return this.http.get(`${this.baseUrl}/perguruan-tinggi/ranking/`, { params });
   }
   getWilayahList(): Observable<any> {
     return this.http.get(`${this.baseUrl}/wilayah/`);
