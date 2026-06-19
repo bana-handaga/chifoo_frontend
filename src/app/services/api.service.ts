@@ -126,6 +126,11 @@ export class ApiService {
     for (const id of ptIds) params = params.append('pt_id', id.toString());
     return this.http.get(`${this.baseUrl}/perguruan-tinggi/tren_dosen/`, { params });
   }
+  getEstimasiMahasiswa(metric: 'baru' | 'lulus', ptIds: number[] = [], includeProfe = false, mode = 'gabung'): Observable<any> {
+    let params = new HttpParams().set('metric', metric).set('include_profesi', includeProfe.toString()).set('mode', mode);
+    for (const id of ptIds) params = params.append('pt_id', id.toString());
+    return this.http.get(`${this.baseUrl}/perguruan-tinggi/estimasi_mahasiswa/`, { params });
+  }
   getTrenProdi(mode: string, ptIds: number[] = [], n = 10): Observable<any> {
     let params = new HttpParams().set('mode', mode).set('n', n.toString());
     for (const id of ptIds) params = params.append('pt_id', id.toString());

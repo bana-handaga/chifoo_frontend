@@ -3,6 +3,7 @@ import {
   Chart, ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
   LineController, LineElement, PointElement, LinearScale, Filler
 } from 'chart.js';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 
 Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
@@ -153,6 +154,59 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
         </div>
         <div class="tren-loading" *ngIf="trenLoading">Memuat data...</div>
         <div class="tren-error" *ngIf="trenError">{{ trenError }}</div>
+      </div>
+
+      <!-- Estimasi Mahasiswa Baru & Lulus -->
+      <div class="chart-card chart-card--tren">
+        <div class="tren-header">
+          <div>
+            <div class="chart-card__title">Estimasi Mahasiswa Baru &amp; Lulus — per Tahun Akademik</div>
+            <div class="est-note">* Estimasi dari data mahasiswa aktif — bukan data pelaporan PDDikti. Rumus: aktif ÷ masa studi per jenjang.</div>
+          </div>
+          <div class="tren-controls">
+            <div class="mode-toggle">
+              <button [class.active]="estimasiMode==='gabung'" (click)="setEstimasiMode('gabung')">Gabung</button>
+              <button [class.active]="estimasiMode==='perbandingan'" (click)="setEstimasiMode('perbandingan')">Perbandingan</button>
+            </div>
+            <div class="mode-toggle" *ngIf="estimasiMode==='perbandingan'">
+              <button [class.active]="estimasiMetric==='baru'" (click)="setEstimasiMetric('baru')">Baru</button>
+              <button [class.active]="estimasiMetric==='lulus'" (click)="setEstimasiMetric('lulus')">Lulus</button>
+            </div>
+            <div class="pt-select-wrap" *ngIf="estimasiMode==='perbandingan'">
+              <div class="pt-search-row">
+                <input class="pt-search-input" [(ngModel)]="estimasiPtSearch"
+                       (ngModelChange)="onEstimasiPtSearch()"
+                       (focus)="openEstimasiPtPanel()"
+                       (blur)="closeEstimasiPtPanel()"
+                       placeholder="Cari PT..." autocomplete="off"/>
+                <button class="pt-clear-btn" *ngIf="estimasiPtIds.length" (click)="clearEstimasiPts()">Hapus semua</button>
+              </div>
+              <div class="pt-panel" *ngIf="estimasiPtPanelOpen" (mousedown)="$event.preventDefault()">
+                <div class="pt-panel-empty" *ngIf="ptList.length===0 && !estimasiPtSearch">Memuat data PT...</div>
+                <div class="pt-panel-empty" *ngIf="ptList.length>0 && !estimasiPtFiltered.length">Tidak ditemukan</div>
+                <div class="pt-panel-item" *ngFor="let pt of estimasiPtFiltered"
+                     (mousedown)="toggleEstimasiPt(pt)"
+                     [class.pt-panel-item--on]="isEstimasiPtSelected(pt)">
+                  <span class="pt-chk" [class.pt-chk--on]="isEstimasiPtSelected(pt)">{{isEstimasiPtSelected(pt)?'✓':''}}</span>
+                  <span>{{pt.singkatan || pt.nama}}</span>
+                </div>
+              </div>
+              <div class="pt-chips" *ngIf="estimasiPtIds.length">
+                <span class="pt-chip" *ngFor="let id of estimasiPtIds">
+                  {{getEstimasiPtLabel(id)}}<button class="pt-chip-rm" (click)="removeEstimasiPt(id)">×</button>
+                </span>
+              </div>
+            </div>
+            <label class="est-toggle-label">
+              <input type="checkbox" [(ngModel)]="estimasiIncludeProfe" (change)="loadEstimasi()">
+              Sertakan Profesi (PPG, Ners)
+            </label>
+          </div>
+        </div>
+        <div class="tren-loading" *ngIf="estimasiLoading">Memuat data...</div>
+        <div class="chart-card__body chart-card__body--tren">
+          <canvas #estimasiChart></canvas>
+        </div>
       </div>
 
       <!-- Tren Dosen Tetap -->
@@ -403,6 +457,12 @@ Chart.register(ArcElement, DoughnutController, Tooltip, Legend, CategoryScale,
     .tren-metric-sel:focus { border-color: #1a237e; }
     .tren-loading { text-align: center; font-size: 13px; color: #94a3b8; padding: 8px; }
     .tren-error   { text-align: center; font-size: 13px; color: #dc2626; padding: 8px; }
+    .est-note { font-size: 11px; color: #94a3b8; margin-top: 2px; line-height: 1.4; max-width: 480px; }
+    .est-toggle-label {
+      display: flex; align-items: center; gap: 5px; font-size: 12px; color: #64748b;
+      cursor: pointer; white-space: nowrap; user-select: none;
+    }
+    .est-toggle-label input { cursor: pointer; accent-color: #6366f1; width: 14px; height: 14px; }
 
     /* ── Bar charts ──────────────────────────────────── */
     .chart-list { display: flex; flex-direction: column; gap: 10px; }
@@ -439,6 +499,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   @ViewChild('dosenChart')             dosenChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('trenChart',      { static: true }) trenChartRef!:      ElementRef<HTMLCanvasElement>;
   @ViewChild('trenDosenChart', { static: true }) trenDosenChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('estimasiChart',  { static: true }) estimasiChartRef!:  ElementRef<HTMLCanvasElement>;
 
   trenMode: 'gabung' | 'perbandingan' = 'gabung';
   jenisMhsTren: 'semua' | 'ppg' | 'non_ppg' = 'semua';
@@ -472,6 +533,16 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   ];
   private trenDosenChartInst: Chart<any> | null = null;
 
+  estimasiLoading      = false;
+  estimasiIncludeProfe = false;
+  estimasiMode: 'gabung' | 'perbandingan' = 'gabung';
+  estimasiMetric: 'baru' | 'lulus' = 'baru';
+  estimasiPtIds: number[] = [];
+  estimasiPtSearch    = '';
+  estimasiPtFiltered: any[] = [];
+  estimasiPtPanelOpen = false;
+  private estimasiChartInst: Chart<any> | null = null;
+
   constructor(private api: ApiService, private zone: NgZone) {}
 
   ngOnInit() {
@@ -504,6 +575,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     if (this.statistik) this.scheduleCharts();
     setTimeout(() => this.loadTren(), 200);
     setTimeout(() => this.loadTrenDosen(), 300);
+    setTimeout(() => this.loadEstimasi(), 400);
   }
 
   private scheduleCharts() {
@@ -660,6 +732,163 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         this.trenDosenError = status === 404
           ? 'Endpoint tren_dosen belum tersedia di server. Perlu deploy backend terbaru.'
           : `Gagal memuat data tren dosen (error ${status ?? 'unknown'}).`;
+      }
+    });
+  }
+
+  setEstimasiMode(mode: 'gabung' | 'perbandingan') {
+    this.estimasiMode = mode;
+    if (mode === 'gabung') {
+      this.estimasiPtIds = [];
+      this.estimasiPtSearch = '';
+      this.estimasiPtFiltered = [];
+      this.estimasiPtPanelOpen = false;
+    }
+    this.loadEstimasi();
+  }
+
+  setEstimasiMetric(m: 'baru' | 'lulus') {
+    if (this.estimasiMetric !== m) { this.estimasiMetric = m; this.loadEstimasi(); }
+  }
+
+  onEstimasiPtSearch() {
+    const q = this.estimasiPtSearch.trim().toLowerCase();
+    this.estimasiPtFiltered = q
+      ? this.ptList.filter(pt =>
+          (pt.singkatan || '').toLowerCase().includes(q) ||
+          (pt.nama || '').toLowerCase().includes(q))
+      : this.ptList;
+  }
+
+  openEstimasiPtPanel() {
+    if (!this.estimasiPtSearch.trim()) this.estimasiPtFiltered = this.ptList;
+    this.estimasiPtPanelOpen = true;
+  }
+
+  closeEstimasiPtPanel() {
+    setTimeout(() => { this.estimasiPtPanelOpen = false; }, 150);
+  }
+
+  isEstimasiPtSelected(pt: any): boolean { return this.estimasiPtIds.includes(pt.id); }
+
+  toggleEstimasiPt(pt: any) {
+    this.estimasiPtIds = this.isEstimasiPtSelected(pt)
+      ? this.estimasiPtIds.filter(id => id !== pt.id)
+      : [...this.estimasiPtIds, pt.id];
+    this.loadEstimasi();
+  }
+
+  getEstimasiPtLabel(id: number): string {
+    const pt = this.ptList.find(p => p.id === id);
+    return pt ? (pt.singkatan || pt.nama) : String(id);
+  }
+
+  removeEstimasiPt(id: number) {
+    this.estimasiPtIds = this.estimasiPtIds.filter(pid => pid !== id);
+    this.loadEstimasi();
+  }
+
+  clearEstimasiPts() {
+    this.estimasiPtIds = [];
+    this.loadEstimasi();
+  }
+
+  loadEstimasi() {
+    this.estimasiLoading = true;
+
+    if (this.estimasiMode === 'perbandingan') {
+      this.api.getEstimasiMahasiswa(this.estimasiMetric, this.estimasiPtIds, this.estimasiIncludeProfe, 'perbandingan').subscribe({
+        next: (d: any) => {
+          this.estimasiLoading = false;
+          this.zone.runOutsideAngular(() => this.renderEstimasiPerbandingan(d));
+        },
+        error: () => { this.estimasiLoading = false; }
+      });
+    } else {
+      forkJoin({
+        baru:  this.api.getEstimasiMahasiswa('baru',  [], this.estimasiIncludeProfe, 'gabung'),
+        lulus: this.api.getEstimasiMahasiswa('lulus', [], this.estimasiIncludeProfe, 'gabung'),
+      }).subscribe({
+        next: ({ baru, lulus }) => {
+          this.estimasiLoading = false;
+          this.zone.runOutsideAngular(() => this.renderEstimasiGabung(baru, lulus));
+        },
+        error: () => { this.estimasiLoading = false; }
+      });
+    }
+  }
+
+  private renderEstimasiGabung(baruData: any, lulusData: any) {
+    if (!this.estimasiChartRef) return;
+    const labels  = baruData.labels as string[];
+    const dsBaru  = (baruData.datasets[0]?.data  ?? []) as number[];
+    const dsLulus = (lulusData.datasets[0]?.data ?? []) as number[];
+    const datasets = [
+      {
+        label: 'Mahasiswa Baru (estimasi)',
+        data: dsBaru,
+        borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.10)',
+        pointBackgroundColor: '#6366f1',
+        fill: false, tension: 0.35, borderWidth: 2.5, pointRadius: 4,
+      },
+      {
+        label: 'Mahasiswa Lulus (estimasi)',
+        data: dsLulus,
+        borderColor: '#059669', backgroundColor: 'rgba(5,150,105,0.10)',
+        pointBackgroundColor: '#059669',
+        fill: false, tension: 0.35, borderWidth: 2.5, pointRadius: 4,
+        borderDash: [5, 3],
+      },
+    ];
+    this.updateOrCreateEstimasiChart(labels, datasets);
+  }
+
+  private renderEstimasiPerbandingan(data: any) {
+    if (!this.estimasiChartRef) return;
+    const lineColors = [
+      '#1a237e','#137333','#e65100','#6a1b9a','#0277bd','#558b2f','#bf360c',
+      '#c62828','#00695c','#4527a0','#e65100','#1565c0','#2e7d32','#ad1457'
+    ];
+    const metricLabel = this.estimasiMetric === 'baru' ? 'Baru' : 'Lulus';
+    const datasets = (data.datasets as any[]).map((ds, i) => ({
+      label: ds.label.replace(' *(estimasi)', '') + ` — ${metricLabel}`,
+      data: ds.data,
+      borderColor: lineColors[i % lineColors.length],
+      backgroundColor: lineColors[i % lineColors.length] + '22',
+      pointBackgroundColor: lineColors[i % lineColors.length],
+      fill: false, tension: 0.35, borderWidth: 2, pointRadius: 4,
+    }));
+    this.updateOrCreateEstimasiChart(data.labels, datasets);
+  }
+
+  private updateOrCreateEstimasiChart(labels: string[], datasets: any[]) {
+    if (this.estimasiChartInst) {
+      this.estimasiChartInst.data.labels   = labels;
+      this.estimasiChartInst.data.datasets = datasets;
+      this.estimasiChartInst.update('none');
+      return;
+    }
+    this.estimasiChartInst = new Chart(this.estimasiChartRef.nativeElement.getContext('2d')!, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { size: 12 }, padding: 12, boxWidth: 14 } },
+          tooltip: {
+            callbacks: {
+              label: (c: any) => ` ${c.dataset.label}: ${(c.parsed.y as number).toLocaleString('id-ID')} mahasiswa`,
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } },
+          y: {
+            beginAtZero: false, grace: '5%',
+            grid: { color: '#f0f0f0' },
+            ticks: { font: { size: 11 }, callback: (v: any) => Number(v).toLocaleString('id-ID') }
+          }
+        }
       }
     });
   }
