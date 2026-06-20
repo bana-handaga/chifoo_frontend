@@ -46,7 +46,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
         </div>
         <div class="info-item bobot-info" (click)="showBobot=!showBobot" style="cursor:pointer">
           <span class="info-label">Bobot Skor ⓘ</span>
-          <strong>5 indikator</strong>
+          <strong>6 indikator</strong>
         </div>
       </div>
 
@@ -133,6 +133,9 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
               <th class="sortable" [class.sorted]="sortKey==='tren_mhs'" (click)="sortBy('tren_mhs')">
                 Tren Mhs <span class="sort-arrow">{{ sortKey==='tren_mhs' ? (sortAsc?'↑':'↓') : '⇅' }}</span>
               </th>
+              <th class="sortable" [class.sorted]="sortKey==='sinta_score'" (click)="sortBy('sinta_score')">
+                Skor SINTA <span class="sort-arrow">{{ sortKey==='sinta_score' ? (sortAsc?'↑':'↓') : '⇅' }}</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -183,6 +186,10 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
               <td class="num-cell" [class.tren-pos]="r.tren_mhs > 0" [class.tren-neg]="r.tren_mhs < 0">
                 {{ r.tren_mhs > 0 ? '+' : '' }}{{ r.tren_mhs }}%
                 <span class="rank-sub">#{{ r.rank_tren_mhs }}</span>
+              </td>
+              <td class="num-cell">
+                <span [class.highlight-good]="r.rank_sinta_score <= 10">{{ r.sinta_score | number }}</span>
+                <span class="rank-sub">#{{ r.rank_sinta_score }}</span>
               </td>
             </tr>
           </tbody>
@@ -289,7 +296,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
     .tren-neg { color: #dc2626; }
 
     @media (max-width: 768px) {
-      .rank-table th:nth-child(n+6), .rank-table td:nth-child(n+6) { display: none; }
+      .rank-table th:nth-child(n+7), .rank-table td:nth-child(n+7) { display: none; }
     }
   `]
 })
@@ -318,11 +325,12 @@ export class RankingComponent implements OnInit {
   jenisMhs: 'semua' | 'ppg' | 'non_ppg' = 'semua';
 
   bobotList = [
-    { label: '% Dosen S3',            pct: 30 },
+    { label: '% Dosen S3',            pct: 25 },
     { label: 'Rasio Dosen/Mhs',       pct: 25 },
     { label: '% Profesor',            pct: 20 },
-    { label: 'Tren Mahasiswa',         pct: 15 },
+    { label: 'Tren Mahasiswa',         pct: 10 },
     { label: 'Akreditasi Institusi',   pct: 10 },
+    { label: 'Skor SINTA',             pct: 10 },
   ];
 
   private chartInst: Chart<any> | null = null;
