@@ -705,6 +705,7 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
     .badge-akr-unggul { background: #e6f4ea; color: #137333; }
     .badge-akr-baik_sekali { background: #e8f5e9; color: #2e7d32; }
     .badge-akr-baik { background: #fff8e1; color: #f57f17; }
+    .badge-akr-terakreditasi { background: #e0f7fa; color: #00838f; }
 
     /* Tabs */
     .tabs-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 12px; }
@@ -2000,7 +2001,7 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
   }
 
   formatAkreditasi(v: string) {
-    return { unggul:'Unggul', baik_sekali:'Baik Sekali', baik:'Baik', belum:'Belum' }[v] || v;
+    return ({ unggul:'Unggul', baik_sekali:'Baik Sekali', baik:'Baik', terakreditasi:'Terakreditasi', belum:'Belum' } as any)[v] || v;
   }
 
   expStatus(tgl: string): string {
@@ -2024,7 +2025,7 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
 
     const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
     const fmtNum  = (n: number | null) => n != null ? n.toLocaleString('id') : '—';
-    const akrLabel: Record<string, string> = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', c: 'C', belum: 'Belum Terakreditasi' };
+    const akrLabel: Record<string, string> = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', c: 'C', terakreditasi: 'Terakreditasi', belum: 'Belum Terakreditasi' };
 
     // ── Load logo PT sebagai base64 ────────────────────────────────
     const logoBase64: string = pt.logo
@@ -2273,6 +2274,7 @@ export class PerguruanTinggiDetailComponent implements OnInit, AfterViewChecked 
   .badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-right: 4px; }
   .badge-unggul{background:#d1fae5;color:#065f46} .badge-baik_sekali{background:#e0f2fe;color:#075985}
   .badge-baik{background:#fef9c3;color:#713f12} .badge-c{background:#fee2e2;color:#991b1b}
+  .badge-terakreditasi{background:#cffafe;color:#155e75}
   .badge-belum{background:#f1f5f9;color:#64748b} .badge-muhammadiyah{background:#fef9c3;color:#78350f}
   .badge-aisyiyah{background:#fce7f3;color:#831843}
   .tagline { font-size: 9px; color: #94a3b8; text-align: right; margin-bottom: 14px; }

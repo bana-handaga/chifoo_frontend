@@ -1183,6 +1183,7 @@ import * as XLSX from 'xlsx';
     .akr-badge--unggul{background:#d1fae5;color:#065f46}
     .akr-badge--baik_sekali{background:#dbeafe;color:#1e40af}
     .akr-badge--baik{background:#e0f2fe;color:#0369a1}
+    .akr-badge--terakreditasi{background:#cffafe;color:#155e75}
     .akr-badge--belum{background:#f1f5f9;color:#64748b}
     .mono{font-family:monospace;font-size:.8rem}
     .small{font-size:.75rem}
@@ -1524,6 +1525,7 @@ import * as XLSX from 'xlsx';
     .badge-unggul { background: #e6f4ea; color: #137333; }
     .badge-baik_sekali { background: #e8f5e9; color: #2e7d32; }
     .badge-baik { background: #fff8e1; color: #f57f17; }
+    .badge-terakreditasi { background: #e0f7fa; color: #00838f; }
     .badge-belum { background: #f1f3f4; color: #5f6368; }
     .badge-aktif { background: #e6f4ea; color: #137333; }
     .badge-nonaktif { background: #fce8e6; color: #c5221f; }
@@ -2305,7 +2307,7 @@ export class StatistikComponent implements OnInit {
     });
   }
 
-  fmtAkr(v: string) { return ({unggul:'Unggul',baik_sekali:'Baik Sekali',baik:'Baik',belum:'Belum'} as any)[v]||v; }
+  fmtAkr(v: string) { return ({unggul:'Unggul',baik_sekali:'Baik Sekali',baik:'Baik',terakreditasi:'Terakreditasi',belum:'Belum'} as any)[v]||v; }
 
   private readonly PIE_COLORS = [
     '#1a237e','#1d4ed8','#0ea5e9','#06b6d4','#10b981',

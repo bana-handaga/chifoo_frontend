@@ -26,7 +26,7 @@ export interface PerguruanTinggi {
   website?: string;
   email?: string;
   telepon?: string;
-  akreditasi_institusi: 'unggul' | 'baik_sekali' | 'baik' | 'belum';
+  akreditasi_institusi: 'unggul' | 'baik_sekali' | 'baik' | 'terakreditasi' | 'belum';
   nomor_sk_akreditasi?: string;
   tanggal_sk_akreditasi?: string;
   tanggal_kadaluarsa_akreditasi?: string;

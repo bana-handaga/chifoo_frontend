@@ -120,6 +120,7 @@ Chart.register(...registerables);
                     <option value="unggul">Unggul</option>
                     <option value="baik_sekali">Baik Sekali</option>
                     <option value="baik">Baik</option>
+                    <option value="terakreditasi">Terakreditasi</option>
                     <option value="belum">Belum</option>
                   </select>
                 </div>
@@ -482,6 +483,7 @@ Chart.register(...registerables);
     .badge-unggul { background: #e6f4ea; color: #137333; }
     .badge-baik_sekali { background: #e8f5e9; color: #2e7d32; }
     .badge-baik { background: #fff8e1; color: #f57f17; }
+    .badge-terakreditasi { background: #e0f7fa; color: #00838f; }
     .badge-belum { background: #f1f3f4; color: #5f6368; }
     .badge-aktif { background: #e6f4ea; color: #137333; }
     .badge-nonaktif { background: #fce8e6; color: #c5221f; }
@@ -641,8 +643,8 @@ export class PerguruanTinggiListComponent implements OnInit {
       universitas: 'Universitas', institut: 'Institut', sekolah_tinggi: 'Sekolah Tinggi',
       politeknik: 'Politeknik', akademi: 'Akademi'
     };
-    const AKR_COLORS: any = { unggul: '#137333', baik_sekali: '#2e7d32', baik: '#f57f17', belum: '#9e9e9e' };
-    const AKR_LABELS: any = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', belum: 'Belum' };
+    const AKR_COLORS: any = { unggul: '#137333', baik_sekali: '#2e7d32', baik: '#f57f17', terakreditasi: '#00838f', belum: '#9e9e9e' };
+    const AKR_LABELS: any = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', terakreditasi: 'Terakreditasi', belum: 'Belum' };
 
     this.api.getStatistikPT().subscribe((res: any) => {
       this.statistik = res;
@@ -658,7 +660,7 @@ export class PerguruanTinggiListComponent implements OnInit {
         .sort((a: any, b: any) => b.total - a.total);
 
       const totalA = res.per_akreditasi.reduce((s: number, x: any) => s + x.total, 0);
-      this.chartAkreditasi = ['unggul', 'baik_sekali', 'baik', 'belum'].map(k => {
+      this.chartAkreditasi = ['unggul', 'baik_sekali', 'baik', 'terakreditasi', 'belum'].map(k => {
         const found = res.per_akreditasi.find((x: any) => x.akreditasi_institusi === k);
         const total = found ? found.total : 0;
         return { label: AKR_LABELS[k], total, pct: totalA ? Math.round(total / totalA * 100) : 0, color: AKR_COLORS[k] };
@@ -864,7 +866,7 @@ export class PerguruanTinggiListComponent implements OnInit {
   prevPage() { if (this.prevUrl) { this.page--; this.loadData(); } }
 
   formatAkreditasi(v: string) {
-    return ({ unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', belum: 'Belum' } as any)[v] || v;
+    return ({ unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', terakreditasi: 'Terakreditasi', belum: 'Belum' } as any)[v] || v;
   }
 
   exportPt(fmt: 'csv' | 'xlsx' | 'pdf') {

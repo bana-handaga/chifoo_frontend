@@ -1283,7 +1283,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   formatAkreditasi(val: string): string {
-    const map: any = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', belum: 'Belum' };
+    const map: any = { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', terakreditasi: 'Terakreditasi', belum: 'Belum' };
     return map[val] || val;
   }
 }
