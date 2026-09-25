@@ -125,6 +125,7 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
             <option value="baik_sekali">Baik Sekali</option>
             <option value="baik">Baik</option>
             <option value="c">C</option>
+            <option value="terakreditasi">Terakreditasi</option>
             <option value="belum">Belum Terakreditasi</option>
           </select>
         </div>
@@ -1076,6 +1077,7 @@ type SortKey = 'nama' | 'jenjang' | 'jumlah_pt' | 'total_mahasiswa' | 'total_dos
     .akr-baik_sekali { background: #2563eb; color: #fff; }
     .akr-baik        { background: #0891b2; color: #fff; }
     .akr-c           { background: #d97706; color: #fff; }
+    .akr-terakreditasi { background: #00838f; color: #fff; }
     .akr-belum       { background: #94a3b8; color: #fff; }
     .exp-warn      { color: #dc2626; font-weight: 600; }
 
@@ -1466,7 +1468,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
 
   akrClass(akr: string): string {
     if (!akr) return 'akr-belum';
-    const valid = new Set(['unggul', 'baik_sekali', 'baik', 'c']);
+    const valid = new Set(['unggul', 'baik_sekali', 'baik', 'c', 'terakreditasi']);
     const key = akr.toLowerCase().replace(/\s+/g, '_');
     return valid.has(key) ? `akr-${key}` : 'akr-belum';
   }
@@ -2287,7 +2289,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
     if (!d) return;
 
     const akrLabel: Record<string, string> = {
-      unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', c: 'C', belum: 'Belum Terakreditasi'
+      unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', c: 'C', terakreditasi: 'Terakreditasi', belum: 'Belum Terakreditasi'
     };
     const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
 
@@ -2317,6 +2319,7 @@ export class ProgramStudiListComponent implements OnInit, AfterViewChecked {
   .badge-baik_sekali { background: #e0f2fe; color: #075985; }
   .badge-baik { background: #fef9c3; color: #713f12; }
   .badge-c { background: #fee2e2; color: #991b1b; }
+  .badge-terakreditasi { background: #cffafe; color: #155e75; }
   .badge-belum { background: #f1f5f9; color: #64748b; }
   .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px; }
   .info-label { font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }

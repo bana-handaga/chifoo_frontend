@@ -887,6 +887,7 @@ import * as XLSX from 'xlsx';
               <option value="unggul">Unggul</option>
               <option value="baik_sekali">Baik Sekali</option>
               <option value="baik">Baik</option>
+              <option value="terakreditasi">Terakreditasi</option>
               <option value="belum">Belum Terakreditasi</option>
             </select>
             <select class="pl-f-sem" [(ngModel)]="plFilterSem" (change)="plPage=1;loadProdiList()">

@@ -89,6 +89,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
           <option value="unggul">Unggul</option>
           <option value="baik_sekali">Baik Sekali</option>
           <option value="baik">Baik</option>
+          <option value="terakreditasi">Terakreditasi</option>
           <option value="belum">Belum Terakreditasi</option>
         </select>
         <span class="filter-count" *ngIf="filtered.length < data.total">
@@ -281,6 +282,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
     .akred-unggul      { background: #dcfce7; color: #166534; }
     .akred-baik_sekali { background: #dbeafe; color: #1e40af; }
     .akred-baik        { background: #fef9c3; color: #713f12; }
+    .akred-terakreditasi { background: #cffafe; color: #155e75; }
     .akred-belum       { background: #f1f5f9; color: #64748b; }
 
     .col-skor { width: 120px; }
@@ -426,7 +428,7 @@ export class RankingComponent implements OnInit {
   }
 
   akredLabel(val: string): string {
-    return { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', belum: 'Belum' }[val] || val;
+    return { unggul: 'Unggul', baik_sekali: 'Baik Sekali', baik: 'Baik', terakreditasi: 'Terakreditasi', belum: 'Belum' }[val] || val;
   }
 
   skorColor(skor: number): string {
